@@ -1,0 +1,85 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
+import { getSlugDestinazioni, getStruttureDestinazione } from '../../lib/queries'
+
+export async function getStaticPaths() {
+  const slug = await getSlugDestinazioni()
+  return slug.map(s => ({ params: { slug: s } }))
+}
+
+const { slug } = Astro.params
+const { destinazione, strutture } = await getStruttureDestinazione(slug as string)
+if (!destinazione) return Astro.redirect('/404')
+
+const urlCanonica = new URL(`/destinazioni/${destinazione.slug}/`, Astro.site).toString()
+const titolo = `Villaggi a ${destinazione.nome} | Hotellando`
+const descrizione = strutture.length > 0
+  ? `${strutture.length} strutture selezionate per ${destinazione.nome}: villaggi e resort con schede su spiaggia, camere, formula e prezzi.`
+  : `Le strutture selezionate da Hotellando per ${destinazione.nome} sono in arrivo.`
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <section class="apertura">
+    <div class="contenitore apertura__interno">
+      <nav class="briciole" aria-label="Percorso">
+        <a href="/">Home</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{destinazione.nome}</span>
+      </nav>
+      <h1>Villaggi a {destinazione.nome}</h1>
+      {strutture.length > 0 && <p>{strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.</p>}
+    </div>
+  </section>
+
+  <main class="contenitore pagina-elenco">
+    {strutture.length > 0
+      ? <GrigliaStrutture strutture={strutture} />
+      : <p class="vuoto">Non ci sono ancora strutture pubblicate per questa destinazione. <a href="/">Vedi tutti i villaggi</a>.</p>}
+  </main>
+</BaseLayout>
+
+<style>
+  .apertura {
+    padding: 2rem 0 2.5rem;
+  }
+
+  .briciole {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+    margin-bottom: 1.25rem;
+  }
+
+  .briciole a {
+    color: var(--testo-tenue);
+    text-decoration: none;
+  }
+
+  .briciole a:hover {
+    color: var(--lime-scuro);
+  }
+
+  .apertura__interno h1 {
+    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .apertura__interno p {
+    color: var(--testo);
+    margin: 0;
+  }
+
+  .pagina-elenco {
+    padding: 1rem 0 4rem;
+  }
+
+  .vuoto {
+    color: var(--testo-tenue);
+  }
+
+  .vuoto a {
+    color: var(--lime-scuro);
+  }
+</style>

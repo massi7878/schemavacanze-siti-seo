@@ -75,3 +75,20 @@ export function etichettaRiduzione(posizioneLetto: string, etaDa: number, etaA: 
   if (tipo === 'gratuito') return `${base}: gratuito`
   return `${base}: -${valore}%`
 }
+
+const ACCENTI: Record<string, string> = { à: 'a', á: 'a', è: 'e', é: 'e', ì: 'i', í: 'i', ò: 'o', ó: 'o', ù: 'u', ú: 'u' }
+
+export function slugifica(testo: string): string {
+  return testo
+    .trim()
+    .toLowerCase()
+    .replace(/[àáèéìíòóùú]/g, c => ACCENTI[c] ?? c)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+// Normalizza varianti di maiuscole/minuscole e spazi della stessa regione
+// (es. "CALABRIA" / "Calabria " / "calabria") sotto un'unica etichetta.
+export function nomeRegioneNormalizzato(regione: string): string {
+  return regione.trim().replace(/\s+/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+}

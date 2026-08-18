@@ -1,10 +1,9 @@
 ---
-const numeroContatto = '0817670387'
+import { getDestinazioniPerCategoria, getRegioni } from '../lib/queries'
 
-const voci = [
-  { etichetta: 'Home', href: '/' },
-  { etichetta: 'Villaggi', href: '/#strutture' },
-]
+const numeroContatto = '0817670387'
+const regioni = await getRegioni()
+const categorieDestinazioni = await getDestinazioniPerCategoria()
 ---
 
 <header class="testata-sito">
@@ -14,7 +13,26 @@ const voci = [
     </a>
 
     <nav class="testata-sito__nav" aria-label="Principale">
-      {voci.map(v => <a href={v.href}>{v.etichetta}</a>)}
+      <a href="/">Home</a>
+
+      <details class="menu-tendina">
+        <summary>Villaggi</summary>
+        <div class="menu-tendina__pannello">
+          {regioni.map(r => <a href={`/regione/${r.slug}/`}>{r.nome}</a>)}
+        </div>
+      </details>
+
+      <details class="menu-tendina">
+        <summary>Destinazioni</summary>
+        <div class="menu-tendina__pannello menu-tendina__pannello--colonne">
+          {categorieDestinazioni.map(cat => (
+            <div class="menu-tendina__gruppo">
+              <span class="menu-tendina__intestazione">{cat.nome}</span>
+              {cat.destinazioni.map(d => <a href={`/destinazioni/${d.slug}/`}>{d.nome}</a>)}
+            </div>
+          ))}
+        </div>
+      </details>
     </nav>
 
     <div class="testata-sito__contatti">
@@ -33,7 +51,26 @@ const voci = [
 
   <div class="testata-sito__mobile" id="menu-mobile" hidden>
     <nav aria-label="Principale (mobile)">
-      {voci.map(v => <a href={v.href}>{v.etichetta}</a>)}
+      <a href="/">Home</a>
+
+      <details>
+        <summary>Villaggi</summary>
+        <div class="testata-sito__mobile-pannello">
+          {regioni.map(r => <a href={`/regione/${r.slug}/`}>{r.nome}</a>)}
+        </div>
+      </details>
+
+      <details>
+        <summary>Destinazioni</summary>
+        <div class="testata-sito__mobile-pannello">
+          {categorieDestinazioni.map(cat => (
+            <>
+              <span class="menu-tendina__intestazione">{cat.nome}</span>
+              {cat.destinazioni.map(d => <a href={`/destinazioni/${d.slug}/`}>{d.nome}</a>)}
+            </>
+          ))}
+        </div>
+      </details>
     </nav>
     <a class="testata-sito__link-secondario" href={`tel:+39${numeroContatto}`}>Chiama {numeroContatto}</a>
     <a class="pulsante" href={`https://wa.me/39${numeroContatto}`} target="_blank" rel="noopener">Scrivi per un preventivo</a>
@@ -48,6 +85,21 @@ const voci = [
     bottone.setAttribute('aria-expanded', String(!aperto))
     bottone.classList.toggle('è-aperto', !aperto)
     if (menu) menu.hidden = aperto
+  })
+
+  // Chiude i menu a tendina aperti quando se ne apre un altro o si clicca fuori.
+  const tendine = document.querySelectorAll<HTMLDetailsElement>('.menu-tendina')
+  tendine.forEach(dettaglio => {
+    dettaglio.addEventListener('toggle', () => {
+      if (dettaglio.open) {
+        tendine.forEach(altro => { if (altro !== dettaglio) altro.open = false })
+      }
+    })
+  })
+  document.addEventListener('click', evento => {
+    tendine.forEach(dettaglio => {
+      if (dettaglio.open && !dettaglio.contains(evento.target as Node)) dettaglio.open = false
+    })
   })
 </script>
 
@@ -71,19 +123,103 @@ const voci = [
 
   .testata-sito__nav {
     display: flex;
+    align-items: center;
     gap: 1.75rem;
     margin-right: auto;
   }
 
-  .testata-sito__nav a {
+  .testata-sito__nav > a {
     color: var(--inchiostro);
     font-weight: 600;
     font-size: 1rem;
     text-decoration: none;
   }
 
-  .testata-sito__nav a:hover {
+  .testata-sito__nav > a:hover {
     color: var(--lime-scuro);
+  }
+
+  .menu-tendina {
+    position: relative;
+  }
+
+  .menu-tendina summary {
+    color: var(--inchiostro);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .menu-tendina summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .menu-tendina summary::after {
+    content: '▾';
+    margin-left: 0.35em;
+    font-size: 0.75em;
+    color: var(--testo-tenue);
+  }
+
+  .menu-tendina[open] summary,
+  .menu-tendina summary:hover {
+    color: var(--lime-scuro);
+  }
+
+  .menu-tendina__pannello {
+    position: absolute;
+    top: calc(100% + 0.9rem);
+    left: 0;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 13rem;
+    max-height: 24rem;
+    overflow-y: auto;
+    z-index: 20;
+  }
+
+  .menu-tendina__pannello--colonne {
+    flex-direction: row;
+    gap: 1.75rem;
+    min-width: 32rem;
+    max-height: none;
+  }
+
+  .menu-tendina__gruppo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 9rem;
+  }
+
+  .menu-tendina__intestazione {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--testo-tenue);
+    font-weight: 700;
+    padding: 0.4rem 0.6rem 0.2rem;
+  }
+
+  .menu-tendina__pannello a,
+  .testata-sito__mobile-pannello a {
+    color: var(--testo);
+    text-decoration: none;
+    font-size: 0.92rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .menu-tendina__pannello a:hover {
+    background: var(--lime-chiaro);
+    color: var(--lime-scuro-hover);
   }
 
   .testata-sito__contatti {
@@ -162,11 +298,25 @@ const voci = [
     gap: 0.9rem;
   }
 
-  .testata-sito__mobile nav a {
+  .testata-sito__mobile nav > a,
+  .testata-sito__mobile summary {
     color: var(--inchiostro);
     font-weight: 600;
     font-size: 1.05rem;
     text-decoration: none;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .testata-sito__mobile summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .testata-sito__mobile-pannello {
+    display: flex;
+    flex-direction: column;
+    padding-top: 0.6rem;
+    gap: 0.1rem;
   }
 
   .testata-sito__mobile .testata-sito__link-secondario {

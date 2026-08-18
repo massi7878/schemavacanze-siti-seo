@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { nomeRegioneNormalizzato, slugifica } from './formato'
 
 // Nessun dato qui viene inventato: ogni campo che manca nel database resta
 // null/vuoto e la pagina omette semplicemente quella sezione, invece di
@@ -37,17 +38,91 @@ export async function getStruttureElenco() {
     .select('id, slug, nome, localita, regione, stelle, formula')
     .eq('attiva', true)
     .not('slug', 'is', null)
-  const strutture = data ?? []
-  if (strutture.length === 0) return []
+  return conCopertine(data ?? [])
+}
 
+async function conCopertine<T extends { id: string }>(strutture: T[]): Promise<(T & { copertina: string | null })[]> {
+  if (strutture.length === 0) return []
   const { data: copertine } = await supabase
     .from('struttura_media')
     .select('struttura_id, url')
     .in('struttura_id', strutture.map(s => s.id))
     .eq('copertina', true)
-
   const copertinaPerStruttura = new Map((copertine ?? []).map(c => [c.struttura_id, c.url]))
   return strutture.map(s => ({ ...s, copertina: copertinaPerStruttura.get(s.id) ?? null }))
+}
+
+export async function getRegioni() {
+  const { data } = await supabase
+    .from('strutture')
+    .select('regione')
+    .eq('attiva', true)
+    .not('regione', 'is', null)
+  const conteggio = new Map<string, number>()
+  for (const riga of data ?? []) {
+    const nome = nomeRegioneNormalizzato(riga.regione as string)
+    conteggio.set(nome, (conteggio.get(nome) ?? 0) + 1)
+  }
+  return Array.from(conteggio, ([nome, totale]) => ({ nome, slug: slugifica(nome), totale }))
+    .sort((a, b) => b.totale - a.totale)
+}
+
+export async function getStruttureRegione(regioneSlug: string) {
+  const regioni = await getRegioni()
+  const regione = regioni.find(r => r.slug === regioneSlug)
+  if (!regione) return { regione: null, strutture: [] }
+
+  const { data } = await supabase
+    .from('strutture')
+    .select('id, slug, nome, localita, regione, stelle, formula')
+    .eq('attiva', true)
+    .not('slug', 'is', null)
+    .not('regione', 'is', null)
+  const filtrate = (data ?? []).filter(s => nomeRegioneNormalizzato(s.regione as string) === regione.nome)
+  return { regione, strutture: await conCopertine(filtrate) }
+}
+
+export async function getDestinazioniPerCategoria() {
+  const { data: categorie } = await supabase
+    .from('categorie_destinazione')
+    .select('id, nome, ordine')
+    .eq('attiva', true)
+    .order('ordine')
+  const { data: destinazioni } = await supabase
+    .from('destinazioni')
+    .select('id, nome, slug, categoria_id, parent_id')
+    .eq('attiva', true)
+    .is('parent_id', null)
+    .order('nome')
+
+  return (categorie ?? []).map(cat => ({
+    id: cat.id,
+    nome: cat.nome,
+    destinazioni: (destinazioni ?? []).filter(d => d.categoria_id === cat.id),
+  }))
+}
+
+export async function getSlugDestinazioni() {
+  const { data } = await supabase.from('destinazioni').select('slug').eq('attiva', true).not('slug', 'is', null)
+  return (data ?? []).map(d => d.slug as string)
+}
+
+export async function getStruttureDestinazione(slug: string) {
+  const { data: destinazione } = await supabase
+    .from('destinazioni')
+    .select('id, nome, slug')
+    .eq('slug', slug)
+    .eq('attiva', true)
+    .maybeSingle()
+  if (!destinazione) return { destinazione: null, strutture: [] }
+
+  const { data } = await supabase
+    .from('strutture')
+    .select('id, slug, nome, localita, regione, stelle, formula')
+    .eq('attiva', true)
+    .eq('destinazione_id', destinazione.id)
+    .not('slug', 'is', null)
+  return { destinazione, strutture: await conCopertine(data ?? []) }
 }
 
 export async function getStrutturaCompleta(slug: string) {

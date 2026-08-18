@@ -55,6 +55,8 @@ const distanze = [
   struttura.aeroporto_nome && `aeroporto di ${struttura.aeroporto_nome}${struttura.aeroporto_distanza_km != null ? ` a ${struttura.aeroporto_distanza_km} km` : ''}`,
 ].filter(Boolean) as string[]
 
+const testoDescrizione = struttura.descrizione_seo || struttura.descrizione
+const haDescrizione = Boolean(testoDescrizione)
 const haPosizioneOSpiaggia = Boolean(
   struttura.indirizzo || struttura.descrizione_spiaggia || struttura.spiaggia_tipo || distanze.length > 0
 )
@@ -69,6 +71,7 @@ const haPrezzi = righeTabellaPrezzi.length > 0 || riduzioni.length > 0
 const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
 
 const sezioniTab = [
+  haDescrizione && { id: 'descrizione', etichetta: 'Descrizione' },
   haPosizioneOSpiaggia && { id: 'posizione', etichetta: 'Posizione' },
   haCamere && { id: 'camere', etichetta: 'Camere' },
   haRistorazione && { id: 'formula', etichetta: 'Formula' },
@@ -114,10 +117,6 @@ const sezioniTab = [
 
       <h1 class="testata__titolo">{struttura.nome}</h1>
 
-      {(struttura.descrizione_seo || struttura.descrizione) && (
-        <p class="testata__intro">{struttura.descrizione_seo || struttura.descrizione}</p>
-      )}
-
       {prezzoDa != null && (
         <p class="testata__prezzo">
           Da <strong>{prezzoDa}€</strong> <span>a notte</span>
@@ -154,6 +153,13 @@ const sezioniTab = [
   )}
 
   <main class="contenitore">
+    {haDescrizione && (
+      <section class="sezione" id="descrizione">
+        <h2 class="sezione__titolo">Descrizione</h2>
+        <p class="testo-descrizione">{testoDescrizione}</p>
+      </section>
+    )}
+
     {haPosizioneOSpiaggia && (
       <section class="sezione" id="posizione">
         <h2 class="sezione__titolo">Posizione e spiaggia</h2>
@@ -324,10 +330,13 @@ const sezioniTab = [
     margin-bottom: 1rem;
   }
 
-  .testata__intro {
-    max-width: 42rem;
-    font-size: 1.1rem;
-    color: var(--testo);
+  .testo-descrizione {
+    max-width: 68ch;
+    font-size: 1.05rem;
+  }
+
+  main .sezione {
+    scroll-margin-top: 4.5rem;
   }
 
   .galleria {
@@ -337,12 +346,12 @@ const sezioniTab = [
   .galleria__griglia {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: 0.5rem;
-    padding-bottom: 1.5rem;
+    gap: 0.4rem;
+    max-height: 20rem;
+    padding-bottom: 1.25rem;
   }
 
   .galleria__principale {
-    aspect-ratio: 16 / 10;
     overflow: hidden;
     border-radius: var(--raggio);
   }
@@ -356,19 +365,19 @@ const sezioniTab = [
   .galleria__secondarie {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+    gap: 0.4rem;
   }
 
   .galleria__secondarie img {
     width: 100%;
     height: 100%;
-    aspect-ratio: 1 / 1;
     object-fit: cover;
     border-radius: var(--raggio-piccolo);
   }
 
   .tab-sezioni {
-    background: var(--lime-scuro);
+    background: var(--superficie);
+    border-bottom: 1px solid var(--bordo);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -376,24 +385,24 @@ const sezioniTab = [
 
   .tab-sezioni__interno {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.5rem;
     overflow-x: auto;
   }
 
   .tab-sezioni a {
-    color: rgba(255, 255, 255, 0.82);
+    color: var(--testo);
     text-decoration: none;
     font-weight: 600;
     font-size: 0.92rem;
-    padding: 0.9rem 1.1rem;
+    padding: 0.9rem 0.9rem;
     white-space: nowrap;
     border-bottom: 3px solid transparent;
     transition: color 0.15s ease, border-color 0.15s ease;
   }
 
   .tab-sezioni a:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.5);
+    color: var(--lime-scuro);
+    border-color: var(--lime);
   }
 
   .testata__prezzo {

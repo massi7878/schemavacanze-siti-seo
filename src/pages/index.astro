@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import GrigliaStrutture from '../components/GrigliaStrutture.astro'
 import { getStruttureElenco } from '../lib/queries'
-import { ETICHETTA_FORMULA } from '../lib/formato'
 
 const strutture = await getStruttureElenco()
 const urlCanonica = new URL('/', Astro.site).toString()
@@ -21,45 +21,26 @@ const urlCanonica = new URL('/', Astro.site).toString()
 
   <main class="contenitore pagina-home" id="strutture">
     <h2 class="pagina-home__titolo">Le nostre strutture</h2>
-
-    <ul class="griglia-strutture">
-      {strutture.map(s => (
-        <li>
-          <a class="scheda-struttura" href={`/villaggi/${s.slug}/`}>
-            <div class="scheda-struttura__immagine">
-              {s.copertina
-                ? <img src={s.copertina} alt={s.nome} loading="lazy" />
-                : <span class="scheda-struttura__segnaposto" aria-hidden="true">{s.nome.charAt(0)}</span>}
-            </div>
-            <div class="scheda-struttura__corpo">
-              {s.formula && <span class="pillola scheda-struttura__pillola">{ETICHETTA_FORMULA[s.formula] ?? s.formula}</span>}
-              <span class="scheda-struttura__nome">{s.nome}</span>
-              {s.localita && (
-                <span class="scheda-struttura__luogo">
-                  {s.localita}{s.regione ? `, ${s.regione}` : ''}
-                </span>
-              )}
-              {s.stelle && <span class="scheda-struttura__stelle">{'★'.repeat(s.stelle)}</span>}
-            </div>
-          </a>
-        </li>
-      ))}
-    </ul>
+    <GrigliaStrutture strutture={strutture} />
   </main>
 </BaseLayout>
 
 <style>
   .apertura {
-    padding: 3.5rem 0 2.5rem;
+    padding: 4.5rem 0;
+    background-image: linear-gradient(120deg, rgba(30, 48, 12, 0.82), rgba(74, 114, 32, 0.55)), url('https://www.schemavacanze.it/gallery/17595.jpg');
+    background-size: cover;
+    background-position: center;
   }
 
   .apertura__interno h1 {
     font-size: clamp(2.25rem, 1.7rem + 2.5vw, 3.5rem);
     margin-bottom: 0.75rem;
+    color: #fff;
   }
 
   .apertura__interno p {
-    color: var(--testo);
+    color: rgba(255, 255, 255, 0.92);
     max-width: 34rem;
     font-size: 1.1rem;
     margin: 0;
@@ -72,82 +53,5 @@ const urlCanonica = new URL('/', Astro.site).toString()
   .pagina-home__titolo {
     font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
     margin-bottom: 1.5rem;
-  }
-
-  .griglia-strutture {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-  }
-
-  .scheda-struttura {
-    display: flex;
-    flex-direction: column;
-    background: var(--superficie);
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio);
-    overflow: hidden;
-    box-shadow: var(--ombra);
-    text-decoration: none;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .scheda-struttura:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(52, 54, 58, 0.08), 0 16px 32px -16px rgba(52, 54, 58, 0.28);
-  }
-
-  .scheda-struttura__immagine {
-    aspect-ratio: 4 / 3;
-    background: var(--lime-chiaro);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .scheda-struttura__immagine img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .scheda-struttura__segnaposto {
-    font-family: var(--font-display);
-    font-size: 3rem;
-    font-weight: 500;
-    color: var(--lime-scuro);
-  }
-
-  .scheda-struttura__corpo {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.3rem;
-    padding: 1.1rem 1.25rem 1.35rem;
-  }
-
-  .scheda-struttura__pillola {
-    margin-bottom: 0.2rem;
-  }
-
-  .scheda-struttura__nome {
-    font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-weight: 500;
-    color: var(--inchiostro);
-  }
-
-  .scheda-struttura__luogo {
-    font-size: 0.88rem;
-    color: var(--testo-tenue);
-  }
-
-  .scheda-struttura__stelle {
-    color: var(--lime-scuro);
-    font-size: 0.8rem;
-    margin-top: 0.15rem;
   }
 </style>
