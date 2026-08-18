@@ -1,30 +1,36 @@
 :root {
-  --colore-primario: #337eb8;
-  --colore-primario-scuro: #245a85;
-  --colore-secondario: #e03e55;
-  --colore-inchiostro: #182430;
-  --colore-testo: #33404d;
-  --colore-testo-tenue: #5b6773;
-  --colore-sfondo: #fbfaf7;
-  --colore-superficie: #ffffff;
-  --colore-bordo: #e4e0d8;
-  --raggio: 12px;
+  /* Verde valigia Hotellando: fondi larghi, badge, rifiniture */
+  --lime: #8dc63f;
+  --lime-chiaro: #eaf4d8;
+  /* Stessa tinta portata a un valore leggibile per bottoni e link su bianco */
+  --lime-scuro: #4a7220;
+  --lime-scuro-hover: #3c5c1a;
+
+  --inchiostro: #34363a;
+  --testo: #55575a;
+  --testo-tenue: #797b7e;
+  --sfondo: #f5f6f2;
+  --superficie: #ffffff;
+  --bordo: #e2e4dc;
+
+  --raggio: 14px;
   --raggio-piccolo: 8px;
-  --ombra: 0 1px 2px rgba(24, 36, 48, 0.06), 0 8px 24px -12px rgba(24, 36, 48, 0.18);
-  --larghezza-contenuto: 76rem;
-  --font-display: 'Petrona', Georgia, 'Times New Roman', serif;
-  --font-testo: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ombra: 0 1px 2px rgba(52, 54, 58, 0.06), 0 10px 28px -14px rgba(52, 54, 58, 0.22);
+  --larghezza-contenuto: 92rem;
+  --font-display: 'Jost', -apple-system, 'Segoe UI', sans-serif;
+  --font-testo: 'Mulish', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --colore-inchiostro: #f2ede4;
-    --colore-testo: #d8d2c6;
-    --colore-testo-tenue: #a39c8e;
-    --colore-sfondo: #171410;
-    --colore-superficie: #201c17;
-    --colore-bordo: #34302a;
-    --ombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    --inchiostro: #f0f1ec;
+    --testo: #cfd1c9;
+    --testo-tenue: #9a9c95;
+    --sfondo: #1c1e19;
+    --superficie: #262922;
+    --bordo: #3a3d34;
+    --lime-chiaro: #33431d;
+    --ombra: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px -14px rgba(0, 0, 0, 0.55);
   }
 }
 
@@ -38,8 +44,8 @@ html {
 
 body {
   margin: 0;
-  background: var(--colore-sfondo);
-  color: var(--colore-testo);
+  background: var(--sfondo);
+  color: var(--testo);
   font-family: var(--font-testo);
   font-size: 16px;
   line-height: 1.6;
@@ -53,14 +59,19 @@ img {
 
 h1, h2, h3 {
   font-family: var(--font-display);
-  color: var(--colore-inchiostro);
-  line-height: 1.15;
+  color: var(--lime-scuro);
+  line-height: 1.1;
   text-wrap: balance;
   margin: 0;
+  font-weight: 500;
 }
 
 a {
-  color: var(--colore-primario);
+  color: var(--lime-scuro);
+}
+
+a:hover {
+  color: var(--lime-scuro-hover);
 }
 
 .contenitore {
@@ -71,7 +82,7 @@ a {
 
 .sezione {
   padding: 3rem 0;
-  border-top: 1px solid var(--colore-bordo);
+  border-top: 1px solid var(--bordo);
 }
 
 .sezione:first-of-type {
@@ -80,7 +91,7 @@ a {
 
 .sezione__titolo {
   font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 1.25rem;
 }
 
@@ -90,10 +101,33 @@ a {
   gap: 0.4em;
   padding: 0.35em 0.85em;
   border-radius: 999px;
-  background: var(--colore-superficie);
-  border: 1px solid var(--colore-bordo);
+  background: var(--lime-chiaro);
+  border: 1px solid transparent;
   font-size: 0.85rem;
-  color: var(--colore-testo);
+  font-weight: 600;
+  color: var(--lime-scuro-hover);
+}
+
+.pulsante {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding: 0.8em 1.5em;
+  border-radius: 999px;
+  background: var(--lime-scuro);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.pulsante:hover {
+  background: var(--lime-scuro-hover);
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 .tabella-scroll {
@@ -109,16 +143,16 @@ table {
 th, td {
   text-align: left;
   padding: 0.7rem 1rem;
-  border-bottom: 1px solid var(--colore-bordo);
+  border-bottom: 1px solid var(--bordo);
   font-variant-numeric: tabular-nums;
 }
 
 th {
   font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--colore-testo-tenue);
-  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--testo-tenue);
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {

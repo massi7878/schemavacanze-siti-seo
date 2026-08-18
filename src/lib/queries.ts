@@ -31,6 +31,25 @@ export async function getStruttureSitemap() {
   return data ?? []
 }
 
+export async function getStruttureElenco() {
+  const { data } = await supabase
+    .from('strutture')
+    .select('id, slug, nome, localita, regione, stelle, formula')
+    .eq('attiva', true)
+    .not('slug', 'is', null)
+  const strutture = data ?? []
+  if (strutture.length === 0) return []
+
+  const { data: copertine } = await supabase
+    .from('struttura_media')
+    .select('struttura_id, url')
+    .in('struttura_id', strutture.map(s => s.id))
+    .eq('copertina', true)
+
+  const copertinaPerStruttura = new Map((copertine ?? []).map(c => [c.struttura_id, c.url]))
+  return strutture.map(s => ({ ...s, copertina: copertinaPerStruttura.get(s.id) ?? null }))
+}
+
 export async function getStrutturaCompleta(slug: string) {
   const { data: struttura } = await supabase
     .from('strutture')
@@ -40,7 +59,7 @@ export async function getStrutturaCompleta(slug: string) {
     .maybeSingle()
   if (!struttura) return null
 
-  const [{ data: servizi }, { data: camere }, { data: prezzi }, { data: riduzioni }] = await Promise.all([
+  const [{ data: servizi }, { data: camere }, { data: prezzi }, { data: riduzioni }, { data: media }] = await Promise.all([
     supabase
       .from('struttura_servizi')
       .select('servizi_struttura(nome, categoria)')
@@ -60,6 +79,13 @@ export async function getStrutturaCompleta(slug: string) {
       .from('riduzioni_letto')
       .select('posizione_letto, eta_da, eta_a, tipo_riduzione, valore, note')
       .eq('struttura_id', struttura.id),
+    supabase
+      .from('struttura_media')
+      .select('url, copertina, ordine')
+      .eq('struttura_id', struttura.id)
+      .eq('tipo', 'immagine')
+      .order('copertina', { ascending: false })
+      .order('ordine'),
   ])
 
   const righeServizi = (servizi ?? [])
@@ -82,5 +108,6 @@ export async function getStrutturaCompleta(slug: string) {
     camere: camere ?? [],
     prezzi: prezziValidi,
     riduzioni: riduzioni ?? [],
+    galleria: (media ?? []).map(m => m.url),
   }
 }

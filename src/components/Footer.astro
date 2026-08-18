@@ -1,0 +1,40 @@
+---
+import { getAzienda } from '../lib/queries'
+
+const azienda = await getAzienda()
+---
+
+<footer class="piede-sito">
+  <div class="contenitore piede-sito__interno">
+    <p class="piede-sito__contatto">
+      {azienda?.telefono && <a href={`tel:${azienda.telefono.replace(/\s/g, '')}`}>{azienda.telefono}</a>}
+    </p>
+    <p class="piede-sito__marchio">Hotellando easy booking.</p>
+  </div>
+</footer>
+
+<style>
+  .piede-sito {
+    border-top: 1px solid var(--bordo);
+    background: var(--superficie);
+  }
+
+  .piede-sito__interno {
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--testo-tenue);
+    font-size: 0.9rem;
+  }
+
+  .piede-sito__contatto a {
+    color: var(--testo-tenue);
+  }
+
+  .piede-sito__marchio {
+    margin: 0;
+  }
+</style>

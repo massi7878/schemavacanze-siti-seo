@@ -1,0 +1,194 @@
+---
+const numeroContatto = '0817670387'
+
+const voci = [
+  { etichetta: 'Home', href: '/' },
+  { etichetta: 'Villaggi', href: '/#strutture' },
+]
+---
+
+<header class="testata-sito">
+  <div class="contenitore testata-sito__interno">
+    <a href="/" class="testata-sito__logo" aria-label="Hotellando, torna alla home">
+      <img src="/brand/hotellando-logo.jpg" alt="Hotellando easy booking" width="196" height="75" />
+    </a>
+
+    <nav class="testata-sito__nav" aria-label="Principale">
+      {voci.map(v => <a href={v.href}>{v.etichetta}</a>)}
+    </nav>
+
+    <div class="testata-sito__contatti">
+      <a class="testata-sito__link-secondario" href={`tel:+39${numeroContatto}`}>Chiama</a>
+      <a class="pulsante testata-sito__cta" href={`https://wa.me/39${numeroContatto}`} target="_blank" rel="noopener">
+        Scrivi per un preventivo
+      </a>
+    </div>
+
+    <button type="button" class="testata-sito__hamburger" aria-expanded="false" aria-controls="menu-mobile" aria-label="Apri il menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+
+  <div class="testata-sito__mobile" id="menu-mobile" hidden>
+    <nav aria-label="Principale (mobile)">
+      {voci.map(v => <a href={v.href}>{v.etichetta}</a>)}
+    </nav>
+    <a class="testata-sito__link-secondario" href={`tel:+39${numeroContatto}`}>Chiama {numeroContatto}</a>
+    <a class="pulsante" href={`https://wa.me/39${numeroContatto}`} target="_blank" rel="noopener">Scrivi per un preventivo</a>
+  </div>
+</header>
+
+<script>
+  const bottone = document.querySelector('.testata-sito__hamburger')
+  const menu = document.getElementById('menu-mobile')
+  bottone?.addEventListener('click', () => {
+    const aperto = bottone.getAttribute('aria-expanded') === 'true'
+    bottone.setAttribute('aria-expanded', String(!aperto))
+    bottone.classList.toggle('è-aperto', !aperto)
+    if (menu) menu.hidden = aperto
+  })
+</script>
+
+<style>
+  .testata-sito {
+    background: var(--superficie);
+    border-bottom: 1px solid var(--bordo);
+  }
+
+  .testata-sito__interno {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    padding: 1.35rem 1.5rem;
+  }
+
+  .testata-sito__logo img {
+    height: 56px;
+    width: auto;
+  }
+
+  .testata-sito__nav {
+    display: flex;
+    gap: 1.75rem;
+    margin-right: auto;
+  }
+
+  .testata-sito__nav a {
+    color: var(--inchiostro);
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+  }
+
+  .testata-sito__nav a:hover {
+    color: var(--lime-scuro);
+  }
+
+  .testata-sito__contatti {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .testata-sito__link-secondario {
+    color: var(--testo);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+  }
+
+  .testata-sito__link-secondario:hover {
+    color: var(--lime-scuro);
+  }
+
+  .testata-sito__cta {
+    padding: 0.7em 1.4em;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+
+  .testata-sito__hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .testata-sito__hamburger span {
+    display: block;
+    height: 2px;
+    background: var(--inchiostro);
+    border-radius: 2px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .testata-sito__hamburger.è-aperto span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .testata-sito__hamburger.è-aperto span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .testata-sito__hamburger.è-aperto span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .testata-sito__mobile {
+    display: none;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0 1.5rem 1.5rem;
+    border-top: 1px solid var(--bordo);
+    padding-top: 1.25rem;
+  }
+
+  .testata-sito__mobile[hidden] {
+    display: none;
+  }
+
+  .testata-sito__mobile nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .testata-sito__mobile nav a {
+    color: var(--inchiostro);
+    font-weight: 600;
+    font-size: 1.05rem;
+    text-decoration: none;
+  }
+
+  .testata-sito__mobile .testata-sito__link-secondario {
+    display: block;
+  }
+
+  @media (max-width: 760px) {
+    .testata-sito__logo img {
+      height: 44px;
+    }
+
+    .testata-sito__nav,
+    .testata-sito__contatti {
+      display: none;
+    }
+
+    .testata-sito__hamburger {
+      display: flex;
+    }
+
+    .testata-sito__mobile:not([hidden]) {
+      display: flex;
+    }
+  }
+</style>

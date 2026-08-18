@@ -10,9 +10,10 @@ interface Props {
   prezzoMinimo: number | null
   urlPagina: string
   urlDestinazione: string | null
+  galleria?: string[]
 }
 
-const { struttura, azienda, servizi, animaliAmmessi, prezzoMinimo, urlPagina, urlDestinazione } = Astro.props
+const { struttura, azienda, servizi, animaliAmmessi, prezzoMinimo, urlPagina, urlDestinazione, galleria = [] } = Astro.props
 
 const resort: Record<string, any> = {
   '@type': 'Resort',
@@ -35,7 +36,7 @@ if (struttura.latitudine != null && struttura.longitudine != null) {
 }
 if (azienda?.telefono || azienda?.cellulare) resort.telephone = azienda.telefono || azienda.cellulare
 if (azienda?.sito_web) resort.sameAs = azienda.sito_web
-if (struttura.foto_url) resort.image = struttura.foto_url
+if (galleria.length > 0) resort.image = galleria
 if (servizi.size > 0) {
   resort.amenityFeature = Array.from(servizi).map(nome => ({
     '@type': 'LocationFeatureSpecification',

@@ -20,7 +20,7 @@ export async function getStaticPaths() {
 const { slug } = Astro.params
 const dati = await getStrutturaCompleta(slug as string)
 if (!dati) return Astro.redirect('/404')
-const { struttura, servizi, animaliAmmessi, animazione, spiaggiaPrivata, serviziBambini, camere, prezzi, riduzioni } = dati
+const { struttura, servizi, animaliAmmessi, animazione, spiaggiaPrivata, serviziBambini, camere, prezzi, riduzioni, galleria } = dati
 const azienda = await getAzienda()
 
 const anno = annoDaPrezzi(prezzi)
@@ -67,9 +67,18 @@ const haAnimazioneBambini = Boolean(
 )
 const haPrezzi = righeTabellaPrezzi.length > 0 || riduzioni.length > 0
 const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
+
+const sezioniTab = [
+  haPosizioneOSpiaggia && { id: 'posizione', etichetta: 'Posizione' },
+  haCamere && { id: 'camere', etichetta: 'Camere' },
+  haRistorazione && { id: 'formula', etichetta: 'Formula' },
+  haAnimazioneBambini && { id: 'animazione', etichetta: 'Bambini' },
+  haPrezzi && { id: 'prezzi', etichetta: 'Prezzi' },
+  haFaq && { id: 'faq', etichetta: 'FAQ' },
+].filter((s): s is { id: string; etichetta: string } => Boolean(s))
 ---
 
-<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={struttura.foto_url}>
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={galleria[0] ?? null}>
   <Fragment slot="head-extra">
     <JsonLd
       struttura={struttura}
@@ -79,6 +88,7 @@ const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
       prezzoMinimo={prezzoDa}
       urlPagina={urlCanonica}
       urlDestinazione={urlDestinazione}
+      galleria={galleria}
     />
   </Fragment>
 
@@ -110,11 +120,38 @@ const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
 
       {prezzoDa != null && (
         <p class="testata__prezzo">
-          Da <strong>{prezzoDa}€</strong> a notte
+          Da <strong>{prezzoDa}€</strong> <span>a notte</span>
         </p>
       )}
     </div>
   </header>
+
+  {galleria.length > 0 && (
+    <section class="galleria" aria-label="Galleria fotografica">
+      <div class="contenitore galleria__griglia">
+        <div class="galleria__principale">
+          <img src={galleria[0]} alt={struttura.nome} loading="eager" />
+        </div>
+        {galleria.length > 1 && (
+          <div class="galleria__secondarie">
+            {galleria.slice(1, 5).map((url, i) => (
+              <img src={url} alt={`${struttura.nome} — foto ${i + 2}`} loading="lazy" />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+
+  {sezioniTab.length > 1 && (
+    <nav class="tab-sezioni" aria-label="Sezioni della pagina">
+      <div class="contenitore tab-sezioni__interno">
+        {sezioniTab.map(s => (
+          <a href={`#${s.id}`}>{s.etichetta}</a>
+        ))}
+      </div>
+    </nav>
+  )}
 
   <main class="contenitore">
     {haPosizioneOSpiaggia && (
@@ -239,76 +276,146 @@ const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
         </div>
       </section>
     )}
-  </main>
-
-  <footer class="piede">
-    <div class="contenitore">
-      <p>{azienda?.nome_commerciale ?? azienda?.ragione_sociale}
-        {azienda?.telefono && <> · <a href={`tel:${azienda.telefono.replace(/\s/g, '')}`}>{azienda.telefono}</a></>}
+    {struttura.data_aggiornamento_contenuti && (
+      <p class="nota-aggiornamento">
+        Contenuti aggiornati il {new Date(struttura.data_aggiornamento_contenuti).toLocaleDateString('it-IT')}
       </p>
-      {struttura.data_aggiornamento_contenuti && (
-        <p class="piede__aggiornamento">
-          Contenuti aggiornati il {new Date(struttura.data_aggiornamento_contenuti).toLocaleDateString('it-IT')}
-        </p>
-      )}
-    </div>
-  </footer>
+    )}
+  </main>
 </BaseLayout>
 
 <style>
   .testata {
-    background: linear-gradient(180deg, var(--colore-superficie), var(--colore-sfondo));
-    border-bottom: 1px solid var(--colore-bordo);
+    background: var(--superficie);
+    border-bottom: 1px solid var(--bordo);
   }
 
   .testata__interno {
-    padding: 2.5rem 0 3rem;
+    padding: 2rem 0 1.75rem;
   }
 
   .briciole {
     display: flex;
     gap: 0.5rem;
     font-size: 0.85rem;
-    color: var(--colore-testo-tenue);
+    color: var(--testo-tenue);
     margin-bottom: 1.25rem;
   }
 
   .briciole a {
-    color: inherit;
+    color: var(--testo-tenue);
     text-decoration: none;
   }
 
   .briciole a:hover {
-    color: var(--colore-primario);
+    color: var(--lime-scuro);
   }
 
   .testata__badge {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
   }
 
   .testata__titolo {
     font-size: clamp(2rem, 1.4rem + 2.5vw, 3.25rem);
-    font-weight: 600;
+    font-weight: 500;
     margin-bottom: 1rem;
   }
 
   .testata__intro {
     max-width: 42rem;
     font-size: 1.1rem;
-    color: var(--colore-testo);
+    color: var(--testo);
+  }
+
+  .galleria {
+    background: var(--superficie);
+  }
+
+  .galleria__griglia {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 0.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .galleria__principale {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: var(--raggio);
+  }
+
+  .galleria__principale img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .galleria__secondarie {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .galleria__secondarie img {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .tab-sezioni {
+    background: var(--lime-scuro);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .tab-sezioni__interno {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+  }
+
+  .tab-sezioni a {
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 0.9rem 1.1rem;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .tab-sezioni a:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.5);
   }
 
   .testata__prezzo {
-    margin-top: 1.25rem;
-    font-size: 1.1rem;
+    margin-top: 1.5rem;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4em;
+    background: var(--lime-chiaro);
+    color: var(--inchiostro);
+    padding: 0.6em 1.1em;
+    border-radius: var(--raggio-piccolo);
+    font-size: 0.95rem;
   }
 
   .testata__prezzo strong {
-    color: var(--colore-secondario);
-    font-size: 1.4rem;
+    color: var(--lime-scuro);
+    font-size: 1.5rem;
+    font-family: var(--font-display);
+  }
+
+  .testata__prezzo span {
+    color: var(--testo-tenue);
   }
 
   .lista-fatti {
@@ -332,7 +439,7 @@ const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--colore-primario);
+    background: var(--lime-scuro);
   }
 
   .lista-fatti--compatta {
@@ -347,8 +454,8 @@ const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
   }
 
   .scheda-camera {
-    background: var(--colore-superficie);
-    border: 1px solid var(--colore-bordo);
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
     border-radius: var(--raggio);
     padding: 1.25rem;
     box-shadow: var(--ombra);
@@ -357,33 +464,35 @@ const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
   .scheda-camera h3 {
     font-size: 1.05rem;
     font-weight: 600;
+    font-family: var(--font-testo);
+    color: var(--inchiostro);
     margin-bottom: 0.4rem;
   }
 
   .scheda-camera__capienza {
-    color: var(--colore-testo-tenue);
+    color: var(--testo-tenue);
     font-size: 0.9rem;
     margin-bottom: 0.5rem;
   }
 
   .formula-nome {
     display: inline-block;
-    font-weight: 600;
-    color: var(--colore-primario-scuro);
+    font-weight: 700;
+    color: var(--lime-scuro);
     margin-bottom: 0.75rem;
   }
 
   .tessera-club {
     margin-top: 1rem;
-    background: var(--colore-superficie);
-    border: 1px solid var(--colore-bordo);
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
     border-radius: var(--raggio);
     padding: 1rem 1.25rem;
   }
 
   .tessera-club summary {
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .tessera-club p {
@@ -397,30 +506,25 @@ const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
   }
 
   .voce-faq {
-    background: var(--colore-superficie);
-    border: 1px solid var(--colore-bordo);
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
     border-radius: var(--raggio);
     padding: 1rem 1.25rem;
   }
 
   .voce-faq summary {
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .voce-faq p {
     margin-top: 0.75rem;
-    color: var(--colore-testo);
+    color: var(--testo);
   }
 
-  .piede {
-    border-top: 1px solid var(--colore-bordo);
-    padding: 2rem 0;
-    color: var(--colore-testo-tenue);
-    font-size: 0.9rem;
-  }
-
-  .piede__aggiornamento {
-    margin-top: 0.25rem;
+  .nota-aggiornamento {
+    color: var(--testo-tenue);
+    font-size: 0.85rem;
+    padding: 1.5rem 0;
   }
 </style>

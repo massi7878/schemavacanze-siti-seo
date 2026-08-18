@@ -1,28 +1,46 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
-import { getAzienda, getStruttureSitemap } from '../lib/queries'
+import { getStruttureElenco } from '../lib/queries'
+import { ETICHETTA_FORMULA } from '../lib/formato'
 
-const azienda = await getAzienda()
-const strutture = await getStruttureSitemap()
-const nome = azienda?.nome_commerciale ?? azienda?.ragione_sociale ?? 'Schema Vacanze'
+const strutture = await getStruttureElenco()
 const urlCanonica = new URL('/', Astro.site).toString()
 ---
 
 <BaseLayout
-  titolo={`${nome} | Villaggi e strutture selezionate`}
-  descrizione={`Villaggi turistici e strutture ricettive selezionate da ${nome}, con schede dettagliate su spiaggia, camere, formula e prezzi.`}
+  titolo="Hotellando | Villaggi e strutture selezionate"
+  descrizione="Villaggi turistici e strutture ricettive selezionate da Hotellando, con schede dettagliate su spiaggia, camere, formula e prezzi."
   urlCanonica={urlCanonica}
 >
-  <main class="contenitore pagina-home">
-    <h1>{nome}</h1>
-    <p class="pagina-home__sottotitolo">Villaggi e strutture selezionate, con schede dettagliate su spiaggia, camere, formula e prezzi.</p>
+  <section class="apertura">
+    <div class="contenitore apertura__interno">
+      <h1>Villaggi selezionati, prenotazione facile.</h1>
+      <p>Ogni scheda riporta solo dati verificati dalla nostra agenzia: spiaggia, camere, formula e prezzi, mai stimati.</p>
+    </div>
+  </section>
 
-    <ul class="elenco-strutture">
+  <main class="contenitore pagina-home" id="strutture">
+    <h2 class="pagina-home__titolo">Le nostre strutture</h2>
+
+    <ul class="griglia-strutture">
       {strutture.map(s => (
         <li>
-          <a href={`/villaggi/${s.slug}/`}>
-            <span class="elenco-strutture__nome">{s.nome}</span>
-            {s.localita && <span class="elenco-strutture__luogo">{s.localita}{s.regione ? `, ${s.regione}` : ''}</span>}
+          <a class="scheda-struttura" href={`/villaggi/${s.slug}/`}>
+            <div class="scheda-struttura__immagine">
+              {s.copertina
+                ? <img src={s.copertina} alt={s.nome} loading="lazy" />
+                : <span class="scheda-struttura__segnaposto" aria-hidden="true">{s.nome.charAt(0)}</span>}
+            </div>
+            <div class="scheda-struttura__corpo">
+              {s.formula && <span class="pillola scheda-struttura__pillola">{ETICHETTA_FORMULA[s.formula] ?? s.formula}</span>}
+              <span class="scheda-struttura__nome">{s.nome}</span>
+              {s.localita && (
+                <span class="scheda-struttura__luogo">
+                  {s.localita}{s.regione ? `, ${s.regione}` : ''}
+                </span>
+              )}
+              {s.stelle && <span class="scheda-struttura__stelle">{'★'.repeat(s.stelle)}</span>}
+            </div>
           </a>
         </li>
       ))}
@@ -31,50 +49,105 @@ const urlCanonica = new URL('/', Astro.site).toString()
 </BaseLayout>
 
 <style>
+  .apertura {
+    padding: 3.5rem 0 2.5rem;
+  }
+
+  .apertura__interno h1 {
+    font-size: clamp(2.25rem, 1.7rem + 2.5vw, 3.5rem);
+    margin-bottom: 0.75rem;
+  }
+
+  .apertura__interno p {
+    color: var(--testo);
+    max-width: 34rem;
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
   .pagina-home {
     padding: 3rem 0 4rem;
   }
 
-  .pagina-home h1 {
-    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
-    margin-bottom: 0.75rem;
+  .pagina-home__titolo {
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+    margin-bottom: 1.5rem;
   }
 
-  .pagina-home__sottotitolo {
-    color: var(--colore-testo-tenue);
-    max-width: 36rem;
-    margin-bottom: 2.5rem;
-  }
-
-  .elenco-strutture {
+  .griglia-strutture {
     list-style: none;
     padding: 0;
+    margin: 0;
     display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   }
 
-  .elenco-strutture a {
+  .scheda-struttura {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 1.25rem 1.5rem;
-    background: var(--colore-superficie);
-    border: 1px solid var(--colore-bordo);
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
     border-radius: var(--raggio);
+    overflow: hidden;
     box-shadow: var(--ombra);
     text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .elenco-strutture__nome {
+  .scheda-struttura:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(52, 54, 58, 0.08), 0 16px 32px -16px rgba(52, 54, 58, 0.28);
+  }
+
+  .scheda-struttura__immagine {
+    aspect-ratio: 4 / 3;
+    background: var(--lime-chiaro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scheda-struttura__immagine img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scheda-struttura__segnaposto {
     font-family: var(--font-display);
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--colore-inchiostro);
+    font-size: 3rem;
+    font-weight: 500;
+    color: var(--lime-scuro);
   }
 
-  .elenco-strutture__luogo {
-    font-size: 0.85rem;
-    color: var(--colore-testo-tenue);
+  .scheda-struttura__corpo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding: 1.1rem 1.25rem 1.35rem;
+  }
+
+  .scheda-struttura__pillola {
+    margin-bottom: 0.2rem;
+  }
+
+  .scheda-struttura__nome {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--inchiostro);
+  }
+
+  .scheda-struttura__luogo {
+    font-size: 0.88rem;
+    color: var(--testo-tenue);
+  }
+
+  .scheda-struttura__stelle {
+    color: var(--lime-scuro);
+    font-size: 0.8rem;
+    margin-top: 0.15rem;
   }
 </style>
