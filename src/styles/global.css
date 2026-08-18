@@ -1,0 +1,128 @@
+:root {
+  --colore-primario: #337eb8;
+  --colore-primario-scuro: #245a85;
+  --colore-secondario: #e03e55;
+  --colore-inchiostro: #182430;
+  --colore-testo: #33404d;
+  --colore-testo-tenue: #5b6773;
+  --colore-sfondo: #fbfaf7;
+  --colore-superficie: #ffffff;
+  --colore-bordo: #e4e0d8;
+  --raggio: 12px;
+  --raggio-piccolo: 8px;
+  --ombra: 0 1px 2px rgba(24, 36, 48, 0.06), 0 8px 24px -12px rgba(24, 36, 48, 0.18);
+  --larghezza-contenuto: 76rem;
+  --font-display: 'Petrona', Georgia, 'Times New Roman', serif;
+  --font-testo: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --colore-inchiostro: #f2ede4;
+    --colore-testo: #d8d2c6;
+    --colore-testo-tenue: #a39c8e;
+    --colore-sfondo: #171410;
+    --colore-superficie: #201c17;
+    --colore-bordo: #34302a;
+    --ombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--colore-sfondo);
+  color: var(--colore-testo);
+  font-family: var(--font-testo);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  color: var(--colore-inchiostro);
+  line-height: 1.15;
+  text-wrap: balance;
+  margin: 0;
+}
+
+a {
+  color: var(--colore-primario);
+}
+
+.contenitore {
+  max-width: var(--larghezza-contenuto);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.sezione {
+  padding: 3rem 0;
+  border-top: 1px solid var(--colore-bordo);
+}
+
+.sezione:first-of-type {
+  border-top: none;
+}
+
+.sezione__titolo {
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.pillola {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.35em 0.85em;
+  border-radius: 999px;
+  background: var(--colore-superficie);
+  border: 1px solid var(--colore-bordo);
+  font-size: 0.85rem;
+  color: var(--colore-testo);
+}
+
+.tabella-scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 32rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--colore-bordo);
+  font-variant-numeric: tabular-nums;
+}
+
+th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--colore-testo-tenue);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .sezione {
+    padding: 2rem 0;
+  }
+}

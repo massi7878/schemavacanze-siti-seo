@@ -1,0 +1,42 @@
+---
+import '../styles/global.css'
+
+interface Props {
+  titolo: string
+  descrizione: string
+  urlCanonica: string
+  immagine?: string | null
+}
+
+const { titolo, descrizione, urlCanonica, immagine } = Astro.props
+---
+
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Petrona:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>{titolo}</title>
+    <meta name="description" content={descrizione} />
+    <link rel="canonical" href={urlCanonica} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={titolo} />
+    <meta property="og:description" content={descrizione} />
+    <meta property="og:url" content={urlCanonica} />
+    {immagine && <meta property="og:image" content={immagine} />}
+    <meta name="twitter:card" content={immagine ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={titolo} />
+    <meta name="twitter:description" content={descrizione} />
+    {immagine && <meta name="twitter:image" content={immagine} />}
+    <slot name="head-extra" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

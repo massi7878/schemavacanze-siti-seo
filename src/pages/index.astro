@@ -1,0 +1,80 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { getAzienda, getStruttureSitemap } from '../lib/queries'
+
+const azienda = await getAzienda()
+const strutture = await getStruttureSitemap()
+const nome = azienda?.nome_commerciale ?? azienda?.ragione_sociale ?? 'Schema Vacanze'
+const urlCanonica = new URL('/', Astro.site).toString()
+---
+
+<BaseLayout
+  titolo={`${nome} | Villaggi e strutture selezionate`}
+  descrizione={`Villaggi turistici e strutture ricettive selezionate da ${nome}, con schede dettagliate su spiaggia, camere, formula e prezzi.`}
+  urlCanonica={urlCanonica}
+>
+  <main class="contenitore pagina-home">
+    <h1>{nome}</h1>
+    <p class="pagina-home__sottotitolo">Villaggi e strutture selezionate, con schede dettagliate su spiaggia, camere, formula e prezzi.</p>
+
+    <ul class="elenco-strutture">
+      {strutture.map(s => (
+        <li>
+          <a href={`/villaggi/${s.slug}/`}>
+            <span class="elenco-strutture__nome">{s.nome}</span>
+            {s.localita && <span class="elenco-strutture__luogo">{s.localita}{s.regione ? `, ${s.regione}` : ''}</span>}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </main>
+</BaseLayout>
+
+<style>
+  .pagina-home {
+    padding: 3rem 0 4rem;
+  }
+
+  .pagina-home h1 {
+    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+    margin-bottom: 0.75rem;
+  }
+
+  .pagina-home__sottotitolo {
+    color: var(--colore-testo-tenue);
+    max-width: 36rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .elenco-strutture {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  }
+
+  .elenco-strutture a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--colore-superficie);
+    border: 1px solid var(--colore-bordo);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+    text-decoration: none;
+  }
+
+  .elenco-strutture__nome {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--colore-inchiostro);
+  }
+
+  .elenco-strutture__luogo {
+    font-size: 0.85rem;
+    color: var(--colore-testo-tenue);
+  }
+</style>

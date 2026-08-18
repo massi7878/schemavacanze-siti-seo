@@ -1,0 +1,426 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import JsonLd from '../../components/JsonLd.astro'
+import { getAzienda, getSlugStruttureAttive, getStrutturaCompleta } from '../../lib/queries'
+import {
+  ETICHETTA_FORMULA,
+  ETICHETTA_SPIAGGIA_TIPO,
+  annoDaPrezzi,
+  prezzoMinimo,
+  tabellaPrezzi,
+  etichettaRiduzione,
+  troncaConEllissi,
+} from '../../lib/formato'
+
+export async function getStaticPaths() {
+  const slug = await getSlugStruttureAttive()
+  return slug.map(s => ({ params: { slug: s } }))
+}
+
+const { slug } = Astro.params
+const dati = await getStrutturaCompleta(slug as string)
+if (!dati) return Astro.redirect('/404')
+const { struttura, servizi, animaliAmmessi, animazione, spiaggiaPrivata, serviziBambini, camere, prezzi, riduzioni } = dati
+const azienda = await getAzienda()
+
+const anno = annoDaPrezzi(prezzi)
+const prezzoDa = prezzoMinimo(prezzi.map(p => ({ prezzo_notte: p.prezzo_notte, prezzo_manuale: p.prezzo_manuale })))
+const righeTabellaPrezzi = tabellaPrezzi(prezzi)
+
+const localitaBreve = [struttura.localita, struttura.provincia].filter(Boolean).join(', ')
+let titolo = `${struttura.nome} | ${struttura.localita ?? struttura.regione ?? ''}`
+if (anno) titolo += ` – Offerte ${anno}`
+titolo = troncaConEllissi(titolo, 60)
+
+const bimbiGratis = riduzioni.some(r => r.tipo_riduzione === 'gratuito')
+let descrizione = struttura.seo_meta_description
+if (!descrizione) {
+  const pezzi = [struttura.nome]
+  if (struttura.formula) pezzi.push(ETICHETTA_FORMULA[struttura.formula] ?? struttura.formula)
+  if (struttura.localita) pezzi.push(`a ${struttura.localita}`)
+  if (struttura.distanza_spiaggia_km != null) pezzi.push(`a ${struttura.distanza_spiaggia_km} km dal mare`)
+  if (bimbiGratis) pezzi.push('bimbi gratis')
+  descrizione = pezzi.join(', ') + '.'
+}
+descrizione = troncaConEllissi(descrizione, 155)
+
+const urlCanonica = new URL(`/villaggi/${struttura.slug}/`, Astro.site).toString()
+const urlDestinazione = struttura.destinazioni?.slug
+  ? new URL(`/destinazioni/${struttura.destinazioni.slug}/`, Astro.site).toString()
+  : null
+
+const distanze = [
+  struttura.distanza_spiaggia_km != null && `spiaggia a ${struttura.distanza_spiaggia_km} km`,
+  struttura.distanza_centro_km != null && `centro a ${struttura.distanza_centro_km} km`,
+  struttura.aeroporto_nome && `aeroporto di ${struttura.aeroporto_nome}${struttura.aeroporto_distanza_km != null ? ` a ${struttura.aeroporto_distanza_km} km` : ''}`,
+].filter(Boolean) as string[]
+
+const haPosizioneOSpiaggia = Boolean(
+  struttura.indirizzo || struttura.descrizione_spiaggia || struttura.spiaggia_tipo || distanze.length > 0
+)
+const haCamere = camere.length > 0 || Boolean(struttura.descrizione_camere)
+const haRistorazione = Boolean(
+  struttura.formula || struttura.descrizione_ristorazione || struttura.incluso || struttura.tessera_club
+)
+const haAnimazioneBambini = Boolean(
+  animazione || struttura.miniclub_eta_min != null || struttura.miniclub_eta_max != null || animaliAmmessi
+)
+const haPrezzi = righeTabellaPrezzi.length > 0 || riduzioni.length > 0
+const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={struttura.foto_url}>
+  <Fragment slot="head-extra">
+    <JsonLd
+      struttura={struttura}
+      azienda={azienda}
+      servizi={servizi}
+      animaliAmmessi={animaliAmmessi}
+      prezzoMinimo={prezzoDa}
+      urlPagina={urlCanonica}
+      urlDestinazione={urlDestinazione}
+    />
+  </Fragment>
+
+  <header class="testata">
+    <div class="contenitore testata__interno">
+      <nav class="briciole" aria-label="Percorso">
+        <a href="/">Home</a>
+        {struttura.destinazioni && (
+          <>
+            <span aria-hidden="true">/</span>
+            <a href={`/destinazioni/${struttura.destinazioni.slug}/`}>{struttura.destinazioni.nome}</a>
+          </>
+        )}
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{struttura.nome}</span>
+      </nav>
+
+      <div class="testata__badge">
+        {struttura.stelle && <span class="pillola">{'★'.repeat(struttura.stelle)}</span>}
+        {struttura.catena && <span class="pillola">{struttura.catena}</span>}
+        {localitaBreve && <span class="pillola">{localitaBreve}</span>}
+      </div>
+
+      <h1 class="testata__titolo">{struttura.nome}</h1>
+
+      {(struttura.descrizione_seo || struttura.descrizione) && (
+        <p class="testata__intro">{struttura.descrizione_seo || struttura.descrizione}</p>
+      )}
+
+      {prezzoDa != null && (
+        <p class="testata__prezzo">
+          Da <strong>{prezzoDa}€</strong> a notte
+        </p>
+      )}
+    </div>
+  </header>
+
+  <main class="contenitore">
+    {haPosizioneOSpiaggia && (
+      <section class="sezione" id="posizione">
+        <h2 class="sezione__titolo">Posizione e spiaggia</h2>
+        {struttura.indirizzo && <p>{struttura.indirizzo}{localitaBreve ? `, ${localitaBreve}` : ''}</p>}
+        {distanze.length > 0 && (
+          <ul class="lista-fatti">
+            {distanze.map(d => <li>{d}</li>)}
+          </ul>
+        )}
+        {struttura.spiaggia_tipo && (
+          <p>
+            Spiaggia di {ETICHETTA_SPIAGGIA_TIPO[struttura.spiaggia_tipo] ?? struttura.spiaggia_tipo}
+            {spiaggiaPrivata ? ', privata.' : '.'}
+          </p>
+        )}
+        {struttura.descrizione_spiaggia && <p>{struttura.descrizione_spiaggia}</p>}
+      </section>
+    )}
+
+    {haCamere && (
+      <section class="sezione" id="camere">
+        <h2 class="sezione__titolo">Camere</h2>
+        {struttura.descrizione_camere && <p>{struttura.descrizione_camere}</p>}
+        {camere.length > 0 && (
+          <div class="griglia-camere">
+            {camere.map(c => (
+              <article class="scheda-camera">
+                <h3>{c.nome}</h3>
+                {c.capienza_max && <p class="scheda-camera__capienza">Fino a {c.capienza_max} persone</p>}
+                {c.note && <p>{c.note}</p>}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    )}
+
+    {haRistorazione && (
+      <section class="sezione" id="formula">
+        <h2 class="sezione__titolo">Formula e ristorazione</h2>
+        {struttura.formula && (
+          <p class="formula-nome">{ETICHETTA_FORMULA[struttura.formula] ?? struttura.formula}</p>
+        )}
+        {struttura.incluso && <p>{struttura.incluso}</p>}
+        {struttura.descrizione_ristorazione && <p>{struttura.descrizione_ristorazione}</p>}
+        {struttura.tessera_club && (
+          <details class="tessera-club">
+            <summary>{struttura.tessera_club_inclusa ? 'Tessera club inclusa' : 'Tessera club (a pagamento)'}</summary>
+            <p>{struttura.tessera_club}</p>
+          </details>
+        )}
+      </section>
+    )}
+
+    {haAnimazioneBambini && (
+      <section class="sezione" id="animazione">
+        <h2 class="sezione__titolo">Animazione e bambini</h2>
+        <div class="testata__badge">
+          {animazione && <span class="pillola">Animazione diurna e serale</span>}
+          {(struttura.miniclub_eta_min != null || struttura.miniclub_eta_max != null) && (
+            <span class="pillola">Miniclub {struttura.miniclub_eta_min ?? 0}-{struttura.miniclub_eta_max ?? '—'} anni</span>
+          )}
+          {animaliAmmessi && <span class="pillola">Animali ammessi</span>}
+        </div>
+        {serviziBambini.length > 0 && (
+          <ul class="lista-fatti lista-fatti--compatta">
+            {serviziBambini.map(s => <li>{s}</li>)}
+          </ul>
+        )}
+      </section>
+    )}
+
+    {haPrezzi && (
+      <section class="sezione" id="prezzi">
+        <h2 class="sezione__titolo">Prezzi e periodi</h2>
+        {righeTabellaPrezzi.length > 0 && (
+          <div class="tabella-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Tipologia</th>
+                  <th scope="col">Trattamento</th>
+                  <th scope="col">Periodo</th>
+                  <th scope="col">Prezzo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {righeTabellaPrezzi.map(r => (
+                  <tr>
+                    <td>{r.tipologia}</td>
+                    <td>{r.trattamento ?? '—'}</td>
+                    <td>{r.periodo}</td>
+                    <td>{r.prezzo}€</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {riduzioni.length > 0 && (
+          <ul class="lista-fatti">
+            {riduzioni.map(r => (
+              <li>{etichettaRiduzione(r.posizione_letto, r.eta_da, r.eta_a, r.tipo_riduzione, r.valore)}</li>
+            ))}
+          </ul>
+        )}
+      </section>
+    )}
+
+    {haFaq && (
+      <section class="sezione" id="faq">
+        <h2 class="sezione__titolo">Domande frequenti</h2>
+        <div class="elenco-faq">
+          {struttura.faq.map((voce: { domanda: string; risposta: string }) => (
+            <details class="voce-faq">
+              <summary>{voce.domanda}</summary>
+              <p>{voce.risposta}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    )}
+  </main>
+
+  <footer class="piede">
+    <div class="contenitore">
+      <p>{azienda?.nome_commerciale ?? azienda?.ragione_sociale}
+        {azienda?.telefono && <> · <a href={`tel:${azienda.telefono.replace(/\s/g, '')}`}>{azienda.telefono}</a></>}
+      </p>
+      {struttura.data_aggiornamento_contenuti && (
+        <p class="piede__aggiornamento">
+          Contenuti aggiornati il {new Date(struttura.data_aggiornamento_contenuti).toLocaleDateString('it-IT')}
+        </p>
+      )}
+    </div>
+  </footer>
+</BaseLayout>
+
+<style>
+  .testata {
+    background: linear-gradient(180deg, var(--colore-superficie), var(--colore-sfondo));
+    border-bottom: 1px solid var(--colore-bordo);
+  }
+
+  .testata__interno {
+    padding: 2.5rem 0 3rem;
+  }
+
+  .briciole {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--colore-testo-tenue);
+    margin-bottom: 1.25rem;
+  }
+
+  .briciole a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .briciole a:hover {
+    color: var(--colore-primario);
+  }
+
+  .testata__badge {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .testata__titolo {
+    font-size: clamp(2rem, 1.4rem + 2.5vw, 3.25rem);
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .testata__intro {
+    max-width: 42rem;
+    font-size: 1.1rem;
+    color: var(--colore-testo);
+  }
+
+  .testata__prezzo {
+    margin-top: 1.25rem;
+    font-size: 1.1rem;
+  }
+
+  .testata__prezzo strong {
+    color: var(--colore-secondario);
+    font-size: 1.4rem;
+  }
+
+  .lista-fatti {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .lista-fatti li {
+    padding-left: 1.2em;
+    position: relative;
+  }
+
+  .lista-fatti li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--colore-primario);
+  }
+
+  .lista-fatti--compatta {
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  }
+
+  .griglia-camere {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .scheda-camera {
+    background: var(--colore-superficie);
+    border: 1px solid var(--colore-bordo);
+    border-radius: var(--raggio);
+    padding: 1.25rem;
+    box-shadow: var(--ombra);
+  }
+
+  .scheda-camera h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  .scheda-camera__capienza {
+    color: var(--colore-testo-tenue);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .formula-nome {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--colore-primario-scuro);
+    margin-bottom: 0.75rem;
+  }
+
+  .tessera-club {
+    margin-top: 1rem;
+    background: var(--colore-superficie);
+    border: 1px solid var(--colore-bordo);
+    border-radius: var(--raggio);
+    padding: 1rem 1.25rem;
+  }
+
+  .tessera-club summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .tessera-club p {
+    white-space: pre-line;
+    margin-top: 0.75rem;
+  }
+
+  .elenco-faq {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .voce-faq {
+    background: var(--colore-superficie);
+    border: 1px solid var(--colore-bordo);
+    border-radius: var(--raggio);
+    padding: 1rem 1.25rem;
+  }
+
+  .voce-faq summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .voce-faq p {
+    margin-top: 0.75rem;
+    color: var(--colore-testo);
+  }
+
+  .piede {
+    border-top: 1px solid var(--colore-bordo);
+    padding: 2rem 0;
+    color: var(--colore-testo-tenue);
+    font-size: 0.9rem;
+  }
+
+  .piede__aggiornamento {
+    margin-top: 0.25rem;
+  }
+</style>

@@ -1,0 +1,90 @@
+---
+// @graph con Resort/Offer/FAQPage/BreadcrumbList. Ogni valore viene da un
+// campo del database passato come prop — nessun dato scritto qui a mano,
+// tranne le costanti strutturali dello schema (@type, ecc.).
+interface Props {
+  struttura: Record<string, any>
+  azienda: Record<string, any> | null
+  servizi: Set<string>
+  animaliAmmessi: boolean
+  prezzoMinimo: number | null
+  urlPagina: string
+  urlDestinazione: string | null
+}
+
+const { struttura, azienda, servizi, animaliAmmessi, prezzoMinimo, urlPagina, urlDestinazione } = Astro.props
+
+const resort: Record<string, any> = {
+  '@type': 'Resort',
+  name: struttura.nome,
+  url: urlPagina,
+}
+if (struttura.descrizione_seo || struttura.descrizione) {
+  resort.description = struttura.descrizione_seo || struttura.descrizione
+}
+if (struttura.localita || struttura.regione) {
+  resort.address = {
+    '@type': 'PostalAddress',
+    addressLocality: struttura.localita || undefined,
+    addressRegion: struttura.regione || undefined,
+    addressCountry: !struttura.nazione || struttura.nazione.toUpperCase() === 'ITALIA' ? 'IT' : struttura.nazione,
+  }
+}
+if (struttura.latitudine != null && struttura.longitudine != null) {
+  resort.geo = { '@type': 'GeoCoordinates', latitude: struttura.latitudine, longitude: struttura.longitudine }
+}
+if (azienda?.telefono || azienda?.cellulare) resort.telephone = azienda.telefono || azienda.cellulare
+if (azienda?.sito_web) resort.sameAs = azienda.sito_web
+if (struttura.foto_url) resort.image = struttura.foto_url
+if (servizi.size > 0) {
+  resort.amenityFeature = Array.from(servizi).map(nome => ({
+    '@type': 'LocationFeatureSpecification',
+    name: nome,
+  }))
+}
+resort.petsAllowed = animaliAmmessi
+
+const graph: Record<string, any>[] = [resort]
+
+if (prezzoMinimo != null) {
+  graph.push({
+    '@type': 'AggregateOffer',
+    '@id': `${urlPagina}#offerta`,
+    priceCurrency: 'EUR',
+    lowPrice: prezzoMinimo,
+    availability: 'https://schema.org/InStock',
+    url: urlPagina,
+  })
+}
+
+if (Array.isArray(struttura.faq) && struttura.faq.length > 0) {
+  graph.push({
+    '@type': 'FAQPage',
+    mainEntity: struttura.faq.map((voce: { domanda: string; risposta: string }) => ({
+      '@type': 'Question',
+      name: voce.domanda,
+      acceptedAnswer: { '@type': 'Answer', text: voce.risposta },
+    })),
+  })
+}
+
+const listaBriciole = [{ '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', urlPagina).toString() }]
+if (urlDestinazione && struttura.destinazioni?.nome) {
+  listaBriciole.push({
+    '@type': 'ListItem',
+    position: 2,
+    name: struttura.destinazioni.nome,
+    item: urlDestinazione,
+  })
+}
+listaBriciole.push({ '@type': 'ListItem', position: listaBriciole.length + 1, name: struttura.nome, item: urlPagina })
+graph.push({ '@type': 'BreadcrumbList', itemListElement: listaBriciole })
+
+if (struttura.data_aggiornamento_contenuti) {
+  resort.dateModified = struttura.data_aggiornamento_contenuti
+}
+
+const documento = { '@context': 'https://schema.org', '@graph': graph }
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(documento)} />
