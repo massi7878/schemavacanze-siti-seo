@@ -47,7 +47,7 @@ const coloriPersonalizzati = azienda?.colore_primario || azienda?.colore_seconda
     <meta name="twitter:description" content={descrizione} />
     {immagine && <meta name="twitter:image" content={immagine} />}
     {coloriPersonalizzati && (
-      <style set:html={`:root {
+      <style set:html={`:root:root {
         ${azienda?.colore_primario ? `
         --lime: ${azienda.colore_primario};
         --lime-scuro: ${scurisci(azienda.colore_primario, 12)};

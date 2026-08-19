@@ -41,13 +41,13 @@ export async function getStruttureElenco() {
   return conCopertine(data ?? [])
 }
 
+// Non filtriamo per struttura_id qui: con centinaia di strutture la lista
+// di ID in un `.in()` genera un URL troppo lungo e la query fallisce in
+// silenzio (nessun errore visibile, solo dati vuoti). Le righe con
+// copertina=true sono comunque poche, prendiamo tutte e le smistiamo qui.
 async function conCopertine<T extends { id: string }>(strutture: T[]): Promise<(T & { copertina: string | null })[]> {
   if (strutture.length === 0) return []
-  const { data: copertine } = await supabase
-    .from('struttura_media')
-    .select('struttura_id, url')
-    .in('struttura_id', strutture.map(s => s.id))
-    .eq('copertina', true)
+  const { data: copertine } = await supabase.from('struttura_media').select('struttura_id, url').eq('copertina', true)
   const copertinaPerStruttura = new Map((copertine ?? []).map(c => [c.struttura_id, c.url]))
   return strutture.map(s => ({ ...s, copertina: copertinaPerStruttura.get(s.id) ?? null }))
 }
