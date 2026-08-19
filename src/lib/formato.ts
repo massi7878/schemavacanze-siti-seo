@@ -1,6 +1,8 @@
-// Numero indicato esplicitamente per il canale WhatsApp del sito (diverso
-// da azienda.numero_whatsapp, usato per altri flussi nel gestionale).
-export const NUMERO_WHATSAPP_SITO = '0817670387'
+// Stessa funzione usata nel gestionale (PreventivoPubblico) per costruire
+// link tel:/wa.me da un numero scritto con spazi.
+export function soloNumeri(valore?: string | null) {
+  return (valore ?? '').replace(/\D/g, '')
+}
 
 export const ETICHETTA_FORMULA: Record<string, string> = {
   all_inclusive: 'All Inclusive',

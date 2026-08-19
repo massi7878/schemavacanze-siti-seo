@@ -13,7 +13,7 @@ import {
   etichettaRiduzione,
   troncaConEllissi,
   righeDaTesto,
-  NUMERO_WHATSAPP_SITO,
+  soloNumeri,
 } from '../../lib/formato'
 
 export async function getStaticPaths() {
@@ -197,9 +197,11 @@ const sezioniTab = [
             da <strong>{offerta.prezzoDa}€</strong> <span>a persona</span>
           </p>
         )}
-        <a class="pulsante" href={`https://wa.me/39${NUMERO_WHATSAPP_SITO}?text=${encodeURIComponent(`Ciao, sono interessato all'offerta "${offerta.titolo}"`)}`} target="_blank" rel="noopener">
-          Richiedi questa offerta
-        </a>
+        {azienda?.numero_whatsapp && (
+          <a class="pulsante" href={`https://wa.me/39${soloNumeri(azienda.numero_whatsapp)}?text=${encodeURIComponent(`Ciao, sono interessato all'offerta "${offerta.titolo}"`)}`} target="_blank" rel="noopener">
+            Richiedi questa offerta
+          </a>
+        )}
       </section>
     )}
 

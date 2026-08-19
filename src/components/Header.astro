@@ -1,8 +1,12 @@
 ---
-import { getDestinazioniPerCategoria, getRegioni } from '../lib/queries'
-import { NUMERO_WHATSAPP_SITO } from '../lib/formato'
+import { getAzienda, getDestinazioniPerCategoria, getRegioni } from '../lib/queries'
+import { soloNumeri } from '../lib/formato'
 
-const numeroContatto = NUMERO_WHATSAPP_SITO
+const azienda = await getAzienda()
+const telefono = azienda?.telefono ?? null
+const numeroWhatsapp = azienda?.numero_whatsapp ?? null
+const linkWhatsapp = numeroWhatsapp ? `https://wa.me/39${soloNumeri(numeroWhatsapp)}` : null
+const linkTelefono = telefono ? `tel:+39${soloNumeri(telefono)}` : null
 const regioni = await getRegioni()
 const categorieDestinazioni = await getDestinazioniPerCategoria()
 ---
@@ -39,10 +43,11 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
     </nav>
 
     <div class="testata-sito__contatti">
-      <a class="testata-sito__link-secondario" href={`tel:+39${numeroContatto}`}>Chiama</a>
-      <a class="pulsante testata-sito__cta" href={`https://wa.me/39${numeroContatto}`} target="_blank" rel="noopener">
-        Scrivi per un preventivo
-      </a>
+      {(linkWhatsapp || linkTelefono) && (
+        <a class="testata-sito__contatto" href={linkWhatsapp ?? linkTelefono} target={linkWhatsapp ? '_blank' : undefined} rel={linkWhatsapp ? 'noopener' : undefined}>
+          Chiama o scrivi al {telefono ?? numeroWhatsapp}
+        </a>
+      )}
     </div>
 
     <button type="button" class="testata-sito__hamburger" aria-expanded="false" aria-controls="menu-mobile" aria-label="Apri il menu">
@@ -77,8 +82,11 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
 
       <a href="/offerte/">Offerte</a>
     </nav>
-    <a class="testata-sito__link-secondario" href={`tel:+39${numeroContatto}`}>Chiama {numeroContatto}</a>
-    <a class="pulsante" href={`https://wa.me/39${numeroContatto}`} target="_blank" rel="noopener">Scrivi per un preventivo</a>
+    {(linkWhatsapp || linkTelefono) && (
+      <a class="testata-sito__contatto" href={linkWhatsapp ?? linkTelefono} target={linkWhatsapp ? '_blank' : undefined} rel={linkWhatsapp ? 'noopener' : undefined}>
+        Chiama o scrivi al {telefono ?? numeroWhatsapp}
+      </a>
+    )}
   </div>
 </header>
 
@@ -233,21 +241,24 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
     gap: 1.25rem;
   }
 
-  .testata-sito__link-secondario {
-    color: var(--testo);
-    font-weight: 600;
+  .testata-sito__contatto {
+    display: inline-flex;
+    align-items: center;
+    background: var(--colore-primario-scuro);
+    color: #fff;
+    font-weight: 700;
     font-size: 0.9rem;
     text-decoration: none;
-  }
-
-  .testata-sito__link-secondario:hover {
-    color: var(--colore-primario-scuro);
-  }
-
-  .testata-sito__cta {
-    padding: 0.7em 1.4em;
-    font-size: 0.9rem;
     white-space: nowrap;
+    padding: 0.7em 1.4em;
+    border-radius: 999px;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .testata-sito__contatto:hover {
+    background: var(--colore-primario-scuro-hover);
+    color: #fff;
+    transform: translateY(-1px);
   }
 
   .testata-sito__hamburger {
@@ -324,7 +335,7 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
     gap: 0.1rem;
   }
 
-  .testata-sito__mobile .testata-sito__link-secondario {
+  .testata-sito__mobile .testata-sito__contatto {
     display: block;
   }
 
