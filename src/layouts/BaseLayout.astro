@@ -3,7 +3,7 @@ import '../styles/global.css'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
 import { getAzienda } from '../lib/queries'
-import { schiarisci, scurisci } from '../lib/formato'
+import { scurisci } from '../lib/formato'
 
 interface Props {
   titolo: string
@@ -49,10 +49,9 @@ const coloriPersonalizzati = azienda?.colore_primario || azienda?.colore_seconda
     {coloriPersonalizzati && (
       <style set:html={`:root:root {
         ${azienda?.colore_primario ? `
-        --lime: ${azienda.colore_primario};
-        --lime-scuro: ${scurisci(azienda.colore_primario, 12)};
-        --lime-scuro-hover: ${scurisci(azienda.colore_primario, 28)};
-        --lime-chiaro: ${schiarisci(azienda.colore_primario, 88)};` : ''}
+        --colore-primario: ${azienda.colore_primario};
+        --colore-primario-scuro: ${scurisci(azienda.colore_primario, 12)};
+        --colore-primario-scuro-hover: ${scurisci(azienda.colore_primario, 28)};` : ''}
         ${azienda?.colore_secondario ? `
         --accento: ${azienda.colore_secondario};
         --accento-scuro: ${scurisci(azienda.colore_secondario, 15)};

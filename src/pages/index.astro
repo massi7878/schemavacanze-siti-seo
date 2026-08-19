@@ -1,9 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../components/GrigliaStrutture.astro'
-import { getStruttureElenco } from '../lib/queries'
+import { getAzienda, getCopertinaHomepage, getStruttureElenco } from '../lib/queries'
 
 const strutture = await getStruttureElenco()
+const azienda = await getAzienda()
+const copertine = await getCopertinaHomepage()
+// Finche' nel gestionale non viene caricata almeno una foto di copertina,
+// resta questa di riserva (una foto reale gia' in uso altrove sul sito).
+const foto = copertine.length > 0 ? copertine : ['https://www.schemavacanze.it/gallery/17595.jpg']
+const slideshow = Boolean(azienda?.slideshow_copertina_attivo) && foto.length > 1
+
 const urlCanonica = new URL('/', Astro.site).toString()
 ---
 
@@ -12,7 +19,11 @@ const urlCanonica = new URL('/', Astro.site).toString()
   descrizione="Villaggi turistici e strutture ricettive selezionate da Hotellando, con schede dettagliate su spiaggia, camere, formula e prezzi."
   urlCanonica={urlCanonica}
 >
-  <section class="apertura">
+  <section class="apertura" data-slideshow={slideshow ? 'true' : 'false'}>
+    {foto.map((url, i) => (
+      <div class="apertura__foto" style={`background-image: url('${url}'); opacity: ${i === 0 ? 1 : 0};`} />
+    ))}
+    <div class="apertura__sfondo"></div>
     <div class="contenitore apertura__interno">
       <h1>Villaggi selezionati, prenotazione facile.</h1>
       <p>Ogni scheda riporta solo dati verificati dalla nostra agenzia: spiaggia, camere, formula e prezzi, mai stimati.</p>
@@ -25,12 +36,45 @@ const urlCanonica = new URL('/', Astro.site).toString()
   </main>
 </BaseLayout>
 
+{slideshow && (
+  <script>
+    const apertura = document.querySelector('.apertura[data-slideshow="true"]')
+    const foto = apertura?.querySelectorAll<HTMLElement>('.apertura__foto')
+    if (foto && foto.length > 1) {
+      let indice = 0
+      setInterval(() => {
+        foto[indice].style.opacity = '0'
+        indice = (indice + 1) % foto.length
+        foto[indice].style.opacity = '1'
+      }, 5000)
+    }
+  </script>
+)}
+
 <style>
   .apertura {
+    position: relative;
     padding: 4.5rem 0;
-    background-image: linear-gradient(120deg, color-mix(in srgb, var(--lime-scuro-hover) 85%, transparent), color-mix(in srgb, var(--lime-scuro) 55%, transparent)), url('https://www.schemavacanze.it/gallery/17595.jpg');
+    overflow: hidden;
+  }
+
+  .apertura__sfondo {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, color-mix(in srgb, var(--colore-primario-scuro-hover) 85%, transparent), color-mix(in srgb, var(--colore-primario-scuro) 55%, transparent));
+  }
+
+  .apertura__foto {
+    position: absolute;
+    inset: 0;
     background-size: cover;
     background-position: center;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+
+  .apertura__interno {
+    position: relative;
   }
 
   .apertura__interno h1 {

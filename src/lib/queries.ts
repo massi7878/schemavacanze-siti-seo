@@ -8,10 +8,17 @@ import { nomeRegioneNormalizzato, slugifica } from './formato'
 export async function getAzienda() {
   const { data } = await supabase
     .from('azienda')
-    .select('ragione_sociale, nome_commerciale, telefono, cellulare, numero_whatsapp, sito_web, indirizzo, colore_primario, colore_secondario')
+    .select(
+      'ragione_sociale, nome_commerciale, telefono, cellulare, numero_whatsapp, sito_web, indirizzo, colore_primario, colore_secondario, slideshow_copertina_attivo'
+    )
     .eq('attiva', true)
     .maybeSingle()
   return data
+}
+
+export async function getCopertinaHomepage() {
+  const { data } = await supabase.from('homepage_copertina').select('url').order('ordine')
+  return (data ?? []).map(r => r.url as string)
 }
 
 export async function getSlugStruttureAttive() {

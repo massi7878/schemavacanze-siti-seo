@@ -1,10 +1,16 @@
 :root {
-  /* Verde valigia Hotellando: fondi larghi, badge, rifiniture */
-  --lime: #8dc63f;
-  --lime-chiaro: #eaf4d8;
-  /* Stessa tinta portata a un valore leggibile per bottoni e link su bianco */
-  --lime-scuro: #4a7220;
-  --lime-scuro-hover: #3c5c1a;
+  /* Colore primario del marchio (azienda.colore_primario): titoli, link,
+     accenti. Sovrascritto dinamicamente in BaseLayout, questo e' solo il
+     valore di fallback finche' il gestionale non ne imposta uno. */
+  --colore-primario: #8dc63f;
+  --colore-primario-scuro: #4a7220;
+  --colore-primario-scuro-hover: #3c5c1a;
+
+  /* Grigio neutro per fondi diffusi (badge, placeholder, sezioni): sempre
+     grigio chiaro, mai tinto del colore primario, cosi' resta neutro
+     qualunque colore venga impostato nel gestionale. */
+  --superficie-tenue: #f3f3f5;
+  --bordo-tenue: #e5e4e8;
 
   /* Secondo colore del marchio (azienda.colore_secondario): usato per le call
      to action, cosi' i due colori dominanti restano entrambi presenti */
@@ -35,7 +41,8 @@
     --sfondo: #1c1e19;
     --superficie: #262922;
     --bordo: #3a3d34;
-    --lime-chiaro: #33431d;
+    --superficie-tenue: #26281f;
+    --bordo-tenue: #3a3d34;
     --ombra: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px -14px rgba(0, 0, 0, 0.55);
   }
 }
@@ -65,7 +72,7 @@ img {
 
 h1, h2, h3 {
   font-family: var(--font-display);
-  color: var(--lime-scuro);
+  color: var(--colore-primario-scuro);
   line-height: 1.1;
   text-wrap: balance;
   margin: 0;
@@ -73,11 +80,11 @@ h1, h2, h3 {
 }
 
 a {
-  color: var(--lime-scuro);
+  color: var(--colore-primario-scuro);
 }
 
 a:hover {
-  color: var(--lime-scuro-hover);
+  color: var(--colore-primario-scuro-hover);
 }
 
 .contenitore {
@@ -107,11 +114,11 @@ a:hover {
   gap: 0.4em;
   padding: 0.35em 0.85em;
   border-radius: 999px;
-  background: var(--lime-chiaro);
+  background: var(--superficie-tenue);
   border: 1px solid transparent;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--lime-scuro-hover);
+  color: var(--colore-primario-scuro-hover);
 }
 
 .pulsante {
