@@ -1,3 +1,7 @@
+// Numero indicato esplicitamente per il canale WhatsApp del sito (diverso
+// da azienda.numero_whatsapp, usato per altri flussi nel gestionale).
+export const NUMERO_WHATSAPP_SITO = '0817670387'
+
 export const ETICHETTA_FORMULA: Record<string, string> = {
   all_inclusive: 'All Inclusive',
   pensione_completa: 'Pensione Completa',

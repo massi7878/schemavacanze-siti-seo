@@ -2,16 +2,18 @@
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import JsonLd from '../../components/JsonLd.astro'
 import IconaServizio from '../../components/IconaServizio.astro'
-import { getAzienda, getSlugStruttureAttive, getStrutturaCompleta } from '../../lib/queries'
+import { getAzienda, getOffertaStruttura, getSlugStruttureAttive, getStrutturaCompleta } from '../../lib/queries'
 import {
   ETICHETTA_FORMULA,
   ETICHETTA_SPIAGGIA_TIPO,
   annoDaPrezzi,
+  formattaPeriodo,
   prezzoMinimo,
   tabellaPrezzi,
   etichettaRiduzione,
   troncaConEllissi,
   righeDaTesto,
+  NUMERO_WHATSAPP_SITO,
 } from '../../lib/formato'
 
 export async function getStaticPaths() {
@@ -24,6 +26,7 @@ const dati = await getStrutturaCompleta(slug as string)
 if (!dati) return Astro.redirect('/404')
 const { struttura, servizi, serviziPerCategoria, animaliAmmessi, animazione, spiaggiaPrivata, serviziBambini, camere, prezzi, riduzioni, galleria } = dati
 const azienda = await getAzienda()
+const offerta = await getOffertaStruttura(struttura.slug)
 
 const anno = annoDaPrezzi(prezzi)
 const prezzoDa = prezzoMinimo(prezzi.map(p => ({ prezzo_notte: p.prezzo_notte, prezzo_manuale: p.prezzo_manuale })))
@@ -76,6 +79,7 @@ const haInformazioniImportanti = Boolean(struttura.informazioni_importanti)
 const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
 
 const sezioniTab = [
+  offerta && { id: 'offerta', etichetta: 'Offerta' },
   haDescrizione && { id: 'descrizione', etichetta: 'Descrizione' },
   haPosizioneOSpiaggia && { id: 'posizione', etichetta: 'Posizione' },
   haCamere && { id: 'camere', etichetta: 'Camere' },
@@ -161,6 +165,25 @@ const sezioniTab = [
   )}
 
   <main class="contenitore">
+    {offerta && (
+      <section class="sezione offerta-struttura" id="offerta">
+        <h2 class="sezione__titolo">{offerta.titolo}</h2>
+        <div class="offerta-struttura__dettagli">
+          {offerta.checkIn && offerta.checkOut && <span>{formattaPeriodo(offerta.checkIn, offerta.checkOut)}</span>}
+          {offerta.notti && <span>{offerta.notti} notti</span>}
+          {offerta.trattamento && <span>{offerta.trattamento}</span>}
+        </div>
+        {offerta.prezzoDa != null && (
+          <p class="offerta-struttura__prezzo">
+            da <strong>{offerta.prezzoDa}€</strong> <span>a persona</span>
+          </p>
+        )}
+        <a class="pulsante" href={`https://wa.me/39${NUMERO_WHATSAPP_SITO}?text=${encodeURIComponent(`Ciao, sono interessato all'offerta "${offerta.titolo}"`)}`} target="_blank" rel="noopener">
+          Richiedi questa offerta
+        </a>
+      </section>
+    )}
+
     {haDescrizione && (
       <section class="sezione" id="descrizione">
         <h2 class="sezione__titolo">Descrizione</h2>
@@ -504,6 +527,33 @@ const sezioniTab = [
 
   .testata__prezzo span {
     color: var(--testo-tenue);
+  }
+
+  .offerta-struttura {
+    background: var(--lime-chiaro);
+    border-radius: var(--raggio);
+    padding: 1.75rem;
+  }
+
+  .offerta-struttura__dettagli {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    font-size: 0.9rem;
+    color: var(--testo);
+    margin-top: 0.5rem;
+  }
+
+  .offerta-struttura__prezzo {
+    margin: 1rem 0 1.25rem;
+    font-size: 1rem;
+    color: var(--testo-tenue);
+  }
+
+  .offerta-struttura__prezzo strong {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--lime-scuro);
   }
 
   .lista-fatti {

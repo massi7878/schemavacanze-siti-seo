@@ -206,3 +206,92 @@ export async function getStrutturaCompleta(slug: string) {
     galleria: (media ?? []).map(m => m.url),
   }
 }
+
+interface RigaOfferta {
+  id: string
+  titolo: string
+  immagine_url: string | null
+  prezzo_da: number | null
+  valida_dal: string | null
+  valida_al: string | null
+  timer_scadenza: string | null
+  // Relazione 1:1 (dettaglio_offerta_struttura non ha una propria chiave
+  // primaria: offerta_id la fa da chiave), quindi PostgREST la restituisce
+  // come oggetto singolo, non come array.
+  dettaglio_offerta_struttura: {
+    struttura_id: string
+    check_in: string | null
+    check_out: string | null
+    notti: number | null
+    trattamento: string | null
+    strutture: {
+      slug: string | null
+      nome: string
+      localita: string | null
+      regione: string | null
+      formula: string | null
+    } | null
+  } | null
+}
+
+async function offerteConDettagli() {
+  const { data } = await supabase
+    .from('offerte')
+    .select(
+      `id, titolo, immagine_url, prezzo_da, valida_dal, valida_al, timer_scadenza,
+       dettaglio_offerta_struttura!inner(struttura_id, check_in, check_out, notti, trattamento,
+         strutture(slug, nome, localita, regione, formula))`
+    )
+    .eq('attiva', true)
+    .order('created_at', { ascending: false })
+
+  const righe = (data ?? []) as unknown as RigaOfferta[]
+  const strutturaIds = righe
+    .map(r => r.dettaglio_offerta_struttura?.struttura_id)
+    .filter((id): id is string => Boolean(id))
+
+  const { data: bambiniGratisRighe } = strutturaIds.length
+    ? await supabase
+        .from('riduzioni_letto')
+        .select('struttura_id')
+        .in('struttura_id', strutturaIds)
+        .eq('tipo_riduzione', 'gratuito')
+    : { data: [] }
+  const strutturaConBambiniGratis = new Set((bambiniGratisRighe ?? []).map(r => r.struttura_id))
+
+  return righe
+    .map(r => {
+      const dettaglio = r.dettaglio_offerta_struttura
+      const struttura = dettaglio?.strutture
+      if (!dettaglio || !struttura?.slug) return null
+      return {
+        id: r.id,
+        titolo: r.titolo,
+        immagine: r.immagine_url,
+        prezzoDa: r.prezzo_da,
+        validaDal: r.valida_dal,
+        validaAl: r.valida_al,
+        timerScadenza: r.timer_scadenza,
+        checkIn: dettaglio.check_in,
+        checkOut: dettaglio.check_out,
+        notti: dettaglio.notti,
+        trattamento: dettaglio.trattamento,
+        strutturaSlug: struttura.slug,
+        strutturaNome: struttura.nome,
+        localita: struttura.localita,
+        regione: struttura.regione ? nomeRegioneNormalizzato(struttura.regione) : null,
+        formula: struttura.formula,
+        bambiniGratis: strutturaConBambiniGratis.has(dettaglio.struttura_id),
+      }
+    })
+    .filter((o): o is NonNullable<typeof o> => o !== null)
+}
+
+export async function getOfferte() {
+  return offerteConDettagli()
+}
+
+export async function getOffertaStruttura(strutturaSlug: string) {
+  const offerte = await offerteConDettagli()
+  return offerte.find(o => o.strutturaSlug === strutturaSlug) ?? null
+}

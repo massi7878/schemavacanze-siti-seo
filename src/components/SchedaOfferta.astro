@@ -1,0 +1,151 @@
+---
+import { ETICHETTA_FORMULA, formattaPeriodo } from '../lib/formato'
+
+interface Offerta {
+  id: string
+  titolo: string
+  immagine: string | null
+  prezzoDa: number | null
+  checkIn: string | null
+  checkOut: string | null
+  notti: number | null
+  trattamento: string | null
+  strutturaSlug: string
+  strutturaNome: string
+  localita: string | null
+  regione: string | null
+  formula: string | null
+  bambiniGratis: boolean
+}
+
+interface Props {
+  offerta: Offerta
+}
+
+const { offerta } = Astro.props
+---
+
+<a class="scheda-offerta" href={`/villaggi/${offerta.strutturaSlug}/`}>
+  <div class="scheda-offerta__immagine">
+    {offerta.immagine
+      ? <img src={offerta.immagine} alt={offerta.titolo} loading="lazy" />
+      : <span class="scheda-offerta__segnaposto" aria-hidden="true">{offerta.strutturaNome.charAt(0)}</span>}
+    {offerta.bambiniGratis && <span class="scheda-offerta__badge">Bimbi gratis</span>}
+  </div>
+  <div class="scheda-offerta__corpo">
+    <span class="scheda-offerta__struttura">{offerta.strutturaNome}</span>
+    {(offerta.localita || offerta.regione) && (
+      <span class="scheda-offerta__luogo">{offerta.localita}{offerta.regione ? `, ${offerta.regione}` : ''}</span>
+    )}
+    <span class="scheda-offerta__titolo">{offerta.titolo}</span>
+    <div class="scheda-offerta__dettagli">
+      {offerta.checkIn && offerta.checkOut && <span>{formattaPeriodo(offerta.checkIn, offerta.checkOut)}</span>}
+      {offerta.notti && <span>{offerta.notti} notti</span>}
+      {(offerta.trattamento || offerta.formula) && <span>{offerta.trattamento ?? ETICHETTA_FORMULA[offerta.formula ?? ''] ?? offerta.formula}</span>}
+    </div>
+    {offerta.prezzoDa != null && (
+      <p class="scheda-offerta__prezzo">
+        da <strong>{offerta.prezzoDa}€</strong> <span>a persona</span>
+      </p>
+    )}
+  </div>
+</a>
+
+<style>
+  .scheda-offerta {
+    display: flex;
+    flex-direction: column;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    overflow: hidden;
+    box-shadow: var(--ombra);
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .scheda-offerta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(52, 54, 58, 0.08), 0 16px 32px -16px rgba(52, 54, 58, 0.28);
+  }
+
+  .scheda-offerta__immagine {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: var(--lime-chiaro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scheda-offerta__immagine img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scheda-offerta__segnaposto {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 500;
+    color: var(--lime-scuro);
+  }
+
+  .scheda-offerta__badge {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: var(--accento-scuro);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.3em 0.7em;
+    border-radius: 999px;
+  }
+
+  .scheda-offerta__corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1.1rem 1.25rem 1.35rem;
+  }
+
+  .scheda-offerta__struttura {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--inchiostro);
+  }
+
+  .scheda-offerta__luogo {
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+  }
+
+  .scheda-offerta__titolo {
+    font-size: 0.92rem;
+    color: var(--testo);
+    margin-top: 0.35rem;
+  }
+
+  .scheda-offerta__dettagli {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--testo-tenue);
+  }
+
+  .scheda-offerta__prezzo {
+    margin: 0.75rem 0 0;
+    font-size: 0.9rem;
+    color: var(--testo-tenue);
+  }
+
+  .scheda-offerta__prezzo strong {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    color: var(--lime-scuro);
+  }
+</style>

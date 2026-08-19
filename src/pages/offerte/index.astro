@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import SchedaOfferta from '../../components/SchedaOfferta.astro'
+import { getOfferte } from '../../lib/queries'
+
+const offerte = await getOfferte()
+const regioni = [...new Set(offerte.map(o => o.regione).filter((r): r is string => Boolean(r)))].sort((a, b) =>
+  a.localeCompare(b, 'it')
+)
+const urlCanonica = new URL('/offerte/', Astro.site).toString()
+const titolo = 'Offerte villaggi e resort | Hotellando'
+const descrizione =
+  offerte.length > 0
+    ? `${offerte.length} offerte attive sui villaggi selezionati da Hotellando, con prezzo e date reali.`
+    : 'Le offerte di Hotellando sono in arrivo: nessuna promozione attiva al momento.'
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <section class="apertura">
+    <div class="contenitore apertura__interno">
+      <nav class="briciole" aria-label="Percorso">
+        <a href="/">Home</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">Offerte</span>
+      </nav>
+      <h1>Offerte</h1>
+      <p>{offerte.length > 0 ? `${offerte.length} offerte attive, con prezzo e date reali.` : 'Nessuna offerta attiva al momento: torna a trovarci presto.'}</p>
+    </div>
+  </section>
+
+  <main class="contenitore pagina-offerte">
+    {offerte.length > 0 && (
+      <div class="filtri" role="group" aria-label="Filtra le offerte">
+        <button type="button" class="filtro filtro--attivo" data-filtro-regione="">Tutte</button>
+        {regioni.map(r => <button type="button" class="filtro" data-filtro-regione={r}>{r}</button>)}
+        <button type="button" class="filtro filtro--bimbi" data-filtro-bambini-gratis="1">Bimbi gratis</button>
+      </div>
+    )}
+
+    {offerte.length > 0 ? (
+      <ul class="griglia-offerte" id="griglia-offerte">
+        {offerte.map(o => (
+          <li data-regione={o.regione ?? ''} data-bambini-gratis={o.bambiniGratis ? '1' : '0'}>
+            <SchedaOfferta offerta={o} />
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="vuoto">Non ci sono ancora offerte pubblicate. <a href="/">Vedi tutti i villaggi</a>.</p>
+    )}
+  </main>
+</BaseLayout>
+
+<script>
+  const filtriRegione = document.querySelectorAll<HTMLButtonElement>('[data-filtro-regione]')
+  const filtroBimbi = document.querySelector<HTMLButtonElement>('[data-filtro-bambini-gratis]')
+  const righe = document.querySelectorAll<HTMLLIElement>('#griglia-offerte > li')
+
+  let regioneAttiva = ''
+  let soloBimbiGratis = false
+
+  function applica() {
+    righe.forEach(riga => {
+      const passaRegione = !regioneAttiva || riga.dataset.regione === regioneAttiva
+      const passaBimbi = !soloBimbiGratis || riga.dataset.bambiniGratis === '1'
+      riga.hidden = !(passaRegione && passaBimbi)
+    })
+  }
+
+  filtriRegione.forEach(pulsante => {
+    pulsante.addEventListener('click', () => {
+      regioneAttiva = pulsante.dataset.filtroRegione ?? ''
+      filtriRegione.forEach(p => p.classList.toggle('filtro--attivo', p === pulsante))
+      applica()
+    })
+  })
+
+  filtroBimbi?.addEventListener('click', () => {
+    soloBimbiGratis = !soloBimbiGratis
+    filtroBimbi.classList.toggle('filtro--attivo', soloBimbiGratis)
+    applica()
+  })
+</script>
+
+<style>
+  .apertura {
+    padding: 2rem 0 2.5rem;
+  }
+
+  .briciole {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+    margin-bottom: 1.25rem;
+  }
+
+  .briciole a {
+    color: var(--testo-tenue);
+    text-decoration: none;
+  }
+
+  .briciole a:hover {
+    color: var(--lime-scuro);
+  }
+
+  .apertura__interno h1 {
+    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .apertura__interno p {
+    color: var(--testo);
+    margin: 0;
+  }
+
+  .pagina-offerte {
+    padding: 1rem 0 4rem;
+  }
+
+  .filtri {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 2rem;
+  }
+
+  .filtro {
+    border: 1px solid var(--bordo);
+    background: var(--superficie);
+    color: var(--testo);
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.5em 1.1em;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .filtro:hover {
+    border-color: var(--lime-scuro);
+  }
+
+  .filtro--attivo {
+    background: var(--lime-scuro);
+    border-color: var(--lime-scuro);
+    color: #fff;
+  }
+
+  .filtro--bimbi {
+    margin-left: auto;
+  }
+
+  .filtro--bimbi.filtro--attivo {
+    background: var(--accento-scuro);
+    border-color: var(--accento-scuro);
+  }
+
+  .griglia-offerte {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  }
+
+  .vuoto {
+    color: var(--testo-tenue);
+  }
+
+  .vuoto a {
+    color: var(--lime-scuro);
+  }
+
+  @media (max-width: 600px) {
+    .filtro--bimbi {
+      margin-left: 0;
+    }
+  }
+</style>

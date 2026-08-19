@@ -1,7 +1,8 @@
 ---
 import { getDestinazioniPerCategoria, getRegioni } from '../lib/queries'
+import { NUMERO_WHATSAPP_SITO } from '../lib/formato'
 
-const numeroContatto = '0817670387'
+const numeroContatto = NUMERO_WHATSAPP_SITO
 const regioni = await getRegioni()
 const categorieDestinazioni = await getDestinazioniPerCategoria()
 ---
@@ -33,6 +34,8 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
           ))}
         </div>
       </details>
+
+      <a href="/offerte/">Offerte</a>
     </nav>
 
     <div class="testata-sito__contatti">
@@ -71,6 +74,8 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
           ))}
         </div>
       </details>
+
+      <a href="/offerte/">Offerte</a>
     </nav>
     <a class="testata-sito__link-secondario" href={`tel:+39${numeroContatto}`}>Chiama {numeroContatto}</a>
     <a class="pulsante" href={`https://wa.me/39${numeroContatto}`} target="_blank" rel="noopener">Scrivi per un preventivo</a>
