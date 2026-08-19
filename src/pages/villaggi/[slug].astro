@@ -163,20 +163,22 @@ const sezioniTab = [
 
   {sezioniTab.length > 1 && (
     <nav class="tab-sezioni" aria-label="Sezioni della pagina">
-      <div class="contenitore tab-sezioni__interno" role="tablist">
-        {sezioniTab.map((s, i) => (
-          <button
-            type="button"
-            role="tab"
-            id={`tab-${s.id}`}
-            aria-controls={s.id}
-            aria-selected={i === 0 ? 'true' : 'false'}
-            class={i === 0 ? 'è-attiva' : ''}
-            data-tab-target={s.id}
-          >
-            {s.etichetta}
-          </button>
-        ))}
+      <div class="contenitore">
+        <div class="tab-sezioni__interno" role="tablist">
+          {sezioniTab.map((s, i) => (
+            <button
+              type="button"
+              role="tab"
+              id={`tab-${s.id}`}
+              aria-controls={s.id}
+              aria-selected={i === 0 ? 'true' : 'false'}
+              class={i === 0 ? 'è-attiva' : ''}
+              data-tab-target={s.id}
+            >
+              {s.etichetta}
+            </button>
+          ))}
+        </div>
       </div>
     </nav>
   )}
@@ -556,6 +558,11 @@ const sezioniTab = [
     color: var(--colore-primario-scuro);
   }
 
+  .tab-sezioni button:focus-visible {
+    outline: 2px solid var(--colore-primario-scuro);
+    outline-offset: 2px;
+  }
+
   .tab-sezioni button.è-attiva {
     background: var(--colore-primario-scuro);
     color: #fff;
@@ -563,6 +570,10 @@ const sezioniTab = [
 
   .tab-sezioni button.è-attiva:hover {
     color: #fff;
+  }
+
+  .tab-sezioni button.è-attiva:focus-visible {
+    outline-color: var(--colore-primario-scuro-hover);
   }
 
   .banner-mappa {
