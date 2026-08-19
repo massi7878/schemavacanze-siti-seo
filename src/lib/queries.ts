@@ -250,6 +250,7 @@ interface RigaOfferta {
       localita: string | null
       regione: string | null
       formula: string | null
+      stelle: number | null
     } | null
   } | null
 }
@@ -260,7 +261,7 @@ async function offerteConDettagli() {
     .select(
       `id, titolo, immagine_url, prezzo_da, valida_dal, valida_al, timer_scadenza,
        dettaglio_offerta_struttura!inner(struttura_id, check_in, check_out, notti, trattamento,
-         strutture(slug, nome, localita, regione, formula))`
+         strutture(slug, nome, localita, regione, formula, stelle))`
     )
     .eq('attiva', true)
     .order('created_at', { ascending: false })
@@ -301,6 +302,7 @@ async function offerteConDettagli() {
         localita: struttura.localita,
         regione: struttura.regione ? nomeRegioneNormalizzato(struttura.regione) : null,
         formula: struttura.formula,
+        stelle: struttura.stelle,
         bambiniGratis: strutturaConBambiniGratis.has(dettaglio.struttura_id),
       }
     })

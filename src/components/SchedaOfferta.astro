@@ -15,6 +15,7 @@ interface Offerta {
   localita: string | null
   regione: string | null
   formula: string | null
+  stelle: number | null
   bambiniGratis: boolean
 }
 
@@ -37,6 +38,7 @@ const { offerta } = Astro.props
     {(offerta.localita || offerta.regione) && (
       <span class="scheda-offerta__luogo">{offerta.localita}{offerta.regione ? `, ${offerta.regione}` : ''}</span>
     )}
+    {offerta.stelle && <span class="scheda-offerta__stelle">{'★'.repeat(offerta.stelle)}</span>}
     <span class="scheda-offerta__titolo">{offerta.titolo}</span>
     <div class="scheda-offerta__dettagli">
       {offerta.checkIn && offerta.checkOut && <span>{formattaPeriodo(offerta.checkIn, offerta.checkOut)}</span>}
@@ -95,7 +97,7 @@ const { offerta } = Astro.props
     position: absolute;
     top: 0.75rem;
     left: 0.75rem;
-    background: var(--accento-scuro);
+    background: var(--colore-primario-scuro);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 700;
@@ -120,6 +122,12 @@ const { offerta } = Astro.props
   .scheda-offerta__luogo {
     font-size: 0.85rem;
     color: var(--testo-tenue);
+  }
+
+  .scheda-offerta__stelle {
+    color: var(--colore-primario-scuro);
+    font-size: 0.8rem;
+    margin-top: 0.15rem;
   }
 
   .scheda-offerta__titolo {

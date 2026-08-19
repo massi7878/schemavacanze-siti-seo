@@ -255,8 +255,9 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
     transition: background-color 0.15s ease, transform 0.15s ease;
   }
 
-  .testata-sito__contatto:hover {
-    background: var(--colore-primario-scuro-hover);
+  .testata-sito__contatto:hover,
+  .testata-sito__contatto:active {
+    background: var(--accento-scuro);
     color: #fff;
     transform: translateY(-1px);
   }
