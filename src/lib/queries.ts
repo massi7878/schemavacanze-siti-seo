@@ -82,38 +82,39 @@ export async function getStruttureRegione(regioneSlug: string) {
   return { regione, strutture: await conCopertine(filtrate) }
 }
 
-export async function getDestinazioniPerCategoria() {
-  const { data: categorie } = await supabase
-    .from('categorie_destinazione')
-    .select('id, nome, ordine')
-    .eq('attiva', true)
-    .order('ordine')
-  const { data: destinazioni } = await supabase
-    .from('destinazioni')
-    .select('id, nome, slug, categoria_id, parent_id')
-    .eq('attiva', true)
-    .is('parent_id', null)
-    .order('nome')
+// La tabella destinazioni non e' leggibile in anonimo (RLS: solo utenti
+// autenticati del gestionale). L'unico accesso pubblico e' questa RPC
+// (security definer), la stessa gia' usata dal modulo WhatsApp: qui e'
+// stata estesa per restituire anche lo slug, che prima non esponeva.
+async function destinazioniPubbliche() {
+  const { data } = await supabase.rpc('destinazioni_pubbliche')
+  return (data ?? []) as { id: string; nome: string; slug: string | null; parent_id: string | null; categoria_nome: string }[]
+}
 
-  return (categorie ?? []).map(cat => ({
-    id: cat.id,
-    nome: cat.nome,
-    destinazioni: (destinazioni ?? []).filter(d => d.categoria_id === cat.id),
+const ORDINE_CATEGORIE_DESTINAZIONE = ['Mare Italia', 'Estero', 'Crociere']
+
+export async function getDestinazioniPerCategoria() {
+  const destinazioni = await destinazioniPubbliche()
+  const nomiCategorie = [...new Set(destinazioni.map(d => d.categoria_nome))].sort((a, b) => {
+    const ia = ORDINE_CATEGORIE_DESTINAZIONE.indexOf(a)
+    const ib = ORDINE_CATEGORIE_DESTINAZIONE.indexOf(b)
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
+  })
+
+  return nomiCategorie.map(nome => ({
+    nome,
+    destinazioni: destinazioni.filter(d => d.categoria_nome === nome && d.parent_id === null && d.slug),
   }))
 }
 
 export async function getSlugDestinazioni() {
-  const { data } = await supabase.from('destinazioni').select('slug').eq('attiva', true).not('slug', 'is', null)
-  return (data ?? []).map(d => d.slug as string)
+  const destinazioni = await destinazioniPubbliche()
+  return destinazioni.map(d => d.slug).filter((s): s is string => Boolean(s))
 }
 
 export async function getStruttureDestinazione(slug: string) {
-  const { data: destinazione } = await supabase
-    .from('destinazioni')
-    .select('id, nome, slug')
-    .eq('slug', slug)
-    .eq('attiva', true)
-    .maybeSingle()
+  const destinazioni = await destinazioniPubbliche()
+  const destinazione = destinazioni.find(d => d.slug === slug)
   if (!destinazione) return { destinazione: null, strutture: [] }
 
   const { data } = await supabase
@@ -128,11 +129,23 @@ export async function getStruttureDestinazione(slug: string) {
 export async function getStrutturaCompleta(slug: string) {
   const { data: struttura } = await supabase
     .from('strutture')
-    .select('*, destinazioni(nome, slug)')
+    .select('*')
     .eq('slug', slug)
     .eq('attiva', true)
     .maybeSingle()
   if (!struttura) return null
+
+  // destinazioni non e' leggibile in anonimo (vedi destinazioniPubbliche
+  // sopra): risolviamo nome/slug della destinazione da li', non con un
+  // embed diretto sulla tabella che tornerebbe sempre null.
+  const tutteDestinazioni = await destinazioniPubbliche()
+  const destinazioneStruttura = struttura.destinazione_id
+    ? tutteDestinazioni.find(d => d.id === struttura.destinazione_id) ?? null
+    : null
+  const strutturaConDestinazione = {
+    ...struttura,
+    destinazioni: destinazioneStruttura ? { nome: destinazioneStruttura.nome, slug: destinazioneStruttura.slug } : null,
+  }
 
   const [{ data: servizi }, { data: camere }, { data: prezzi }, { data: riduzioni }, { data: media }] = await Promise.all([
     supabase
@@ -193,7 +206,7 @@ export async function getStrutturaCompleta(slug: string) {
   const prezziValidi = (prezzi ?? []).filter(p => p.tipologie_camera)
 
   return {
-    struttura,
+    struttura: strutturaConDestinazione,
     servizi: nomiServizi,
     serviziPerCategoria,
     animaliAmmessi: nomiServizi.has('Animali ammessi'),
