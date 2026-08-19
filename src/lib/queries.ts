@@ -8,7 +8,7 @@ import { nomeRegioneNormalizzato, slugifica } from './formato'
 export async function getAzienda() {
   const { data } = await supabase
     .from('azienda')
-    .select('ragione_sociale, nome_commerciale, telefono, cellulare, numero_whatsapp, sito_web, indirizzo')
+    .select('ragione_sociale, nome_commerciale, telefono, cellulare, numero_whatsapp, sito_web, indirizzo, colore_primario, colore_secondario')
     .eq('attiva', true)
     .maybeSingle()
   return data
@@ -168,6 +168,25 @@ export async function getStrutturaCompleta(slug: string) {
     .filter((s): s is { nome: string; categoria: string | null } => Boolean(s))
   const nomiServizi = new Set(righeServizi.map(s => s.nome))
   const serviziBambini = righeServizi.filter(s => s.categoria === 'Bambini e ragazzi').map(s => s.nome)
+
+  // Stesso raggruppamento per categoria usato nel form del gestionale
+  // (EditStrutturaForm), cosi' la pagina pubblica mostra esattamente le
+  // stesse categorie di servizi, nello stesso ordine.
+  const ORDINE_CATEGORIE = ['Struttura', 'Camere', 'Spiaggia', 'Bambini e ragazzi']
+  const perCategoria = new Map<string, string[]>()
+  for (const s of righeServizi) {
+    const categoria = s.categoria ?? 'Altro'
+    if (!perCategoria.has(categoria)) perCategoria.set(categoria, [])
+    perCategoria.get(categoria)!.push(s.nome)
+  }
+  const serviziPerCategoria = [...perCategoria.entries()]
+    .sort(([a], [b]) => {
+      const ia = ORDINE_CATEGORIE.indexOf(a)
+      const ib = ORDINE_CATEGORIE.indexOf(b)
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
+    })
+    .map(([categoria, nomi]) => ({ categoria, nomi: nomi.sort((a, b) => a.localeCompare(b, 'it')) }))
+
   // Un prezzo puo' arrivare con tipologie_camera nullo se il filtro embedded
   // di Supabase (eq su relazione) non ha corrispondenze dirette: escludiamo
   // le righe orfane per sicurezza.
@@ -176,6 +195,7 @@ export async function getStrutturaCompleta(slug: string) {
   return {
     struttura,
     servizi: nomiServizi,
+    serviziPerCategoria,
     animaliAmmessi: nomiServizi.has('Animali ammessi'),
     animazione: nomiServizi.has('Animazione'),
     spiaggiaPrivata: nomiServizi.has('Spiaggia privata'),

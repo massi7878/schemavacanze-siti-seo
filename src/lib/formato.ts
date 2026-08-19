@@ -76,6 +76,12 @@ export function etichettaRiduzione(posizioneLetto: string, etaDa: number, etaA: 
   return `${base}: -${valore}%`
 }
 
+// Nel gestionale questi campi si compilano "una voce per riga": qui li
+// spezziamo per riga per renderli come elenco, senza aggiungere nulla.
+export function righeDaTesto(testo: string): string[] {
+  return testo.split('\n').map(r => r.trim()).filter(Boolean)
+}
+
 const ACCENTI: Record<string, string> = { à: 'a', á: 'a', è: 'e', é: 'e', ì: 'i', í: 'i', ò: 'o', ó: 'o', ù: 'u', ú: 'u' }
 
 export function slugifica(testo: string): string {
@@ -91,4 +97,37 @@ export function slugifica(testo: string): string {
 // (es. "CALABRIA" / "Calabria " / "calabria") sotto un'unica etichetta.
 export function nomeRegioneNormalizzato(regione: string): string {
   return regione.trim().replace(/\s+/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// Stessa logica di scurisci() in app/src/lib/colori.js nel gestionale, cosi'
+// il colore primario dell'azienda genera qui le stesse sfumature usate li'.
+export function scurisci(hex: string, percentuale = 15): string {
+  const valore = hex.replace('#', '')
+  const numero = parseInt(valore, 16)
+  const fattore = 1 - percentuale / 100
+  const r = Math.max(0, Math.round(((numero >> 16) & 0xff) * fattore))
+  const g = Math.max(0, Math.round(((numero >> 8) & 0xff) * fattore))
+  const b = Math.max(0, Math.round((numero & 0xff) * fattore))
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
+}
+
+export function schiarisci(hex: string, percentuale = 85): string {
+  const valore = hex.replace('#', '')
+  const numero = parseInt(valore, 16)
+  const r = Math.min(255, Math.round(((numero >> 16) & 0xff) + (255 - ((numero >> 16) & 0xff)) * (percentuale / 100)))
+  const g = Math.min(255, Math.round(((numero >> 8) & 0xff) + (255 - ((numero >> 8) & 0xff)) * (percentuale / 100)))
+  const b = Math.min(255, Math.round((numero & 0xff) + (255 - (numero & 0xff)) * (percentuale / 100)))
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
+}
+
+// Testo bianco o inchiostro scuro sopra `hex`, a seconda di quale garantisce
+// piu' contrasto (formula di luminanza relativa standard WCAG).
+export function testoLeggibileSu(hex: string): string {
+  const valore = hex.replace('#', '')
+  const numero = parseInt(valore, 16)
+  const r = (numero >> 16) & 0xff
+  const g = (numero >> 8) & 0xff
+  const b = numero & 0xff
+  const luminanza = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminanza > 0.6 ? '#26291f' : '#ffffff'
 }

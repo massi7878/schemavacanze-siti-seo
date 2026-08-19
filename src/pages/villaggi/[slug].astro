@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import JsonLd from '../../components/JsonLd.astro'
+import IconaServizio from '../../components/IconaServizio.astro'
 import { getAzienda, getSlugStruttureAttive, getStrutturaCompleta } from '../../lib/queries'
 import {
   ETICHETTA_FORMULA,
@@ -10,6 +11,7 @@ import {
   tabellaPrezzi,
   etichettaRiduzione,
   troncaConEllissi,
+  righeDaTesto,
 } from '../../lib/formato'
 
 export async function getStaticPaths() {
@@ -20,7 +22,7 @@ export async function getStaticPaths() {
 const { slug } = Astro.params
 const dati = await getStrutturaCompleta(slug as string)
 if (!dati) return Astro.redirect('/404')
-const { struttura, servizi, animaliAmmessi, animazione, spiaggiaPrivata, serviziBambini, camere, prezzi, riduzioni, galleria } = dati
+const { struttura, servizi, serviziPerCategoria, animaliAmmessi, animazione, spiaggiaPrivata, serviziBambini, camere, prezzi, riduzioni, galleria } = dati
 const azienda = await getAzienda()
 
 const anno = annoDaPrezzi(prezzi)
@@ -61,22 +63,28 @@ const haPosizioneOSpiaggia = Boolean(
   struttura.indirizzo || struttura.descrizione_spiaggia || struttura.spiaggia_tipo || distanze.length > 0
 )
 const haCamere = camere.length > 0 || Boolean(struttura.descrizione_camere)
+const haServizi = serviziPerCategoria.length > 0
 const haRistorazione = Boolean(
-  struttura.formula || struttura.descrizione_ristorazione || struttura.incluso || struttura.tessera_club
+  struttura.formula || struttura.descrizione_ristorazione || struttura.incluso || struttura.non_incluso || struttura.tessera_club
 )
 const haAnimazioneBambini = Boolean(
   animazione || struttura.miniclub_eta_min != null || struttura.miniclub_eta_max != null || animaliAmmessi
 )
 const haPrezzi = righeTabellaPrezzi.length > 0 || riduzioni.length > 0
+const haDaVisitare = Boolean(struttura.da_visitare)
+const haInformazioniImportanti = Boolean(struttura.informazioni_importanti)
 const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
 
 const sezioniTab = [
   haDescrizione && { id: 'descrizione', etichetta: 'Descrizione' },
   haPosizioneOSpiaggia && { id: 'posizione', etichetta: 'Posizione' },
   haCamere && { id: 'camere', etichetta: 'Camere' },
+  haServizi && { id: 'servizi', etichetta: 'Servizi' },
   haRistorazione && { id: 'formula', etichetta: 'Formula' },
   haAnimazioneBambini && { id: 'animazione', etichetta: 'Bambini' },
   haPrezzi && { id: 'prezzi', etichetta: 'Prezzi' },
+  haDaVisitare && { id: 'dintorni', etichetta: 'Dintorni' },
+  haInformazioniImportanti && { id: 'informazioni', etichetta: 'Informazioni utili' },
   haFaq && { id: 'faq', etichetta: 'FAQ' },
 ].filter((s): s is { id: string; etichetta: string } => Boolean(s))
 ---
@@ -197,14 +205,50 @@ const sezioniTab = [
       </section>
     )}
 
+    {haServizi && (
+      <section class="sezione" id="servizi">
+        <h2 class="sezione__titolo">Servizi</h2>
+        <div class="griglia-servizi">
+          {serviziPerCategoria.map(gruppo => (
+            <div class="gruppo-servizi">
+              <h3>{gruppo.categoria}</h3>
+              <ul class="elenco-servizi">
+                {gruppo.nomi.map(nome => (
+                  <li>
+                    <IconaServizio nome={nome} />
+                    <span>{nome}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
     {haRistorazione && (
       <section class="sezione" id="formula">
         <h2 class="sezione__titolo">Formula e ristorazione</h2>
         {struttura.formula && (
           <p class="formula-nome">{ETICHETTA_FORMULA[struttura.formula] ?? struttura.formula}</p>
         )}
-        {struttura.incluso && <p>{struttura.incluso}</p>}
         {struttura.descrizione_ristorazione && <p>{struttura.descrizione_ristorazione}</p>}
+        {struttura.incluso && (
+          <div class="blocco-incluso">
+            <h3>Incluso</h3>
+            <ul class="lista-fatti">
+              {righeDaTesto(struttura.incluso).map(riga => <li>{riga}</li>)}
+            </ul>
+          </div>
+        )}
+        {struttura.non_incluso && (
+          <div class="blocco-incluso">
+            <h3>Non incluso</h3>
+            <ul class="lista-fatti lista-fatti--escluso">
+              {righeDaTesto(struttura.non_incluso).map(riga => <li>{riga}</li>)}
+            </ul>
+          </div>
+        )}
         {struttura.tessera_club && (
           <details class="tessera-club">
             <summary>{struttura.tessera_club_inclusa ? 'Tessera club inclusa' : 'Tessera club (a pagamento)'}</summary>
@@ -269,6 +313,20 @@ const sezioniTab = [
       </section>
     )}
 
+    {haDaVisitare && (
+      <section class="sezione" id="dintorni">
+        <h2 class="sezione__titolo">Da visitare nei dintorni</h2>
+        <p>{struttura.da_visitare}</p>
+      </section>
+    )}
+
+    {haInformazioniImportanti && (
+      <section class="sezione" id="informazioni">
+        <h2 class="sezione__titolo">Informazioni utili</h2>
+        <p class="testo-informazioni">{struttura.informazioni_importanti}</p>
+      </section>
+    )}
+
     {haFaq && (
       <section class="sezione" id="faq">
         <h2 class="sezione__titolo">Domande frequenti</h2>
@@ -289,6 +347,27 @@ const sezioniTab = [
     )}
   </main>
 </BaseLayout>
+
+<script>
+  // Offset misurato dal vivo sull'altezza reale della barra tab (sticky):
+  // una stima fissa in CSS puo' sbagliare se la barra cambia altezza
+  // (mobile, font non ancora caricato), causando la sezione che appare
+  // "sotto" la barra invece di fermarsi subito dopo.
+  const barra = document.querySelector<HTMLElement>('.tab-sezioni')
+  document.querySelectorAll<HTMLAnchorElement>('.tab-sezioni a').forEach(link => {
+    link.addEventListener('click', evento => {
+      const id = link.getAttribute('href')?.slice(1)
+      const destinazione = id ? document.getElementById(id) : null
+      if (!destinazione) return
+      evento.preventDefault()
+      const margine = 12
+      const offset = (barra?.getBoundingClientRect().height ?? 0) + margine
+      const y = destinazione.getBoundingClientRect().top + window.scrollY - offset
+      window.scrollTo({ top: y, behavior: 'smooth' })
+      history.replaceState(null, '', `#${id}`)
+    })
+  })
+</script>
 
 <style>
   .testata {
@@ -484,11 +563,67 @@ const sezioniTab = [
     margin-bottom: 0.5rem;
   }
 
+  .griglia-servizi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1.75rem;
+  }
+
+  .gruppo-servizi h3 {
+    font-family: var(--font-testo);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--testo-tenue);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  .elenco-servizi {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .elenco-servizi li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.92rem;
+    color: var(--testo);
+  }
+
   .formula-nome {
     display: inline-block;
     font-weight: 700;
     color: var(--lime-scuro);
     margin-bottom: 0.75rem;
+  }
+
+  .blocco-incluso {
+    margin-top: 1.25rem;
+  }
+
+  .blocco-incluso h3 {
+    font-family: var(--font-testo);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--inchiostro);
+    margin-bottom: 0.5rem;
+  }
+
+  .lista-fatti--escluso li::before {
+    background: var(--testo-tenue);
+  }
+
+  .lista-fatti--escluso li {
+    color: var(--testo-tenue);
+  }
+
+  .testo-informazioni {
+    white-space: pre-line;
   }
 
   .tessera-club {

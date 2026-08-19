@@ -6,6 +6,12 @@
   --lime-scuro: #4a7220;
   --lime-scuro-hover: #3c5c1a;
 
+  /* Secondo colore del marchio (azienda.colore_secondario): usato per le call
+     to action, cosi' i due colori dominanti restano entrambi presenti */
+  --accento: #4a7220;
+  --accento-scuro: #3c5c1a;
+  --accento-scuro-hover: #2c4513;
+
   --inchiostro: #34363a;
   --testo: #55575a;
   --testo-tenue: #797b7e;
@@ -115,7 +121,7 @@ a:hover {
   gap: 0.5em;
   padding: 0.8em 1.5em;
   border-radius: 999px;
-  background: var(--lime-scuro);
+  background: var(--accento-scuro);
   color: #fff;
   font-weight: 700;
   text-decoration: none;
@@ -125,7 +131,7 @@ a:hover {
 }
 
 .pulsante:hover {
-  background: var(--lime-scuro-hover);
+  background: var(--accento-scuro-hover);
   color: #fff;
   transform: translateY(-1px);
 }

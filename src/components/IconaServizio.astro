@@ -1,0 +1,31 @@
+---
+import { ICONA_GENERICA, ICONE_SERVIZI } from '../lib/iconeServizi'
+
+interface Props {
+  nome: string
+}
+
+const { nome } = Astro.props
+const path = ICONE_SERVIZI[nome] ?? ICONA_GENERICA
+---
+
+<svg
+  class="icona-servizio"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.6"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  set:html={path}
+/>
+
+<style>
+  .icona-servizio {
+    width: 1.35em;
+    height: 1.35em;
+    flex-shrink: 0;
+    color: var(--lime-scuro);
+  }
+</style>
