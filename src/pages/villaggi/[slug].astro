@@ -559,8 +559,8 @@ const sezioniTab = [
   }
 
   .tab-sezioni button:focus-visible {
-    outline: 2px solid var(--colore-primario-scuro);
-    outline-offset: 2px;
+    outline: none;
+    background: var(--superficie);
   }
 
   .tab-sezioni button.è-attiva {
@@ -568,12 +568,10 @@ const sezioniTab = [
     color: #fff;
   }
 
-  .tab-sezioni button.è-attiva:hover {
-    color: #fff;
-  }
-
+  .tab-sezioni button.è-attiva:hover,
   .tab-sezioni button.è-attiva:focus-visible {
-    outline-color: var(--colore-primario-scuro-hover);
+    background: var(--colore-primario-scuro);
+    color: #fff;
   }
 
   .banner-mappa {
