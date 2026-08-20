@@ -1,0 +1,100 @@
+---
+interface Regione {
+  nome: string
+  slug: string
+  figlie: { nome: string; slug: string }[]
+}
+
+interface Props {
+  regioni: Regione[]
+  regioneSlugAttuale: string
+  destinazioneSlugAttuale: string | null
+}
+
+const { regioni, regioneSlugAttuale, destinazioneSlugAttuale } = Astro.props
+const regioneAttuale = regioni.find(r => r.slug === regioneSlugAttuale) ?? null
+---
+
+<aside class="filtro-destinazioni" aria-label="Filtra per destinazione">
+  <h2 class="filtro-destinazioni__titolo">Filtra per destinazione</h2>
+
+  <label class="filtro-destinazioni__campo">
+    <span>Regione</span>
+    <select data-filtro-regione>
+      {regioni.map(r => (
+        <option value={r.slug} selected={r.slug === regioneSlugAttuale}>{r.nome}</option>
+      ))}
+    </select>
+  </label>
+
+  {regioneAttuale && (
+    <label class="filtro-destinazioni__campo">
+      <span>Destinazione</span>
+      <select data-filtro-destinazione>
+        <option value={regioneAttuale.slug} selected={!destinazioneSlugAttuale}>Tutta la {regioneAttuale.nome}</option>
+        {regioneAttuale.figlie.map(f => (
+          <option value={f.slug} selected={f.slug === destinazioneSlugAttuale}>{f.nome}</option>
+        ))}
+      </select>
+    </label>
+  )}
+</aside>
+
+<script>
+  document.querySelectorAll<HTMLSelectElement>('[data-filtro-regione], [data-filtro-destinazione]').forEach(select => {
+    select.addEventListener('change', () => {
+      window.location.href = `/destinazioni/${select.value}/`
+    })
+  })
+</script>
+
+<style>
+  .filtro-destinazioni {
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .filtro-destinazioni__titolo {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--inchiostro);
+    margin: 0;
+  }
+
+  .filtro-destinazioni__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--testo-tenue);
+  }
+
+  .filtro-destinazioni__campo select {
+    appearance: none;
+    background: var(--sfondo);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    padding: 0.6em 2.2em 0.6em 0.8em;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--inchiostro);
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2355575a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7em center;
+    background-size: 1em;
+  }
+
+  .filtro-destinazioni__campo select:focus-visible {
+    outline: 2px solid var(--colore-primario-scuro);
+    outline-offset: 1px;
+  }
+</style>

@@ -124,13 +124,39 @@ export async function getStruttureDestinazione(slug: string) {
   const destinazione = destinazioni.find(d => d.slug === slug)
   if (!destinazione) return { destinazione: null, strutture: [] }
 
+  // Una destinazione "regione" (parent_id nullo, es. Campania) non ha quasi
+  // mai strutture assegnate direttamente a lei: raccogliamo anche quelle
+  // delle destinazioni figlie (es. Ischia, Cilento), altrimenti la pagina
+  // regione risulterebbe quasi sempre vuota.
+  const figlie = destinazioni.filter(d => d.parent_id === destinazione.id)
+  const idDaCercare = [destinazione.id, ...figlie.map(f => f.id)]
+
   const { data } = await supabase
     .from('strutture')
     .select('id, slug, nome, localita, regione, stelle, formula')
     .eq('attiva', true)
-    .eq('destinazione_id', destinazione.id)
+    .in('destinazione_id', idDaCercare)
     .not('slug', 'is', null)
   return { destinazione, strutture: await conCopertine(data ?? []) }
+}
+
+// Albero regione -> destinazioni figlie, per il filtro laterale nelle
+// pagine /destinazioni/. Limitato a "Mare Italia": e' l'unica categoria con
+// una vera gerarchia regione/destinazione (Estero e Crociere sono piatte).
+export async function getGerarchiaRegioniDestinazioni() {
+  const destinazioni = await destinazioniPubbliche()
+  const regioni = destinazioni.filter(d => d.categoria_nome === 'Mare Italia' && d.parent_id === null && d.slug)
+  return regioni
+    .map(r => ({
+      id: r.id,
+      nome: r.nome.trim(),
+      slug: r.slug as string,
+      figlie: destinazioni
+        .filter(d => d.parent_id === r.id && d.slug)
+        .map(f => ({ nome: f.nome.trim(), slug: f.slug as string }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'it')),
+    }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'it'))
 }
 
 export async function getStrutturaCompleta(slug: string) {

@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
-import { getSlugDestinazioni, getStruttureDestinazione } from '../../lib/queries'
+import FiltroDestinazioni from '../../components/FiltroDestinazioni.astro'
+import { getGerarchiaRegioniDestinazioni, getSlugDestinazioni, getStruttureDestinazione } from '../../lib/queries'
 
 export async function getStaticPaths() {
   const slug = await getSlugDestinazioni()
@@ -11,6 +12,14 @@ export async function getStaticPaths() {
 const { slug } = Astro.params
 const { destinazione, strutture } = await getStruttureDestinazione(slug as string)
 if (!destinazione) return Astro.redirect('/404')
+
+// Il filtro laterale (regione -> destinazione) esiste solo per "Mare
+// Italia", l'unica categoria con questa gerarchia a due livelli.
+const regioni = destinazione.categoria_nome === 'Mare Italia' ? await getGerarchiaRegioniDestinazioni() : []
+const regioneSlugAttuale = destinazione.parent_id
+  ? regioni.find(r => r.figlie.some(f => f.slug === destinazione.slug))?.slug ?? destinazione.slug
+  : destinazione.slug
+const destinazioneSlugAttuale = destinazione.parent_id ? destinazione.slug : null
 
 const urlCanonica = new URL(`/destinazioni/${destinazione.slug}/`, Astro.site).toString()
 const titolo = `Villaggi a ${destinazione.nome} | Hotellando`
@@ -32,10 +41,15 @@ const descrizione = strutture.length > 0
     </div>
   </section>
 
-  <main class="contenitore pagina-elenco">
-    {strutture.length > 0
-      ? <GrigliaStrutture strutture={strutture} />
-      : <p class="vuoto">Non ci sono ancora strutture pubblicate per questa destinazione. <a href="/">Vedi tutti i villaggi</a>.</p>}
+  <main class="contenitore pagina-elenco" class:list={{ 'pagina-elenco--con-filtro': regioni.length > 0 }}>
+    {regioni.length > 0 && (
+      <FiltroDestinazioni regioni={regioni} regioneSlugAttuale={regioneSlugAttuale} destinazioneSlugAttuale={destinazioneSlugAttuale} />
+    )}
+    <div class="pagina-elenco__risultati">
+      {strutture.length > 0
+        ? <GrigliaStrutture strutture={strutture} />
+        : <p class="vuoto">Non ci sono ancora strutture pubblicate per questa destinazione. <a href="/">Vedi tutti i villaggi</a>.</p>}
+    </div>
   </main>
 </BaseLayout>
 
@@ -73,6 +87,34 @@ const descrizione = strutture.length > 0
 
   .pagina-elenco {
     padding: 1rem 0 4rem;
+  }
+
+  .pagina-elenco--con-filtro {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .pagina-elenco__risultati {
+    min-width: 0;
+  }
+
+  @media (min-width: 900px) {
+    .pagina-elenco--con-filtro {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 2.5rem;
+    }
+
+    .pagina-elenco--con-filtro > :global(.filtro-destinazioni) {
+      flex: 0 0 15rem;
+      position: sticky;
+      top: 1.5rem;
+    }
+
+    .pagina-elenco__risultati {
+      flex: 1;
+    }
   }
 
   .vuoto {
