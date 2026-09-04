@@ -15,6 +15,7 @@ import {
   righeDaTesto,
   soloNumeri,
 } from '../../lib/formato'
+import { etichettaSezione, pluraleCamera } from '../../lib/etichette'
 
 export async function getStaticPaths() {
   const slug = await getSlugStruttureAttive()
@@ -32,8 +33,13 @@ const anno = annoDaPrezzi(prezzi)
 const prezzoDa = prezzoMinimo(prezzi.map(p => ({ prezzo_notte: p.prezzo_notte, prezzo_manuale: p.prezzo_manuale })))
 const righeTabellaPrezzi = tabellaPrezzi(prezzi)
 
+const etichetteExtra = struttura.tipologie_struttura?.etichette_extra as Record<string, string> | null | undefined
+const etichettaCamera = struttura.tipologie_struttura?.etichetta_camera || 'Camera'
+const etichettaCamerePlurale = pluraleCamera(etichettaCamera)
+
 const localitaBreve = [struttura.localita, struttura.provincia].filter(Boolean).join(', ')
-let titolo = `${struttura.nome} | ${struttura.localita ?? struttura.regione ?? ''}`
+const localitaOTipologia = struttura.localita ?? struttura.regione ?? struttura.tipologie_struttura?.nome ?? ''
+let titolo = localitaOTipologia ? `${struttura.nome} | ${localitaOTipologia}` : struttura.nome
 if (anno) titolo += ` – Offerte ${anno}`
 titolo = troncaConEllissi(titolo, 60)
 
@@ -84,19 +90,23 @@ const haPrezzi = righeTabellaPrezzi.length > 0 || riduzioni.length > 0
 const haDaVisitare = Boolean(struttura.da_visitare)
 const haInformazioniImportanti = Boolean(struttura.informazioni_importanti)
 const haFaq = Array.isArray(struttura.faq) && struttura.faq.length > 0
+const haVirtualTour = Boolean(struttura.link_virtual_tour)
+
+const etichettaDaVisitare = etichettaSezione('da_visitare', etichetteExtra)
 
 const sezioniTab = [
   offerta && { id: 'offerta', etichetta: 'Offerta' },
   haDescrizione && { id: 'descrizione', etichetta: 'Descrizione' },
   haPosizioneOSpiaggia && { id: 'posizione', etichetta: 'Posizione' },
-  haCamere && { id: 'camere', etichetta: 'Camere' },
+  haCamere && { id: 'camere', etichetta: etichettaCamerePlurale },
   haServizi && { id: 'servizi', etichetta: 'Servizi' },
   haRistorazione && { id: 'formula', etichetta: 'Formula' },
   haAnimazioneBambini && { id: 'animazione', etichetta: 'Bambini' },
   haPrezzi && { id: 'prezzi', etichetta: 'Prezzi' },
-  haDaVisitare && { id: 'dintorni', etichetta: 'Dintorni' },
+  haDaVisitare && { id: 'dintorni', etichetta: etichettaDaVisitare },
   haInformazioniImportanti && { id: 'informazioni', etichetta: 'Informazioni utili' },
   haFaq && { id: 'faq', etichetta: 'FAQ' },
+  haVirtualTour && { id: 'virtual-tour', etichetta: 'Virtual tour' },
 ].filter((s): s is { id: string; etichetta: string } => Boolean(s))
 ---
 
@@ -248,7 +258,7 @@ const sezioniTab = [
 
     {haCamere && (
       <section class="sezione" id="camere">
-        <h2 class="sezione__titolo">Camere</h2>
+        <h2 class="sezione__titolo">{etichettaCamerePlurale}</h2>
         {struttura.descrizione_camere && <p>{struttura.descrizione_camere}</p>}
         {camere.length > 0 && (
           <div class="griglia-camere">
@@ -374,8 +384,27 @@ const sezioniTab = [
 
     {haDaVisitare && (
       <section class="sezione" id="dintorni">
-        <h2 class="sezione__titolo">Da visitare nei dintorni</h2>
+        <h2 class="sezione__titolo">{etichettaDaVisitare}</h2>
         <p>{struttura.da_visitare}</p>
+      </section>
+    )}
+
+    {haVirtualTour && (
+      <section class="sezione" id="virtual-tour">
+        <h2 class="sezione__titolo">Virtual tour</h2>
+        <a class="banner-mappa" href={struttura.link_virtual_tour} target="_blank" rel="noopener noreferrer">
+          <span class="banner-mappa__icona" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3.2" />
+            </svg>
+          </span>
+          <span class="banner-mappa__testo">
+            <strong>Esplora {struttura.nome} in 360°</strong>
+            <span>Apri il tour virtuale interattivo</span>
+          </span>
+          <span class="banner-mappa__freccia" aria-hidden="true">→</span>
+        </a>
       </section>
     )}
 

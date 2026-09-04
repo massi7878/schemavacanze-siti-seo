@@ -162,7 +162,7 @@ export async function getGerarchiaRegioniDestinazioni() {
 export async function getStrutturaCompleta(slug: string) {
   const { data: struttura } = await supabase
     .from('strutture')
-    .select('*')
+    .select('*, tipologie_struttura(nome, etichetta_camera, etichette_extra)')
     .eq('slug', slug)
     .eq('attiva', true)
     .maybeSingle()
