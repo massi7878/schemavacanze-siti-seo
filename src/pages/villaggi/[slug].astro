@@ -83,6 +83,8 @@ const haServizi = serviziPerCategoria.length > 0
 const haRistorazione = Boolean(
   struttura.formula || struttura.descrizione_ristorazione || struttura.incluso || struttura.non_incluso || struttura.tessera_club
 )
+const haCaratteristicheTecniche = Boolean(struttura.caratteristiche_tecniche)
+const haIntrattenimento = Boolean(struttura.descrizione_intrattenimento)
 const haAnimazioneBambini = Boolean(
   animazione || struttura.miniclub_eta_min != null || struttura.miniclub_eta_max != null || animaliAmmessi
 )
@@ -97,10 +99,12 @@ const etichettaDaVisitare = etichettaSezione('da_visitare', etichetteExtra)
 const sezioniTab = [
   offerta && { id: 'offerta', etichetta: 'Offerta' },
   haDescrizione && { id: 'descrizione', etichetta: 'Descrizione' },
+  haCaratteristicheTecniche && { id: 'caratteristiche', etichetta: 'Caratteristiche' },
   haPosizioneOSpiaggia && { id: 'posizione', etichetta: 'Posizione' },
   haCamere && { id: 'camere', etichetta: etichettaCamerePlurale },
   haServizi && { id: 'servizi', etichetta: 'Servizi' },
   haRistorazione && { id: 'formula', etichetta: 'Formula' },
+  haIntrattenimento && { id: 'intrattenimento', etichetta: 'Intrattenimento' },
   haAnimazioneBambini && { id: 'animazione', etichetta: 'Bambini' },
   haPrezzi && { id: 'prezzi', etichetta: 'Prezzi' },
   haDaVisitare && { id: 'dintorni', etichetta: etichettaDaVisitare },
@@ -157,18 +161,37 @@ const sezioniTab = [
   {galleria.length > 0 && (
     <section class="galleria" aria-label="Galleria fotografica">
       <div class="contenitore galleria__griglia">
-        <div class="galleria__principale">
+        <button type="button" class="galleria__principale" data-apri-lightbox="0">
           <img src={galleria[0]} alt={struttura.nome} loading="eager" />
-        </div>
+        </button>
         {galleria.length > 1 && (
           <div class="galleria__secondarie">
-            {galleria.slice(1, 5).map((url, i) => (
-              <img src={url} alt={`${struttura.nome} — foto ${i + 2}`} loading="lazy" />
-            ))}
+            {galleria.slice(1, 5).map((url, i) => {
+              const indice = i + 1
+              const ultimaVisibile = indice === Math.min(galleria.length, 5) - 1
+              const altreFoto = galleria.length - 5
+              return (
+                <button type="button" class="galleria__miniatura" data-apri-lightbox={indice}>
+                  <img src={url} alt={`${struttura.nome} — foto ${indice + 1}`} loading="lazy" />
+                  {ultimaVisibile && altreFoto > 0 && (
+                    <span class="galleria__altre">+{altreFoto} foto</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         )}
       </div>
     </section>
+
+    <div class="lightbox" id="lightbox" hidden>
+      <script type="application/json" id="lightbox-dati" set:html={JSON.stringify(galleria)} />
+      <button type="button" class="lightbox__chiudi" data-chiudi-lightbox aria-label="Chiudi galleria">✕</button>
+      <button type="button" class="lightbox__freccia lightbox__freccia--sinistra" data-lightbox-prev aria-label="Foto precedente">‹</button>
+      <img class="lightbox__immagine" id="lightbox-immagine" src="" alt={`Foto di ${struttura.nome}`} />
+      <button type="button" class="lightbox__freccia lightbox__freccia--destra" data-lightbox-next aria-label="Foto successiva">›</button>
+      <p class="lightbox__contatore" id="lightbox-contatore"></p>
+    </div>
   )}
 
   {sezioniTab.length > 1 && (
@@ -222,6 +245,13 @@ const sezioniTab = [
       </section>
     )}
 
+    {haCaratteristicheTecniche && (
+      <section class="sezione" id="caratteristiche">
+        <h2 class="sezione__titolo">{etichettaSezione('caratteristiche_tecniche', etichetteExtra)}</h2>
+        <p class="testo-caratteristiche">{struttura.caratteristiche_tecniche}</p>
+      </section>
+    )}
+
     {haPosizioneOSpiaggia && (
       <section class="sezione" id="posizione">
         <h2 class="sezione__titolo">Posizione e spiaggia</h2>
@@ -264,9 +294,16 @@ const sezioniTab = [
           <div class="griglia-camere">
             {camere.map(c => (
               <article class="scheda-camera">
-                <h3>{c.nome}</h3>
-                {c.capienza_max && <p class="scheda-camera__capienza">Fino a {c.capienza_max} persone</p>}
-                {c.note && <p>{c.note}</p>}
+                {c.immagine_url && (
+                  <div class="scheda-camera__foto">
+                    <img src={c.immagine_url} alt={c.nome} loading="lazy" />
+                  </div>
+                )}
+                <div class="scheda-camera__corpo">
+                  <h3>{c.nome}</h3>
+                  {c.capienza_max && <p class="scheda-camera__capienza">Fino a {c.capienza_max} persone</p>}
+                  {c.note && <p>{c.note}</p>}
+                </div>
               </article>
             ))}
           </div>
@@ -324,6 +361,13 @@ const sezioniTab = [
             <p>{struttura.tessera_club}</p>
           </details>
         )}
+      </section>
+    )}
+
+    {haIntrattenimento && (
+      <section class="sezione" id="intrattenimento">
+        <h2 class="sezione__titolo">{etichettaSezione('intrattenimento', etichetteExtra)}</h2>
+        <p>{struttura.descrizione_intrattenimento}</p>
       </section>
     )}
 
@@ -464,6 +508,55 @@ const sezioniTab = [
   if (bottoni.length > 0) mostra(bottoni[0].dataset.tabTarget ?? '')
 </script>
 
+<script>
+  // Lightbox per scorrere tutte le foto della galleria (non solo le 5
+  // mostrate in anteprima): le immagini sono gia' nel markup (JSON-LD e
+  // crawler le leggono comunque), qui si aggiunge solo la vista a schermo
+  // intero per l'utente.
+  const datiEl = document.getElementById('lightbox-dati')
+  const foto: string[] = datiEl ? JSON.parse(datiEl.textContent ?? '[]') : []
+  const lightbox = document.getElementById('lightbox') as HTMLElement | null
+  const immagineEl = document.getElementById('lightbox-immagine') as HTMLImageElement | null
+  const contatoreEl = document.getElementById('lightbox-contatore')
+  let indiceCorrente = 0
+
+  function mostraFoto(indice: number) {
+    if (!immagineEl || !contatoreEl || foto.length === 0) return
+    indiceCorrente = (indice + foto.length) % foto.length
+    immagineEl.src = foto[indiceCorrente]
+    contatoreEl.textContent = `${indiceCorrente + 1} / ${foto.length}`
+  }
+
+  function apri(indice: number) {
+    if (!lightbox) return
+    mostraFoto(indice)
+    lightbox.hidden = false
+    document.body.style.overflow = 'hidden'
+  }
+
+  function chiudi() {
+    if (!lightbox) return
+    lightbox.hidden = true
+    document.body.style.overflow = ''
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-apri-lightbox]').forEach(elemento => {
+    elemento.addEventListener('click', () => apri(Number(elemento.dataset.apriLightbox)))
+  })
+  lightbox?.querySelector('[data-chiudi-lightbox]')?.addEventListener('click', chiudi)
+  lightbox?.querySelector('[data-lightbox-prev]')?.addEventListener('click', () => mostraFoto(indiceCorrente - 1))
+  lightbox?.querySelector('[data-lightbox-next]')?.addEventListener('click', () => mostraFoto(indiceCorrente + 1))
+  lightbox?.addEventListener('click', evento => {
+    if (evento.target === lightbox) chiudi()
+  })
+  document.addEventListener('keydown', evento => {
+    if (!lightbox || lightbox.hidden) return
+    if (evento.key === 'Escape') chiudi()
+    if (evento.key === 'ArrowLeft') mostraFoto(indiceCorrente - 1)
+    if (evento.key === 'ArrowRight') mostraFoto(indiceCorrente + 1)
+  })
+</script>
+
 <style>
   .testata {
     background: var(--superficie);
@@ -526,6 +619,17 @@ const sezioniTab = [
     margin-bottom: 1.25rem;
   }
 
+  .galleria__principale,
+  .galleria__miniatura {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    display: block;
+  }
+
   .galleria__principale {
     overflow: hidden;
     border-radius: var(--raggio);
@@ -543,11 +647,119 @@ const sezioniTab = [
     gap: 0.4rem;
   }
 
-  .galleria__secondarie img {
+  .galleria__miniatura {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .galleria__miniatura img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
+  }
+
+  .galleria__principale:hover img,
+  .galleria__miniatura:hover img {
+    transform: scale(1.03);
+  }
+
+  .galleria__altre {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 15, 20, 0.55);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(10, 10, 14, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox[hidden] {
+    display: none;
+  }
+
+  .lightbox__immagine {
+    max-width: min(90vw, 1100px);
+    max-height: 82vh;
+    object-fit: contain;
     border-radius: var(--raggio-piccolo);
+  }
+
+  .lightbox__chiudi {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.5rem;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+
+  .lightbox__chiudi:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .lightbox__freccia {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border: none;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 999px;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .lightbox__freccia:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .lightbox__freccia--sinistra {
+    left: 1rem;
+  }
+
+  .lightbox__freccia--destra {
+    right: 1rem;
+  }
+
+  .lightbox__contatore {
+    position: absolute;
+    bottom: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    .lightbox__freccia {
+      width: 2.4rem;
+      height: 2.4rem;
+      font-size: 1.4rem;
+    }
   }
 
   .tab-sezioni {
@@ -747,8 +959,23 @@ const sezioniTab = [
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio);
-    padding: 1.25rem;
+    overflow: hidden;
     box-shadow: var(--ombra);
+  }
+
+  .scheda-camera__foto {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .scheda-camera__foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scheda-camera__corpo {
+    padding: 1.25rem;
   }
 
   .scheda-camera h3 {
@@ -824,7 +1051,8 @@ const sezioniTab = [
     color: var(--testo-tenue);
   }
 
-  .testo-informazioni {
+  .testo-informazioni,
+  .testo-caratteristiche {
     white-space: pre-line;
   }
 

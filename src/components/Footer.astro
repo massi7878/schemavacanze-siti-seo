@@ -1,15 +1,25 @@
 ---
-import { getAzienda } from '../lib/queries'
+import { getAzienda, getTipologieStruttura } from '../lib/queries'
 
 const azienda = await getAzienda()
+const tipologieStruttura = await getTipologieStruttura()
 ---
 
 <footer class="piede-sito">
-  <div class="contenitore piede-sito__interno">
-    <p class="piede-sito__contatto">
-      {azienda?.telefono && <a href={`tel:${azienda.telefono.replace(/\s/g, '')}`}>{azienda.telefono}</a>}
-    </p>
-    <p class="piede-sito__marchio">Hotellando easy booking.</p>
+  <div class="contenitore piede-sito__griglia">
+    <div class="piede-sito__colonna">
+      <p class="piede-sito__marchio">Hotellando easy booking.</p>
+      <p class="piede-sito__contatto">
+        {azienda?.telefono && <a href={`tel:${azienda.telefono.replace(/\s/g, '')}`}>{azienda.telefono}</a>}
+      </p>
+    </div>
+
+    {tipologieStruttura.length > 0 && (
+      <nav class="piede-sito__colonna" aria-label="Tipologie di struttura">
+        <span class="piede-sito__intestazione">Strutture</span>
+        {tipologieStruttura.map(t => <a href={`/strutture/${t.slug}/`}>{t.nome}</a>)}
+      </nav>
+    )}
   </div>
 </footer>
 
@@ -19,15 +29,39 @@ const azienda = await getAzienda()
     background: var(--superficie);
   }
 
-  .piede-sito__interno {
-    padding: 2rem 1.5rem;
+  .piede-sito__griglia {
+    padding: 2.5rem 1.5rem;
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 2rem;
     color: var(--testo-tenue);
     font-size: 0.9rem;
+  }
+
+  .piede-sito__colonna {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 10rem;
+  }
+
+  .piede-sito__colonna a {
+    color: var(--testo-tenue);
+    text-decoration: none;
+  }
+
+  .piede-sito__colonna a:hover {
+    color: var(--colore-primario-scuro-hover);
+  }
+
+  .piede-sito__intestazione {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--testo-tenue);
+    font-weight: 700;
+    margin-bottom: 0.25rem;
   }
 
   .piede-sito__contatto a {
@@ -36,5 +70,7 @@ const azienda = await getAzienda()
 
   .piede-sito__marchio {
     margin: 0;
+    color: var(--testo);
+    font-weight: 600;
   }
 </style>

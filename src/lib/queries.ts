@@ -213,7 +213,7 @@ export async function getStrutturaCompleta(slug: string) {
       .eq('struttura_id', struttura.id),
     supabase
       .from('tipologie_camera')
-      .select('id, nome, capienza_max, note')
+      .select('id, nome, capienza_max, note, immagine_url')
       .eq('struttura_id', struttura.id)
       .eq('attiva', true)
       .order('ordine'),

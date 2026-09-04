@@ -4,12 +4,14 @@
 // di "Da visitare" per le navi da crociera).
 
 export const SEZIONI_STRUTTURA = [
+  { chiave: 'caratteristiche_tecniche', defaultLabel: 'Caratteristiche tecniche' },
   { chiave: 'spiaggia', defaultLabel: 'Spiaggia' },
-  { chiave: 'ristorazione', defaultLabel: 'Ristorazione' },
-  { chiave: 'tessera_club', defaultLabel: 'Tessera club' },
+  { chiave: 'ristorazione', defaultLabel: 'Trattamento e ristorazione' },
+  { chiave: 'intrattenimento', defaultLabel: 'Intrattenimento' },
+  { chiave: 'tessera_club', defaultLabel: 'Tessera Club' },
   { chiave: 'incluso', defaultLabel: 'Incluso' },
   { chiave: 'non_incluso', defaultLabel: 'Non incluso' },
-  { chiave: 'da_visitare', defaultLabel: 'Da visitare' },
+  { chiave: 'da_visitare', defaultLabel: 'Da visitare nei dintorni' },
   { chiave: 'informazioni_importanti', defaultLabel: 'Informazioni importanti' },
 ] as const
 
