@@ -59,6 +59,34 @@ async function conCopertine<T extends { id: string }>(strutture: T[]): Promise<(
   return strutture.map(s => ({ ...s, copertina: copertinaPerStruttura.get(s.id) ?? null }))
 }
 
+// Tipologie di struttura (Hotel, Villaggio, B&B, Casa vacanza, Nave da
+// crociera...): catalogo gestito in Impostazioni nel gestionale, mai
+// hardcoded qui. Aggiungerne una nuova la' la fa comparire anche nel menu
+// del sito, senza bisogno di toccare questo codice.
+export async function getTipologieStruttura() {
+  const { data } = await supabase
+    .from('tipologie_struttura')
+    .select('id, nome, ordine')
+    .eq('attiva', true)
+    .order('ordine')
+    .order('nome')
+  return (data ?? []).map(t => ({ ...t, slug: slugifica(t.nome) }))
+}
+
+export async function getStruttureTipologia(tipologiaSlug: string) {
+  const tipologie = await getTipologieStruttura()
+  const tipologia = tipologie.find(t => t.slug === tipologiaSlug)
+  if (!tipologia) return { tipologia: null, strutture: [] }
+
+  const { data } = await supabase
+    .from('strutture')
+    .select('id, slug, nome, localita, regione, stelle, formula')
+    .eq('attiva', true)
+    .eq('tipologia_id', tipologia.id)
+    .not('slug', 'is', null)
+  return { tipologia, strutture: await conCopertine(data ?? []) }
+}
+
 export async function getRegioni() {
   const { data } = await supabase
     .from('strutture')
@@ -98,15 +126,13 @@ async function destinazioniPubbliche() {
   return (data ?? []) as { id: string; nome: string; slug: string | null; parent_id: string | null; categoria_nome: string }[]
 }
 
-const ORDINE_CATEGORIE_DESTINAZIONE = ['Mare Italia', 'Estero', 'Crociere']
-
 export async function getDestinazioniPerCategoria() {
   const destinazioni = await destinazioniPubbliche()
-  const nomiCategorie = [...new Set(destinazioni.map(d => d.categoria_nome))].sort((a, b) => {
-    const ia = ORDINE_CATEGORIE_DESTINAZIONE.indexOf(a)
-    const ib = ORDINE_CATEGORIE_DESTINAZIONE.indexOf(b)
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
-  })
+  // L'ordine delle categorie viene dalla RPC (ordinata per categorie_destinazione.ordine,
+  // impostato in Impostazioni nel gestionale): niente elenco fisso da tenere aggiornato
+  // qui ogni volta che si aggiunge o riordina una categoria. Set preserva l'ordine
+  // di prima comparsa, quindi basta raccogliere i nomi nell'ordine gia' arrivato dalla RPC.
+  const nomiCategorie = [...new Set(destinazioni.map(d => d.categoria_nome))]
 
   return nomiCategorie.map(nome => ({
     nome,

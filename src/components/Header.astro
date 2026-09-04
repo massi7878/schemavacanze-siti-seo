@@ -1,5 +1,5 @@
 ---
-import { getAzienda, getDestinazioniPerCategoria, getRegioni } from '../lib/queries'
+import { getAzienda, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
 import { soloNumeri } from '../lib/formato'
 
 const azienda = await getAzienda()
@@ -7,7 +7,7 @@ const telefono = azienda?.telefono ?? null
 const numeroWhatsapp = azienda?.numero_whatsapp ?? null
 const linkWhatsapp = numeroWhatsapp ? `https://wa.me/39${soloNumeri(numeroWhatsapp)}` : null
 const linkTelefono = telefono ? `tel:+39${soloNumeri(telefono)}` : null
-const regioni = await getRegioni()
+const tipologieStruttura = await getTipologieStruttura()
 const categorieDestinazioni = await getDestinazioniPerCategoria()
 ---
 
@@ -21,9 +21,9 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
       <a href="/">Home</a>
 
       <details class="menu-tendina">
-        <summary>Villaggi</summary>
+        <summary>Strutture</summary>
         <div class="menu-tendina__pannello">
-          {regioni.map(r => <a href={`/regione/${r.slug}/`}>{r.nome}</a>)}
+          {tipologieStruttura.map(t => <a href={`/strutture/${t.slug}/`}>{t.nome}</a>)}
         </div>
       </details>
 
@@ -62,9 +62,9 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
       <a href="/">Home</a>
 
       <details>
-        <summary>Villaggi</summary>
+        <summary>Strutture</summary>
         <div class="testata-sito__mobile-pannello">
-          {regioni.map(r => <a href={`/regione/${r.slug}/`}>{r.nome}</a>)}
+          {tipologieStruttura.map(t => <a href={`/strutture/${t.slug}/`}>{t.nome}</a>)}
         </div>
       </details>
 

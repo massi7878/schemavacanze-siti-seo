@@ -1,0 +1,73 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
+import { getTipologieStruttura, getStruttureTipologia } from '../../lib/queries'
+
+export async function getStaticPaths() {
+  const tipologie = await getTipologieStruttura()
+  return tipologie.map(t => ({ params: { tipologia: t.slug } }))
+}
+
+const { tipologia: tipologiaSlug } = Astro.params
+const { tipologia, strutture } = await getStruttureTipologia(tipologiaSlug as string)
+if (!tipologia) return Astro.redirect('/404')
+
+const urlCanonica = new URL(`/strutture/${tipologia.slug}/`, Astro.site).toString()
+const titolo = `${tipologia.nome} | Hotellando`
+const descrizione = `${strutture.length} strutture selezionate nella categoria ${tipologia.nome}, con schede su camere, formula e prezzi.`
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <section class="apertura">
+    <div class="contenitore apertura__interno">
+      <nav class="briciole" aria-label="Percorso">
+        <a href="/">Home</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{tipologia.nome}</span>
+      </nav>
+      <h1>{tipologia.nome}</h1>
+      <p>{strutture.length} strutture selezionate in questa categoria.</p>
+    </div>
+  </section>
+
+  <main class="contenitore pagina-elenco">
+    <GrigliaStrutture strutture={strutture} />
+  </main>
+</BaseLayout>
+
+<style>
+  .apertura {
+    padding: 2rem 0 2.5rem;
+  }
+
+  .briciole {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+    margin-bottom: 1.25rem;
+  }
+
+  .briciole a {
+    color: var(--testo-tenue);
+    text-decoration: none;
+  }
+
+  .briciole a:hover {
+    color: var(--colore-primario-scuro);
+  }
+
+  .apertura__interno h1 {
+    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .apertura__interno p {
+    color: var(--testo);
+    margin: 0;
+  }
+
+  .pagina-elenco {
+    padding: 1rem 0 4rem;
+  }
+</style>
