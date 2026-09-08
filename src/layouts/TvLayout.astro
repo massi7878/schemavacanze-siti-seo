@@ -1,0 +1,68 @@
+---
+// Layout "nudo" per schermi vetrina: niente Header/Footer del sito, solo il
+// necessario per una pagina fullscreen pensata per restare accesa su un
+// monitor in negozio, non per essere navigata da un visitatore col mouse.
+import { getAzienda } from '../lib/queries'
+import { scurisci } from '../lib/formato'
+
+interface Props {
+  titolo: string
+}
+
+const { titolo } = Astro.props
+
+const azienda = await getAzienda()
+const coloriPersonalizzati = azienda?.colore_primario || azienda?.colore_secondario
+---
+
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/jpeg" href="/brand/hotellando-logo.jpg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&family=Mulish:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <title>{titolo}</title>
+    {coloriPersonalizzati && (
+      <style set:html={`:root:root {
+        ${azienda?.colore_primario ? `
+        --colore-primario: ${azienda.colore_primario};
+        --colore-primario-scuro: ${scurisci(azienda.colore_primario, 12)};` : ''}
+        ${azienda?.colore_secondario ? `
+        --accento: ${azienda.colore_secondario};
+        --accento-scuro: ${scurisci(azienda.colore_secondario, 15)};` : ''}
+      }`} />
+    )}
+    <style>
+      :root {
+        --colore-primario: #337eb8;
+        --accento: #e03e55;
+        --font-display: 'Jost', -apple-system, 'Segoe UI', sans-serif;
+        --font-testo: 'Mulish', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #0b0c0f;
+        font-family: var(--font-testo);
+      }
+    </style>
+    <slot name="head-extra" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

@@ -9,7 +9,7 @@ export async function getAzienda() {
   const { data } = await supabase
     .from('azienda')
     .select(
-      'ragione_sociale, nome_commerciale, telefono, cellulare, numero_whatsapp, sito_web, indirizzo, colore_primario, colore_secondario, slideshow_copertina_attivo'
+      'ragione_sociale, nome_commerciale, telefono, cellulare, numero_whatsapp, sito_web, indirizzo, colore_primario, colore_secondario, slideshow_copertina_attivo, logo_orizzontale_url, logo_png_url'
     )
     .eq('attiva', true)
     .maybeSingle()
@@ -307,8 +307,8 @@ interface RigaOfferta {
   } | null
 }
 
-async function offerteConDettagli() {
-  const { data } = await supabase
+async function offerteConDettagli(soloVetrina = false) {
+  let query = supabase
     .from('offerte')
     .select(
       `id, titolo, immagine_url, prezzo_da, valida_dal, valida_al, timer_scadenza,
@@ -317,6 +317,8 @@ async function offerteConDettagli() {
     )
     .eq('attiva', true)
     .order('created_at', { ascending: false })
+  if (soloVetrina) query = query.eq('vetrina', true)
+  const { data } = await query
 
   const righe = (data ?? []) as unknown as RigaOfferta[]
   const strutturaIds = righe
@@ -363,6 +365,12 @@ async function offerteConDettagli() {
 
 export async function getOfferte() {
   return offerteConDettagli()
+}
+
+// Sottoinsieme di offerte scelto dall'operatore (offerte.vetrina) per lo
+// schermo vetrina in agenzia — vedi src/pages/vetrina/index.astro.
+export async function getOfferteVetrina() {
+  return offerteConDettagli(true)
 }
 
 export async function getOffertaStruttura(strutturaSlug: string) {
