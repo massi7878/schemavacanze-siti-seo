@@ -36,12 +36,16 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
 
     const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL as string
     const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string
-    const DURATA_SLIDE_MS = 9000
+    // Ogni offerta resta in vetrina il tempo di mostrare tutte le sue foto
+    // (galleria offerta_immagini) a questo ritmo, non un tempo fisso uguale
+    // per tutte: un'offerta con 3 foto resta piu' a lungo di una con 1 sola.
+    const DURATA_PER_FOTO_MS = 5000
+    const DURATA_MINIMA_MS = 6000
     const INTERVALLO_REFETCH_MS = 5 * 60 * 1000
 
     interface OffertaVetrina {
       id: string
-      immagine: string | null
+      immagini: string[]
       prezzoDa: number | null
       checkIn: string | null
       checkOut: string | null
@@ -61,21 +65,42 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
 
     let offerte: OffertaVetrina[] = JSON.parse(datiEl.textContent || '[]')
     let indice = 0
-    let timerSlide: ReturnType<typeof setInterval> | null = null
+    let timerAvanzamento: ReturnType<typeof setTimeout> | null = null
+    let timerSottoFoto: ReturnType<typeof setInterval> | null = null
 
     function stelleTesto(n: number | null): string {
       return n && n > 0 ? '★'.repeat(n) : ''
     }
 
-    function creaSlide(offerta: OffertaVetrina): HTMLElement {
+    // Ritorna l'elemento della slide e la sua durata totale (dipende da
+    // quante foto ha questa offerta), cosi' chi chiama sa quando avanzare.
+    function creaSlide(offerta: OffertaVetrina): { elemento: HTMLElement; durata: number } {
       const div = document.createElement('div')
       div.className = 'slide'
 
-      const foto = document.createElement('div')
-      foto.className = offerta.immagine ? 'slide__foto' : 'slide__foto slide__foto--vuota'
-      if (offerta.immagine) foto.style.backgroundImage = `url('${offerta.immagine}')`
-      foto.style.animationDuration = `${DURATA_SLIDE_MS}ms`
-      div.appendChild(foto)
+      const immagini = offerta.immagini.length > 0 ? offerta.immagini : [null]
+      const durata = Math.max(immagini.length * DURATA_PER_FOTO_MS, DURATA_MINIMA_MS)
+
+      const fotoWrap = document.createElement('div')
+      fotoWrap.className = 'slide__foto-wrap'
+      fotoWrap.style.animationDuration = `${durata}ms`
+      const strati = immagini.map((url, i) => {
+        const strato = document.createElement('div')
+        strato.className = 'slide__foto' + (i === 0 ? ' slide__foto--visibile' : '') + (url ? '' : ' slide__foto--vuota')
+        if (url) strato.style.backgroundImage = `url('${url}')`
+        fotoWrap.appendChild(strato)
+        return strato
+      })
+      div.appendChild(fotoWrap)
+
+      if (strati.length > 1) {
+        let sotto = 0
+        timerSottoFoto = setInterval(() => {
+          strati[sotto].classList.remove('slide__foto--visibile')
+          sotto = (sotto + 1) % strati.length
+          strati[sotto].classList.add('slide__foto--visibile')
+        }, DURATA_PER_FOTO_MS)
+      }
 
       const velo = document.createElement('div')
       velo.className = 'slide__velo'
@@ -104,10 +129,10 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
 
       const barra = document.createElement('div')
       barra.className = 'slide__barra'
-      barra.style.animationDuration = `${DURATA_SLIDE_MS}ms`
+      barra.style.animationDuration = `${durata}ms`
       div.appendChild(barra)
 
-      return div
+      return { elemento: div, durata }
     }
 
     function aggiornaDots() {
@@ -119,7 +144,15 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
       })
     }
 
+    function pulisciTimer() {
+      if (timerAvanzamento) clearTimeout(timerAvanzamento)
+      if (timerSottoFoto) clearInterval(timerSottoFoto)
+      timerAvanzamento = null
+      timerSottoFoto = null
+    }
+
     function mostraSlideCorrente() {
+      pulisciTimer()
       palco.innerHTML = ''
       if (offerte.length === 0) {
         const vuoto = document.createElement('div')
@@ -130,8 +163,10 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
         return
       }
       if (indice >= offerte.length) indice = 0
-      palco.appendChild(creaSlide(offerte[indice]))
+      const { elemento, durata } = creaSlide(offerte[indice])
+      palco.appendChild(elemento)
       aggiornaDots()
+      if (offerte.length > 1) timerAvanzamento = setTimeout(avanza, durata)
     }
 
     function avanza() {
@@ -140,17 +175,13 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
       mostraSlideCorrente()
     }
 
-    function avviaCiclo() {
-      if (timerSlide) clearInterval(timerSlide)
-      timerSlide = offerte.length > 1 ? setInterval(avanza, DURATA_SLIDE_MS) : null
-    }
-
     async function ricarica() {
       try {
         const url =
           `${SUPABASE_URL}/rest/v1/offerte?select=id,immagine_url,prezzo_da,` +
           `dettaglio_offerta_struttura!inner(check_in,check_out,notti,trattamento,` +
-          `strutture(nome,localita,regione,formula,stelle))` +
+          `strutture(nome,localita,regione,formula,stelle)),` +
+          `offerta_immagini(url,ordine)` +
           `&vetrina=eq.true&attiva=eq.true&order=created_at.desc`
         const risposta = await fetch(url, {
           headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
@@ -162,9 +193,12 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
             const dettaglio = r.dettaglio_offerta_struttura
             const struttura = dettaglio?.strutture
             if (!dettaglio || !struttura) return null
+            const galleria = [...(r.offerta_immagini ?? [])]
+              .sort((a, b) => (a.ordine ?? 0) - (b.ordine ?? 0))
+              .map((img: { url: string }) => img.url)
             return {
               id: r.id,
-              immagine: r.immagine_url,
+              immagini: galleria.length > 0 ? galleria : r.immagine_url ? [r.immagine_url] : [],
               prezzoDa: r.prezzo_da,
               checkIn: dettaglio.check_in,
               checkOut: dettaglio.check_out,
@@ -183,7 +217,6 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
           offerte = nuove
           indice = 0
           mostraSlideCorrente()
-          avviaCiclo()
         }
       } catch {
         // rete assente o momentaneamente irraggiungibile: la vetrina resta
@@ -196,7 +229,6 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
     }
 
     mostraSlideCorrente()
-    avviaCiclo()
     aggiornaOrologio()
     setInterval(aggiornaOrologio, 15000)
     setInterval(ricarica, INTERVALLO_REFETCH_MS)
@@ -222,8 +254,8 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
     }
 
     .vetrina__logo {
-      height: 6vh;
-      max-width: 22vw;
+      height: 11vh;
+      max-width: 30vw;
       object-fit: contain;
       filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.55));
     }
@@ -261,15 +293,27 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
       }
     }
 
+    .slide__foto-wrap {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      animation-name: zoom-lento;
+      animation-timing-function: ease-out;
+      animation-fill-mode: forwards;
+    }
+
     .slide__foto {
       position: absolute;
       inset: 0;
       background-color: #14161b;
       background-size: cover;
       background-position: center;
-      animation-name: zoom-lento;
-      animation-timing-function: ease-out;
-      animation-fill-mode: forwards;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    .slide__foto--visibile {
+      opacity: 1;
     }
 
     .slide__foto--vuota {

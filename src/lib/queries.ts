@@ -307,8 +307,8 @@ interface RigaOfferta {
   } | null
 }
 
-async function offerteConDettagli(soloVetrina = false) {
-  let query = supabase
+async function offerteConDettagli() {
+  const { data } = await supabase
     .from('offerte')
     .select(
       `id, titolo, immagine_url, prezzo_da, valida_dal, valida_al, timer_scadenza,
@@ -317,8 +317,6 @@ async function offerteConDettagli(soloVetrina = false) {
     )
     .eq('attiva', true)
     .order('created_at', { ascending: false })
-  if (soloVetrina) query = query.eq('vetrina', true)
-  const { data } = await query
 
   const righe = (data ?? []) as unknown as RigaOfferta[]
   const strutturaIds = righe
@@ -368,9 +366,64 @@ export async function getOfferte() {
 }
 
 // Sottoinsieme di offerte scelto dall'operatore (offerte.vetrina) per lo
-// schermo vetrina in agenzia — vedi src/pages/vetrina/index.astro.
+// schermo vetrina in agenzia — vedi src/pages/vetrina/index.astro. Query
+// dedicata (non riusa offerteConDettagli) perche' qui serve anche l'intera
+// galleria di offerta_immagini, non solo la foto principale.
 export async function getOfferteVetrina() {
-  return offerteConDettagli(true)
+  const { data } = await supabase
+    .from('offerte')
+    .select(
+      `id, immagine_url, prezzo_da,
+       dettaglio_offerta_struttura!inner(check_in, check_out, notti, trattamento,
+         strutture(nome, localita, regione, formula, stelle)),
+       offerta_immagini(url, ordine)`
+    )
+    .eq('attiva', true)
+    .eq('vetrina', true)
+    .order('created_at', { ascending: false })
+
+  const righe = (data ?? []) as unknown as Array<{
+    id: string
+    immagine_url: string | null
+    prezzo_da: number | null
+    dettaglio_offerta_struttura: {
+      check_in: string | null
+      check_out: string | null
+      notti: number | null
+      trattamento: string | null
+      strutture: {
+        nome: string
+        localita: string | null
+        regione: string | null
+        formula: string | null
+        stelle: number | null
+      } | null
+    } | null
+    offerta_immagini: Array<{ url: string; ordine: number | null }>
+  }>
+
+  return righe
+    .map(r => {
+      const dettaglio = r.dettaglio_offerta_struttura
+      const struttura = dettaglio?.strutture
+      if (!dettaglio || !struttura) return null
+      const galleria = [...r.offerta_immagini].sort((a, b) => (a.ordine ?? 0) - (b.ordine ?? 0)).map(img => img.url)
+      return {
+        id: r.id,
+        immagini: galleria.length > 0 ? galleria : r.immagine_url ? [r.immagine_url] : [],
+        prezzoDa: r.prezzo_da,
+        checkIn: dettaglio.check_in,
+        checkOut: dettaglio.check_out,
+        notti: dettaglio.notti,
+        trattamento: dettaglio.trattamento,
+        strutturaNome: struttura.nome,
+        localita: struttura.localita,
+        regione: struttura.regione ? nomeRegioneNormalizzato(struttura.regione) : null,
+        formula: struttura.formula,
+        stelle: struttura.stelle,
+      }
+    })
+    .filter((o): o is NonNullable<typeof o> => o !== null)
 }
 
 export async function getOffertaStruttura(strutturaSlug: string) {
