@@ -47,6 +47,7 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
       id: string
       immagini: string[]
       prezzoDa: number | null
+      partenza: string | null
       checkIn: string | null
       checkOut: string | null
       notti: number | null
@@ -117,11 +118,12 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
         <p class="slide__eyebrow">Offerta speciale</p>
         <h1 class="slide__titolo">${offerta.strutturaNome}</h1>
         ${luogo || offerta.stelle ? `<p class="slide__luogo">${luogo}${offerta.stelle ? ` <span class="slide__stelle">${stelleTesto(offerta.stelle)}</span>` : ''}</p>` : ''}
-        ${periodo || offerta.notti || formula ? `
+        ${periodo || offerta.notti || formula || offerta.partenza ? `
           <div class="slide__dettagli">
             ${periodo ? `<span>${periodo}</span>` : ''}
             ${offerta.notti ? `<span>${offerta.notti} notti</span>` : ''}
             ${formula ? `<span>${formula}</span>` : ''}
+            ${offerta.partenza ? `<span>Partenza da ${offerta.partenza}</span>` : ''}
           </div>` : ''}
         ${offerta.prezzoDa ? `<p class="slide__prezzo">da <strong>${formattaPrezzo(offerta.prezzoDa)}</strong> a persona</p>` : ''}
       `
@@ -178,7 +180,7 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
     async function ricarica() {
       try {
         const url =
-          `${SUPABASE_URL}/rest/v1/offerte?select=id,immagine_url,prezzo_da,` +
+          `${SUPABASE_URL}/rest/v1/offerte?select=id,immagine_url,prezzo_da,partenza,` +
           `dettaglio_offerta_struttura!inner(check_in,check_out,notti,trattamento,` +
           `strutture(nome,localita,regione,formula,stelle)),` +
           `offerta_immagini(url,ordine)` +
@@ -200,6 +202,7 @@ const datiIniziali = JSON.stringify(offerteIniziali).replace(/</g, '\\u003c')
               id: r.id,
               immagini: galleria.length > 0 ? galleria : r.immagine_url ? [r.immagine_url] : [],
               prezzoDa: r.prezzo_da,
+              partenza: r.partenza,
               checkIn: dettaglio.check_in,
               checkOut: dettaglio.check_out,
               notti: dettaglio.notti,

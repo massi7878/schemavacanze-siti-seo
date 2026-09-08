@@ -373,7 +373,7 @@ export async function getOfferteVetrina() {
   const { data } = await supabase
     .from('offerte')
     .select(
-      `id, immagine_url, prezzo_da,
+      `id, immagine_url, prezzo_da, partenza,
        dettaglio_offerta_struttura!inner(check_in, check_out, notti, trattamento,
          strutture(nome, localita, regione, formula, stelle)),
        offerta_immagini(url, ordine)`
@@ -386,6 +386,7 @@ export async function getOfferteVetrina() {
     id: string
     immagine_url: string | null
     prezzo_da: number | null
+    partenza: string | null
     dettaglio_offerta_struttura: {
       check_in: string | null
       check_out: string | null
@@ -412,6 +413,7 @@ export async function getOfferteVetrina() {
         id: r.id,
         immagini: galleria.length > 0 ? galleria : r.immagine_url ? [r.immagine_url] : [],
         prezzoDa: r.prezzo_da,
+        partenza: r.partenza,
         checkIn: dettaglio.check_in,
         checkOut: dettaglio.check_out,
         notti: dettaglio.notti,
