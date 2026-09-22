@@ -18,9 +18,9 @@ interface Props {
 const { strutture } = Astro.props
 ---
 
-<ul class="griglia-strutture">
+<ul class="griglia-strutture" data-griglia-strutture>
   {strutture.map(s => (
-    <li>
+    <li data-stelle={s.stelle ?? ''}>
       <a class="scheda-struttura" href={`/villaggi/${s.slug}/`}>
         <div class="scheda-struttura__immagine">
           {s.copertina
@@ -41,6 +41,7 @@ const { strutture } = Astro.props
     </li>
   ))}
 </ul>
+<p class="griglia-strutture__vuoto" data-griglia-vuoto hidden>Nessuna struttura corrisponde ai filtri scelti.</p>
 
 <style>
   .griglia-strutture {
@@ -124,5 +125,10 @@ const { strutture } = Astro.props
     color: var(--colore-primario-scuro);
     font-size: 0.8rem;
     margin-top: 0.15rem;
+  }
+
+  .griglia-strutture__vuoto {
+    color: var(--testo-tenue);
+    padding: 2rem 0;
   }
 </style>

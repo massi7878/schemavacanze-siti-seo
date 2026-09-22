@@ -1,7 +1,9 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
-import { getTipologieStruttura, getStruttureTipologia } from '../../lib/queries'
+import FiltroSezioni from '../../components/FiltroSezioni.astro'
+import FiltroStelle from '../../components/FiltroStelle.astro'
+import { getTipologieStruttura, getStruttureTipologia, getDestinazioniPerCategoria } from '../../lib/queries'
 
 export async function getStaticPaths() {
   const tipologie = await getTipologieStruttura()
@@ -11,6 +13,8 @@ export async function getStaticPaths() {
 const { tipologia: tipologiaSlug } = Astro.params
 const { tipologia, strutture } = await getStruttureTipologia(tipologiaSlug as string)
 if (!tipologia) return Astro.redirect('/404')
+
+const categorie = await getDestinazioniPerCategoria()
 
 const urlCanonica = new URL(`/strutture/${tipologia.slug}/`, Astro.site).toString()
 const titolo = `${tipologia.nome} | Hotellando`
@@ -27,11 +31,19 @@ const descrizione = `${strutture.length} strutture selezionate nella categoria $
       </nav>
       <h1>{tipologia.nome}</h1>
       <p>{strutture.length} strutture selezionate in questa categoria.</p>
+      <FiltroSezioni categorie={categorie} />
     </div>
   </section>
 
-  <main class="contenitore pagina-elenco">
-    <GrigliaStrutture strutture={strutture} />
+  <main class="contenitore pagina-elenco" class:list={{ 'pagina-elenco--con-filtro': strutture.length > 0 }}>
+    {strutture.length > 0 && (
+      <aside class="filtro-laterale" aria-label="Filtra">
+        <FiltroStelle />
+      </aside>
+    )}
+    <div class="pagina-elenco__risultati">
+      <GrigliaStrutture strutture={strutture} />
+    </div>
   </main>
 </BaseLayout>
 
@@ -64,10 +76,48 @@ const descrizione = `${strutture.length} strutture selezionate nella categoria $
 
   .apertura__interno p {
     color: var(--testo);
-    margin: 0;
+    margin: 0 0 1.5rem;
   }
 
   .pagina-elenco {
     padding: 1rem 0 4rem;
+  }
+
+  .pagina-elenco--con-filtro {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .filtro-laterale {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    padding: 1.25rem;
+  }
+
+  .pagina-elenco__risultati {
+    min-width: 0;
+  }
+
+  @media (min-width: 900px) {
+    .pagina-elenco--con-filtro {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 2.5rem;
+    }
+
+    .pagina-elenco--con-filtro > .filtro-laterale {
+      flex: 0 0 15rem;
+      position: sticky;
+      top: 1.5rem;
+    }
+
+    .pagina-elenco__risultati {
+      flex: 1;
+    }
   }
 </style>

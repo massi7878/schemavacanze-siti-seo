@@ -1,0 +1,57 @@
+---
+// Cambio rapido di sezione (Mare Italia / Estero / Montagna / Crociere):
+// a differenza del filtro Stelle, cambiare sezione porta a una pagina
+// diversa (/categoria/<slug>/), che ha un proprio elenco di strutture.
+interface Categoria {
+  nome: string
+  slug: string
+}
+
+interface Props {
+  categorie: Categoria[]
+  categoriaSlugAttuale?: string | null
+}
+
+const { categorie, categoriaSlugAttuale = null } = Astro.props
+---
+
+<nav class="filtro-sezioni" aria-label="Filtra per sezione">
+  {categorie.map(c => (
+    <a href={`/categoria/${c.slug}/`} class="filtro-sezioni__voce" aria-current={c.slug === categoriaSlugAttuale ? 'page' : undefined}>
+      {c.nome}
+    </a>
+  ))}
+</nav>
+
+<style>
+  .filtro-sezioni {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .filtro-sezioni__voce {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5em 1.1em;
+    border-radius: 999px;
+    background: var(--sfondo);
+    border: 1px solid var(--bordo);
+    color: var(--testo);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .filtro-sezioni__voce:hover {
+    border-color: var(--colore-primario-scuro);
+    color: var(--colore-primario-scuro);
+  }
+
+  .filtro-sezioni__voce[aria-current='page'] {
+    background: var(--colore-primario-scuro);
+    border-color: var(--colore-primario-scuro);
+    color: #fff;
+  }
+</style>

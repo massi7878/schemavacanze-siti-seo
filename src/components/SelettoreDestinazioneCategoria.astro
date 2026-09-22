@@ -1,0 +1,62 @@
+---
+// Selettore piatto delle destinazioni di una categoria (usato solo dalla
+// pagina /categoria/<slug>/, che mostra l'intera sezione): a differenza di
+// FiltroDestinazioni (pensato per la gerarchia regione -> localita' di una
+// singola destinazione Mare Italia) qui non c'e' nulla di gia' selezionato,
+// e' solo un salto rapido verso /destinazioni/<slug>/.
+interface Props {
+  destinazioni: { nome: string; slug: string }[]
+}
+
+const { destinazioni } = Astro.props
+const ordinate = [...destinazioni].sort((a, b) => a.nome.localeCompare(b.nome, 'it'))
+---
+
+<label class="selettore-destinazione">
+  <span>Destinazione</span>
+  <select data-selettore-destinazione-categoria>
+    <option value="">Tutte le destinazioni</option>
+    {ordinate.map(d => <option value={d.slug}>{d.nome}</option>)}
+  </select>
+</label>
+
+<script>
+  document.querySelectorAll<HTMLSelectElement>('[data-selettore-destinazione-categoria]').forEach(select => {
+    select.addEventListener('change', () => {
+      if (select.value) window.location.href = `/destinazioni/${select.value}/`
+    })
+  })
+</script>
+
+<style>
+  .selettore-destinazione {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--testo-tenue);
+  }
+
+  .selettore-destinazione select {
+    appearance: none;
+    background: var(--sfondo);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    padding: 0.6em 2.2em 0.6em 0.8em;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--inchiostro);
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2355575a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7em center;
+    background-size: 1em;
+  }
+
+  .selettore-destinazione select:focus-visible {
+    outline: 2px solid var(--colore-primario-scuro);
+    outline-offset: 1px;
+  }
+</style>

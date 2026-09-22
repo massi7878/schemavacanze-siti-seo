@@ -136,8 +136,43 @@ export async function getDestinazioniPerCategoria() {
 
   return nomiCategorie.map(nome => ({
     nome,
+    // Le categorie (Mare Italia, Estero...) non hanno un proprio slug nel
+    // database: lo slug si deriva dal nome, come per le tipologie struttura,
+    // e alimenta la pagina /categoria/<slug>/ con tutte le strutture della
+    // categoria (raggiunta cliccando l'intestazione nel menu Destinazioni).
+    slug: slugifica(nome),
     destinazioni: destinazioni.filter(d => d.categoria_nome === nome && d.parent_id === null && d.slug),
   }))
+}
+
+export async function getSlugCategorie() {
+  const categorie = await getDestinazioniPerCategoria()
+  return categorie.map(c => c.slug)
+}
+
+// Tutte le strutture della categoria (es. tutto l'"Estero": Zanzibar,
+// Mauritius, Seychelles...), non di una singola destinazione: usata dalla
+// pagina /categoria/<slug>/, raggiunta cliccando l'intestazione della
+// categoria nel menu, non una singola voce.
+export async function getStruttureCategoria(categoriaSlug: string) {
+  const categorie = await getDestinazioniPerCategoria()
+  const categoria = categorie.find(c => c.slug === categoriaSlug)
+  if (!categoria) return { categoria: null, destinazioni: [], strutture: [] }
+
+  const destinazioni = await destinazioniPubbliche()
+  // Include anche le destinazioni figlie (es. Ischia sotto Campania), non
+  // solo le principali mostrate nel menu: una struttura e' quasi sempre
+  // assegnata alla figlia, mai al livello regione.
+  const idDaCercare = destinazioni.filter(d => d.categoria_nome === categoria.nome).map(d => d.id)
+  if (idDaCercare.length === 0) return { categoria, destinazioni: categoria.destinazioni, strutture: [] }
+
+  const { data } = await supabase
+    .from('strutture')
+    .select('id, slug, nome, localita, regione, stelle, formula')
+    .eq('attiva', true)
+    .in('destinazione_id', idDaCercare)
+    .not('slug', 'is', null)
+  return { categoria, destinazioni: categoria.destinazioni, strutture: await conCopertine(data ?? []) }
 }
 
 export async function getSlugDestinazioni() {

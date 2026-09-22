@@ -1,0 +1,87 @@
+---
+// Filtro rapido "quante stelle": a differenza di Categoria/Destinazione
+// (che navigano verso la pagina di quella destinazione) qui non ha senso
+// generare una pagina statica per ogni combinazione, quindi filtra lato
+// client la griglia gia' a schermo, leggendo il data-stelle scritto da
+// GrigliaStrutture su ogni scheda.
+---
+
+<div class="filtro-stelle" data-filtro-stelle role="group" aria-label="Filtra per stelle">
+  <span class="filtro-stelle__etichetta">Stelle</span>
+  <div class="filtro-stelle__pulsanti">
+    <button type="button" data-valore-stelle="" class="è-attivo">Tutte</button>
+    <button type="button" data-valore-stelle="3">3</button>
+    <button type="button" data-valore-stelle="4">4</button>
+    <button type="button" data-valore-stelle="5">5</button>
+    <button type="button" data-valore-stelle="6">6</button>
+  </div>
+</div>
+
+<script>
+  const contenitore = document.querySelector<HTMLElement>('[data-filtro-stelle]')
+  const griglia = document.querySelector<HTMLElement>('[data-griglia-strutture]')
+  const messaggioVuoto = document.querySelector<HTMLElement>('[data-griglia-vuoto]')
+  if (contenitore && griglia) {
+    const pulsanti = contenitore.querySelectorAll<HTMLButtonElement>('button')
+    const righe = griglia.querySelectorAll<HTMLLIElement>('li')
+
+    contenitore.addEventListener('click', evento => {
+      const pulsante = (evento.target as HTMLElement).closest<HTMLButtonElement>('button[data-valore-stelle]')
+      if (!pulsante) return
+      pulsanti.forEach(p => p.classList.toggle('è-attivo', p === pulsante))
+
+      const valore = pulsante.dataset.valoreStelle ?? ''
+      let visibili = 0
+      righe.forEach(riga => {
+        const mostra = !valore || riga.dataset.stelle === valore
+        riga.hidden = !mostra
+        if (mostra) visibili++
+      })
+      if (messaggioVuoto) messaggioVuoto.hidden = visibili > 0
+    })
+  }
+</script>
+
+<style>
+  .filtro-stelle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .filtro-stelle__etichetta {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--testo-tenue);
+  }
+
+  .filtro-stelle__pulsanti {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filtro-stelle__pulsanti button {
+    appearance: none;
+    background: var(--sfondo);
+    border: 1px solid var(--bordo);
+    border-radius: 999px;
+    padding: 0.45em 0.95em;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--testo);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .filtro-stelle__pulsanti button:hover {
+    border-color: var(--colore-primario-scuro);
+  }
+
+  .filtro-stelle__pulsanti button.è-attivo {
+    background: var(--colore-primario-scuro);
+    border-color: var(--colore-primario-scuro);
+    color: #fff;
+  }
+</style>

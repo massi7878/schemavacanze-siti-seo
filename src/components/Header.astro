@@ -32,7 +32,7 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
         <div class="menu-tendina__pannello menu-tendina__pannello--colonne">
           {categorieDestinazioni.map(cat => (
             <div class="menu-tendina__gruppo">
-              <span class="menu-tendina__intestazione">{cat.nome}</span>
+              <a href={`/categoria/${cat.slug}/`} class="menu-tendina__intestazione">{cat.nome}</a>
               {cat.destinazioni.map(d => <a href={`/destinazioni/${d.slug}/`}>{d.nome}</a>)}
             </div>
           ))}
@@ -73,7 +73,7 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
         <div class="testata-sito__mobile-pannello">
           {categorieDestinazioni.map(cat => (
             <>
-              <span class="menu-tendina__intestazione">{cat.nome}</span>
+              <a href={`/categoria/${cat.slug}/`} class="menu-tendina__intestazione">{cat.nome}</a>
               {cat.destinazioni.map(d => <a href={`/destinazioni/${d.slug}/`}>{d.nome}</a>)}
             </>
           ))}
@@ -213,12 +213,20 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
   }
 
   .menu-tendina__intestazione {
+    display: block;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--testo-tenue);
+    color: var(--inchiostro);
     font-weight: 700;
     padding: 0.4rem 0.6rem 0.2rem;
+    text-decoration: none;
+    border-radius: var(--raggio-piccolo);
+  }
+
+  a.menu-tendina__intestazione:hover {
+    color: var(--colore-primario-scuro);
+    background: var(--superficie-tenue);
   }
 
   .menu-tendina__pannello a,
