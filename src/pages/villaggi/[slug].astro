@@ -142,13 +142,17 @@ const sezioniTab = [
         <span aria-current="page">{struttura.nome}</span>
       </nav>
 
-      <div class="testata__badge">
-        {struttura.stelle && <span class="pillola">{'★'.repeat(struttura.stelle)}</span>}
-        {struttura.catena && <span class="pillola">{struttura.catena}</span>}
-        {localitaBreve && <span class="pillola">{localitaBreve}</span>}
-      </div>
+      {struttura.catena && <span class="pillola testata__catena">{struttura.catena}</span>}
 
       <h1 class="testata__titolo">{struttura.nome}</h1>
+
+      {(localitaBreve || struttura.stelle) && (
+        <p class="testata__sottotitolo">
+          {localitaBreve}
+          {localitaBreve && struttura.stelle && <span aria-hidden="true"> · </span>}
+          {struttura.stelle && <span class="testata__stelle">{'★'.repeat(struttura.stelle)}</span>}
+        </p>
+      )}
 
       {prezzoDa != null && (
         <p class="testata__prezzo">
@@ -374,7 +378,7 @@ const sezioniTab = [
     {haAnimazioneBambini && (
       <section class="sezione" id="animazione">
         <h2 class="sezione__titolo">Animazione e bambini</h2>
-        <div class="testata__badge">
+        <div class="riga-pillole">
           {animazione && <span class="pillola">Animazione diurna e serale</span>}
           {(struttura.miniclub_eta_min != null || struttura.miniclub_eta_max != null) && (
             <span class="pillola">Miniclub {struttura.miniclub_eta_min ?? 0}-{struttura.miniclub_eta_max ?? '—'} anni</span>
@@ -584,17 +588,35 @@ const sezioniTab = [
     color: var(--colore-primario-scuro);
   }
 
-  .testata__badge {
+  .testata__catena {
+    margin-bottom: 0.75rem;
+  }
+
+  .riga-pillole {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-bottom: 1.25rem;
   }
 
   .testata__titolo {
     font-size: clamp(2rem, 1.4rem + 2.5vw, 3.25rem);
     font-weight: 500;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .testata__sottotitolo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3em;
+    font-size: 1.05rem;
+    color: var(--testo);
+    margin: 0 0 1.25rem;
+  }
+
+  .testata__stelle {
+    color: var(--colore-primario-scuro);
+    letter-spacing: 0.05em;
   }
 
   .testo-descrizione {
