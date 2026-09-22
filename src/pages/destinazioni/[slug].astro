@@ -15,9 +15,11 @@ const { slug } = Astro.params
 const { destinazione, strutture } = await getStruttureDestinazione(slug as string)
 if (!destinazione) return Astro.redirect('/404')
 
-// Il filtro laterale (regione -> destinazione) esiste solo per "Mare
-// Italia", l'unica categoria con questa gerarchia a due livelli.
-const regioni = destinazione.categoria_nome === 'Mare Italia' ? await getGerarchiaRegioniDestinazioni() : []
+// Il filtro laterale (regione -> destinazione) vale per qualunque categoria
+// che abbia davvero questa gerarchia a due livelli (deciso in Destinazioni
+// nel gestionale): se la categoria e' piatta, la funzione torna un array
+// vuoto e il filtro semplicemente non compare.
+const regioni = await getGerarchiaRegioniDestinazioni(destinazione.categoria_nome)
 const regioneSlugAttuale = destinazione.parent_id
   ? regioni.find(r => r.figlie.some(f => f.slug === destinazione.slug))?.slug ?? destinazione.slug
   : destinazione.slug

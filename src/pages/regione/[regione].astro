@@ -18,7 +18,7 @@ if (!regione) return Astro.redirect('/404')
 // ecc. sono regioni testuali senza destinazioni collegate). Lo slug usato
 // nel filtro e' quello della tabella destinazioni, non quello testuale di
 // /regione/ (generati separatamente, potrebbero non coincidere).
-const gerarchiaRegioni = await getGerarchiaRegioniDestinazioni()
+const gerarchiaRegioni = await getGerarchiaRegioniDestinazioni('Mare Italia')
 const regioneNellaGerarchia = gerarchiaRegioni.find(r => r.nome === regione.nome) ?? null
 
 const urlCanonica = new URL(`/regione/${regione.slug}/`, Astro.site).toString()

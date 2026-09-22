@@ -202,11 +202,13 @@ export async function getStruttureDestinazione(slug: string) {
 }
 
 // Albero regione -> destinazioni figlie, per il filtro laterale nelle
-// pagine /destinazioni/. Limitato a "Mare Italia": e' l'unica categoria con
-// una vera gerarchia regione/destinazione (Estero e Crociere sono piatte).
-export async function getGerarchiaRegioniDestinazioni() {
+// pagine /destinazioni/. Non e' solo "Mare Italia" (Puglia -> Puglia
+// Salento): anche altre categorie possono avere questa gerarchia a due
+// livelli (es. Estero: Lungo/Medio/Corto Raggio -> Maldive, Grecia...),
+// decisa liberamente in Destinazioni nel gestionale, non fissa nel codice.
+export async function getGerarchiaRegioniDestinazioni(categoriaNome: string) {
   const destinazioni = await destinazioniPubbliche()
-  const regioni = destinazioni.filter(d => d.categoria_nome === 'Mare Italia' && d.parent_id === null && d.slug)
+  const regioni = destinazioni.filter(d => d.categoria_nome === categoriaNome && d.parent_id === null && d.slug)
   return regioni
     .map(r => ({
       id: r.id,

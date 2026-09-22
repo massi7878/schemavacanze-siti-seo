@@ -36,7 +36,7 @@ const regioneAttuale = regioni.find(r => r.slug === regioneSlugAttuale) ?? null
     <label class="filtro-destinazioni__campo">
       <span>Destinazione</span>
       <select data-filtro-destinazione data-prefisso="/destinazioni/">
-        <option value={regioneAttuale.slug} selected={!destinazioneSlugAttuale}>Tutta la {regioneAttuale.nome}</option>
+        <option value={regioneAttuale.slug} selected={!destinazioneSlugAttuale}>Tutte le strutture — {regioneAttuale.nome}</option>
         {regioneAttuale.figlie.map(f => (
           <option value={f.slug} selected={f.slug === destinazioneSlugAttuale}>{f.nome}</option>
         ))}
