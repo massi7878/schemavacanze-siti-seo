@@ -1,11 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../components/GrigliaStrutture.astro'
-import { getAzienda, getCopertinaHomepage, getStruttureElenco } from '../lib/queries'
+import FiltroSezioni from '../components/FiltroSezioni.astro'
+import { getAzienda, getCopertinaHomepage, getStruttureElenco, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
 
 const strutture = await getStruttureElenco()
 const azienda = await getAzienda()
 const copertine = await getCopertinaHomepage()
+const categorie = await getDestinazioniPerCategoria()
+const tipologie = await getTipologieStruttura()
 // Finche' nel gestionale non viene caricata almeno una foto di copertina,
 // resta questa di riserva (una foto reale gia' in uso altrove sul sito).
 const foto = copertine.length > 0 ? copertine : ['https://www.schemavacanze.it/gallery/17595.jpg']
@@ -30,8 +33,24 @@ const urlCanonica = new URL('/', Astro.site).toString()
     </div>
   </section>
 
-  <main class="contenitore pagina-home" id="strutture">
-    <h2 class="pagina-home__titolo">Le nostre strutture</h2>
+  <main class="contenitore pagina-home">
+    {categorie.length > 0 && (
+      <section class="esplora">
+        <h2 class="esplora__titolo">Esplora per sezione</h2>
+        <FiltroSezioni categorie={categorie} />
+      </section>
+    )}
+
+    {tipologie.length > 0 && (
+      <section class="esplora">
+        <h2 class="esplora__titolo">Esplora per tipologia</h2>
+        <nav class="esplora__pillole" aria-label="Tipologie di struttura">
+          {tipologie.map(t => <a class="pillola" href={`/strutture/${t.slug}/`}>{t.nome}</a>)}
+        </nav>
+      </section>
+    )}
+
+    <h2 class="pagina-home__titolo" id="strutture">Tutte le strutture</h2>
     <GrigliaStrutture strutture={strutture} />
   </main>
 </BaseLayout>
@@ -94,8 +113,37 @@ const urlCanonica = new URL('/', Astro.site).toString()
     padding: 3rem 0 4rem;
   }
 
+  .esplora {
+    margin-bottom: 2rem;
+  }
+
+  .esplora__titolo {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--testo-tenue);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.75rem;
+  }
+
+  .esplora__pillole {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .esplora__pillole .pillola {
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .esplora__pillole .pillola:hover {
+    background: var(--colore-primario-scuro);
+    color: #fff;
+  }
+
   .pagina-home__titolo {
     font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
-    margin-bottom: 1.5rem;
+    margin: 2.5rem 0 1.5rem;
   }
 </style>

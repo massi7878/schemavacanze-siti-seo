@@ -1,12 +1,16 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import SchedaOfferta from '../../components/SchedaOfferta.astro'
-import { getOfferte } from '../../lib/queries'
+import { getOfferte, getDestinazioniPerCategoria } from '../../lib/queries'
 
 const offerte = await getOfferte()
-const regioni = [...new Set(offerte.map(o => o.regione).filter((r): r is string => Boolean(r)))].sort((a, b) =>
-  a.localeCompare(b, 'it')
-)
+// Filtro per sezione (Mare Italia/Estero/Montagna/Crociere), non piu' per il
+// campo di testo "regione": stessa categoria usata da /categoria/ e
+// /destinazioni/, cosi' il filtro resta coerente col resto del sito invece
+// di essere un sistema di geografia a se'. getDestinazioniPerCategoria()
+// mantiene l'ordine gia' impostato in Impostazioni nel gestionale.
+const categorieConOfferte = new Set(offerte.map(o => o.categoriaNome).filter((c): c is string => Boolean(c)))
+const categorie = (await getDestinazioniPerCategoria()).filter(c => categorieConOfferte.has(c.nome))
 const urlCanonica = new URL('/offerte/', Astro.site).toString()
 const titolo = 'Offerte villaggi e resort | Hotellando'
 const descrizione =
@@ -31,8 +35,8 @@ const descrizione =
   <main class="contenitore pagina-offerte">
     {offerte.length > 0 && (
       <div class="filtri" role="group" aria-label="Filtra le offerte">
-        <button type="button" class="filtro filtro--attivo" data-filtro-regione="">Tutte</button>
-        {regioni.map(r => <button type="button" class="filtro" data-filtro-regione={r}>{r}</button>)}
+        <button type="button" class="filtro filtro--attivo" data-filtro-sezione="">Tutte</button>
+        {categorie.map(c => <button type="button" class="filtro" data-filtro-sezione={c.nome}>{c.nome}</button>)}
         <button type="button" class="filtro filtro--bimbi" data-filtro-bambini-gratis="1">Bimbi gratis</button>
       </div>
     )}
@@ -40,7 +44,7 @@ const descrizione =
     {offerte.length > 0 ? (
       <ul class="griglia-offerte" id="griglia-offerte">
         {offerte.map(o => (
-          <li data-regione={o.regione ?? ''} data-bambini-gratis={o.bambiniGratis ? '1' : '0'}>
+          <li data-sezione={o.categoriaNome ?? ''} data-bambini-gratis={o.bambiniGratis ? '1' : '0'}>
             <SchedaOfferta offerta={o} />
           </li>
         ))}
@@ -52,25 +56,25 @@ const descrizione =
 </BaseLayout>
 
 <script>
-  const filtriRegione = document.querySelectorAll<HTMLButtonElement>('[data-filtro-regione]')
+  const filtriSezione = document.querySelectorAll<HTMLButtonElement>('[data-filtro-sezione]')
   const filtroBimbi = document.querySelector<HTMLButtonElement>('[data-filtro-bambini-gratis]')
   const righe = document.querySelectorAll<HTMLLIElement>('#griglia-offerte > li')
 
-  let regioneAttiva = ''
+  let sezioneAttiva = ''
   let soloBimbiGratis = false
 
   function applica() {
     righe.forEach(riga => {
-      const passaRegione = !regioneAttiva || riga.dataset.regione === regioneAttiva
+      const passaSezione = !sezioneAttiva || riga.dataset.sezione === sezioneAttiva
       const passaBimbi = !soloBimbiGratis || riga.dataset.bambiniGratis === '1'
-      riga.hidden = !(passaRegione && passaBimbi)
+      riga.hidden = !(passaSezione && passaBimbi)
     })
   }
 
-  filtriRegione.forEach(pulsante => {
+  filtriSezione.forEach(pulsante => {
     pulsante.addEventListener('click', () => {
-      regioneAttiva = pulsante.dataset.filtroRegione ?? ''
-      filtriRegione.forEach(p => p.classList.toggle('filtro--attivo', p === pulsante))
+      sezioneAttiva = pulsante.dataset.filtroSezione ?? ''
+      filtriSezione.forEach(p => p.classList.toggle('filtro--attivo', p === pulsante))
       applica()
     })
   })

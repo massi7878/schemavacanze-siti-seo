@@ -1,8 +1,9 @@
 ---
-import { getAzienda, getTipologieStruttura } from '../lib/queries'
+import { getAzienda, getTipologieStruttura, getDestinazioniPerCategoria } from '../lib/queries'
 
 const azienda = await getAzienda()
 const tipologieStruttura = await getTipologieStruttura()
+const categorie = await getDestinazioniPerCategoria()
 ---
 
 <footer class="piede-sito">
@@ -12,12 +13,20 @@ const tipologieStruttura = await getTipologieStruttura()
       <p class="piede-sito__contatto">
         {azienda?.telefono && <a href={`tel:${azienda.telefono.replace(/\s/g, '')}`}>{azienda.telefono}</a>}
       </p>
+      <a href="/offerte/">Offerte</a>
     </div>
 
     {tipologieStruttura.length > 0 && (
       <nav class="piede-sito__colonna" aria-label="Tipologie di struttura">
         <span class="piede-sito__intestazione">Strutture</span>
         {tipologieStruttura.map(t => <a href={`/strutture/${t.slug}/`}>{t.nome}</a>)}
+      </nav>
+    )}
+
+    {categorie.length > 0 && (
+      <nav class="piede-sito__colonna" aria-label="Destinazioni">
+        <span class="piede-sito__intestazione">Destinazioni</span>
+        {categorie.map(c => <a href={`/categoria/${c.slug}/`}>{c.nome}</a>)}
       </nav>
     )}
   </div>

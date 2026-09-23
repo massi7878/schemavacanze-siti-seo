@@ -102,21 +102,6 @@ export async function getRegioni() {
     .sort((a, b) => b.totale - a.totale)
 }
 
-export async function getStruttureRegione(regioneSlug: string) {
-  const regioni = await getRegioni()
-  const regione = regioni.find(r => r.slug === regioneSlug)
-  if (!regione) return { regione: null, strutture: [] }
-
-  const { data } = await supabase
-    .from('strutture')
-    .select('id, slug, nome, localita, regione, stelle, formula')
-    .eq('attiva', true)
-    .not('slug', 'is', null)
-    .not('regione', 'is', null)
-  const filtrate = (data ?? []).filter(s => nomeRegioneNormalizzato(s.regione as string) === regione.nome)
-  return { regione, strutture: await conCopertine(filtrate) }
-}
-
 // La tabella destinazioni non e' leggibile in anonimo (RLS: solo utenti
 // autenticati del gestionale). L'unico accesso pubblico e' questa RPC
 // (security definer), la stessa gia' usata dal modulo WhatsApp: qui e'
@@ -340,6 +325,7 @@ interface RigaOfferta {
       regione: string | null
       formula: string | null
       stelle: number | null
+      destinazione_id: string | null
     } | null
   } | null
 }
@@ -350,7 +336,7 @@ async function offerteConDettagli() {
     .select(
       `id, titolo, immagine_url, prezzo_da, valida_dal, valida_al, timer_scadenza,
        dettaglio_offerta_struttura!inner(struttura_id, check_in, check_out, notti, trattamento,
-         strutture(slug, nome, localita, regione, formula, stelle))`
+         strutture(slug, nome, localita, regione, formula, stelle, destinazione_id))`
     )
     .eq('attiva', true)
     .order('created_at', { ascending: false })
@@ -368,6 +354,15 @@ async function offerteConDettagli() {
         .eq('tipo_riduzione', 'gratuito')
     : { data: [] }
   const strutturaConBambiniGratis = new Set((bambiniGratisRighe ?? []).map(r => r.struttura_id))
+
+  // Le offerte si filtrano per sezione (Mare Italia/Estero/Montagna/Crociere),
+  // la stessa categoria usata da /categoria/ e /destinazioni/ — non piu' per
+  // il campo di testo "regione", che e' un sistema di geografia a parte e
+  // non conosce le sezioni (una "Puglia" nel testo non dice se e' Mare
+  // Italia o altro). destinazioniPubbliche() e' l'unico accesso pubblico
+  // alla tabella destinazioni (vedi sopra).
+  const destinazioni = await destinazioniPubbliche()
+  const categoriaPerDestinazioneId = new Map(destinazioni.map(d => [d.id, d.categoria_nome]))
 
   return righe
     .map(r => {
@@ -390,6 +385,7 @@ async function offerteConDettagli() {
         strutturaNome: struttura.nome,
         localita: struttura.localita,
         regione: struttura.regione ? nomeRegioneNormalizzato(struttura.regione) : null,
+        categoriaNome: struttura.destinazione_id ? categoriaPerDestinazioneId.get(struttura.destinazione_id) ?? null : null,
         formula: struttura.formula,
         stelle: struttura.stelle,
         bambiniGratis: strutturaConBambiniGratis.has(dettaglio.struttura_id),

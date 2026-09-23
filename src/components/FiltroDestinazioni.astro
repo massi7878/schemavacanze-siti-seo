@@ -9,14 +9,9 @@ interface Props {
   regioni: Regione[]
   regioneSlugAttuale: string
   destinazioneSlugAttuale: string | null
-  // Le pagine /regione/ restano nel proprio sistema (slug testuale) quando
-  // si cambia regione; le pagine /destinazioni/ restano nel proprio. La
-  // destinazione punta sempre a /destinazioni/, l'unica granularita' che
-  // esiste per le singole localita'.
-  prefissoRegione?: string
 }
 
-const { regioni, regioneSlugAttuale, destinazioneSlugAttuale, prefissoRegione = '/destinazioni/' } = Astro.props
+const { regioni, regioneSlugAttuale, destinazioneSlugAttuale } = Astro.props
 const regioneAttuale = regioni.find(r => r.slug === regioneSlugAttuale) ?? null
 ---
 
@@ -25,7 +20,7 @@ const regioneAttuale = regioni.find(r => r.slug === regioneSlugAttuale) ?? null
 
   <label class="filtro-destinazioni__campo">
     <span>Regione</span>
-    <select data-filtro-regione data-prefisso={prefissoRegione}>
+    <select data-filtro-regione data-prefisso="/destinazioni/">
       {regioni.map(r => (
         <option value={r.slug} selected={r.slug === regioneSlugAttuale}>{r.nome}</option>
       ))}

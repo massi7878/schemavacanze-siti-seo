@@ -14,6 +14,7 @@ import {
   troncaConEllissi,
   righeDaTesto,
   soloNumeri,
+  slugifica,
 } from '../../lib/formato'
 import { etichettaSezione, pluraleCamera } from '../../lib/etichette'
 
@@ -132,6 +133,12 @@ const sezioniTab = [
     <div class="contenitore testata__interno">
       <nav class="briciole" aria-label="Percorso">
         <a href="/">Home</a>
+        {struttura.tipologie_struttura?.nome && (
+          <>
+            <span aria-hidden="true">/</span>
+            <a href={`/strutture/${slugifica(struttura.tipologie_struttura.nome)}/`}>{struttura.tipologie_struttura.nome}</a>
+          </>
+        )}
         {struttura.destinazioni && (
           <>
             <span aria-hidden="true">/</span>

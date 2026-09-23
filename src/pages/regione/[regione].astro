@@ -1,120 +1,41 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro'
-import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
-import FiltroDestinazioni from '../../components/FiltroDestinazioni.astro'
-import { getGerarchiaRegioniDestinazioni, getRegioni, getStruttureRegione } from '../../lib/queries'
+import { getRegioni, getGerarchiaRegioniDestinazioni } from '../../lib/queries'
 
 export async function getStaticPaths() {
   const regioni = await getRegioni()
   return regioni.map(r => ({ params: { regione: r.slug } }))
 }
 
+// /regione/ (derivata dal campo di testo strutture.regione) duplicava
+// /destinazioni/ (derivata dalla tabella destinazioni relazionale): stesso
+// contenuto raggiungibile da due indirizzi diversi, un sistema di geografia
+// separato da tutto il resto del sito. Non era linkata da nessuna pagina
+// (nemmeno dalla sitemap): un ramo morto, non un percorso in uso. Consolidata
+// qui con un redirect verso la pagina /destinazioni/ corrispondente per nome
+// (o verso la sezione Mare Italia se non se ne trova una — /regione/ era
+// comunque solo Mare Italia), cosi' un vecchio link/preferito non trova un
+// 404 ma arriva comunque a contenuto vero.
 const { regione: regioneSlug } = Astro.params
-const { regione, strutture } = await getStruttureRegione(regioneSlug as string)
-if (!regione) return Astro.redirect('/404')
+const regioni = await getRegioni()
+const regione = regioni.find(r => r.slug === regioneSlug) ?? null
 
-// Il filtro esiste solo se questa regione ha anche una gerarchia di
-// destinazioni vere e proprie (solo "Mare Italia": Abruzzo, Lazio, Trentino
-// ecc. sono regioni testuali senza destinazioni collegate). Lo slug usato
-// nel filtro e' quello della tabella destinazioni, non quello testuale di
-// /regione/ (generati separatamente, potrebbero non coincidere).
 const gerarchiaRegioni = await getGerarchiaRegioniDestinazioni('Mare Italia')
-const regioneNellaGerarchia = gerarchiaRegioni.find(r => r.nome === regione.nome) ?? null
-
-const urlCanonica = new URL(`/regione/${regione.slug}/`, Astro.site).toString()
-const titolo = `Villaggi in ${regione.nome} | Hotellando`
-const descrizione = `${strutture.length} strutture selezionate in ${regione.nome}: villaggi e resort con schede su spiaggia, camere, formula e prezzi.`
+const destinazioneCorrispondente = regione ? gerarchiaRegioni.find(r => r.nome === regione.nome) : null
+const urlDestinazione = destinazioneCorrispondente ? `/destinazioni/${destinazioneCorrispondente.slug}/` : '/categoria/mare-italia/'
+const urlAssoluta = new URL(urlDestinazione, Astro.site).toString()
+const nomeDestinazione = destinazioneCorrispondente?.nome ?? 'Mare Italia'
 ---
 
-<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
-  <section class="apertura">
-    <div class="contenitore apertura__interno">
-      <nav class="briciole" aria-label="Percorso">
-        <a href="/">Home</a>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{regione.nome}</span>
-      </nav>
-      <h1>Villaggi in {regione.nome}</h1>
-      <p>{strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.</p>
-    </div>
-  </section>
-
-  <main class="contenitore pagina-elenco" class:list={{ 'pagina-elenco--con-filtro': regioneNellaGerarchia }}>
-    {regioneNellaGerarchia && (
-      <FiltroDestinazioni
-        regioni={gerarchiaRegioni}
-        regioneSlugAttuale={regioneNellaGerarchia.slug}
-        destinazioneSlugAttuale={null}
-        prefissoRegione="/regione/"
-      />
-    )}
-    <div class="pagina-elenco__risultati">
-      <GrigliaStrutture strutture={strutture} />
-    </div>
-  </main>
-</BaseLayout>
-
-<style>
-  .apertura {
-    padding: 2rem 0 2.5rem;
-  }
-
-  .briciole {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--testo-tenue);
-    margin-bottom: 1.25rem;
-  }
-
-  .briciole a {
-    color: var(--testo-tenue);
-    text-decoration: none;
-  }
-
-  .briciole a:hover {
-    color: var(--colore-primario-scuro);
-  }
-
-  .apertura__interno h1 {
-    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
-    margin-bottom: 0.5rem;
-  }
-
-  .apertura__interno p {
-    color: var(--testo);
-    margin: 0;
-  }
-
-  .pagina-elenco {
-    padding: 1rem 0 4rem;
-  }
-
-  .pagina-elenco--con-filtro {
-    display: flex;
-    flex-direction: column;
-    gap: 1.75rem;
-  }
-
-  .pagina-elenco__risultati {
-    min-width: 0;
-  }
-
-  @media (min-width: 900px) {
-    .pagina-elenco--con-filtro {
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 2.5rem;
-    }
-
-    .pagina-elenco--con-filtro > :global(.filtro-destinazioni) {
-      flex: 0 0 15rem;
-      position: sticky;
-      top: 1.5rem;
-    }
-
-    .pagina-elenco__risultati {
-      flex: 1;
-    }
-  }
-</style>
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content={`0;url=${urlDestinazione}`} />
+    <link rel="canonical" href={urlAssoluta} />
+    <meta name="robots" content="noindex" />
+    <title>Hotellando — Pagina spostata</title>
+  </head>
+  <body>
+    <p>Questa pagina si è spostata. <a href={urlDestinazione}>Vai a {nomeDestinazione}</a>.</p>
+  </body>
+</html>
