@@ -5,7 +5,21 @@ import { nomeRegioneNormalizzato, slugifica } from './formato'
 // null/vuoto e la pagina omette semplicemente quella sezione, invece di
 // riempirla con un valore finto.
 
-export async function getAzienda() {
+// Astro genera ogni pagina statica eseguendo da capo tutto il suo albero di
+// componenti (Header/Footer inclusi): senza cache, dati identici per
+// l'intero sito (azienda, tipologie, destinazioni, offerte, copertine)
+// venivano ri-interrogati su Supabase centinaia di volte per build (una
+// volta per pagina, spesso due: Header e Footer chiamano le stesse funzioni
+// indipendentemente). memoize() esegue la query una sola volta per build e
+// riusa il risultato per tutte le chiamate successive: e' un processo
+// Node.js a vita breve (dura solo la build), quindi non serve invalidare
+// la cache, si ricrea da zero al prossimo `astro build`.
+function memoize<T>(fn: () => Promise<T>): () => Promise<T> {
+  let cache: Promise<T> | null = null
+  return () => (cache ??= fn())
+}
+
+async function _getAzienda() {
   const { data } = await supabase
     .from('azienda')
     .select(
@@ -15,6 +29,7 @@ export async function getAzienda() {
     .maybeSingle()
   return data
 }
+export const getAzienda = memoize(_getAzienda)
 
 export async function getCopertinaHomepage() {
   const { data } = await supabase.from('homepage_copertina').select('url').order('ordine')
@@ -52,10 +67,17 @@ export async function getStruttureElenco() {
 // di ID in un `.in()` genera un URL troppo lungo e la query fallisce in
 // silenzio (nessun errore visibile, solo dati vuoti). Le righe con
 // copertina=true sono comunque poche, prendiamo tutte e le smistiamo qui.
+// Chiamata da ogni pagina di elenco (Home, Categoria, Destinazioni,
+// Strutture): memoizzata, e' sempre la stessa query per l'intera build.
+const getTutteCopertine = memoize(async () => {
+  const { data } = await supabase.from('struttura_media').select('struttura_id, url').eq('copertina', true)
+  return data ?? []
+})
+
 async function conCopertine<T extends { id: string }>(strutture: T[]): Promise<(T & { copertina: string | null })[]> {
   if (strutture.length === 0) return []
-  const { data: copertine } = await supabase.from('struttura_media').select('struttura_id, url').eq('copertina', true)
-  const copertinaPerStruttura = new Map((copertine ?? []).map(c => [c.struttura_id, c.url]))
+  const copertine = await getTutteCopertine()
+  const copertinaPerStruttura = new Map(copertine.map(c => [c.struttura_id, c.url]))
   return strutture.map(s => ({ ...s, copertina: copertinaPerStruttura.get(s.id) ?? null }))
 }
 
@@ -63,7 +85,7 @@ async function conCopertine<T extends { id: string }>(strutture: T[]): Promise<(
 // crociera...): catalogo gestito in Impostazioni nel gestionale, mai
 // hardcoded qui. Aggiungerne una nuova la' la fa comparire anche nel menu
 // del sito, senza bisogno di toccare questo codice.
-export async function getTipologieStruttura() {
+async function _getTipologieStruttura() {
   const { data } = await supabase
     .from('tipologie_struttura')
     .select('id, nome, ordine')
@@ -72,6 +94,7 @@ export async function getTipologieStruttura() {
     .order('nome')
   return (data ?? []).map(t => ({ ...t, slug: slugifica(t.nome) }))
 }
+export const getTipologieStruttura = memoize(_getTipologieStruttura)
 
 export async function getStruttureTipologia(tipologiaSlug: string) {
   const tipologie = await getTipologieStruttura()
@@ -87,7 +110,9 @@ export async function getStruttureTipologia(tipologiaSlug: string) {
   return { tipologia, strutture: await conCopertine(data ?? []) }
 }
 
-export async function getRegioni() {
+// Chiamata piu' volte per ogni pagina /regione/ (getStaticPaths + lookup
+// per ciascuna): memoizzata come le altre.
+async function _getRegioni() {
   const { data } = await supabase
     .from('strutture')
     .select('regione')
@@ -101,17 +126,23 @@ export async function getRegioni() {
   return Array.from(conteggio, ([nome, totale]) => ({ nome, slug: slugifica(nome), totale }))
     .sort((a, b) => b.totale - a.totale)
 }
+export const getRegioni = memoize(_getRegioni)
 
 // La tabella destinazioni non e' leggibile in anonimo (RLS: solo utenti
 // autenticati del gestionale). L'unico accesso pubblico e' questa RPC
 // (security definer), la stessa gia' usata dal modulo WhatsApp: qui e'
 // stata estesa per restituire anche lo slug, che prima non esponeva.
-async function destinazioniPubbliche() {
+// E' la funzione piu' riusata di tutte (Header, Footer, Home, Categoria,
+// Destinazioni, Offerte, sitemap, llms.txt...): memoizzata, altrimenti la
+// stessa lista di destinazioni viene rifatta a ogni singola pagina.
+const destinazioniPubbliche = memoize(async () => {
   const { data } = await supabase.rpc('destinazioni_pubbliche')
   return (data ?? []) as { id: string; nome: string; slug: string | null; parent_id: string | null; categoria_nome: string }[]
-}
+})
 
-export async function getDestinazioniPerCategoria() {
+// Header e Footer la chiamano su ogni pagina (735 pagine x 2): memoizzata
+// come le funzioni sopra, stesso motivo.
+async function _getDestinazioniPerCategoria() {
   const destinazioni = await destinazioniPubbliche()
   // L'ordine delle categorie viene dalla RPC (ordinata per categorie_destinazione.ordine,
   // impostato in Impostazioni nel gestionale): niente elenco fisso da tenere aggiornato
@@ -129,6 +160,7 @@ export async function getDestinazioniPerCategoria() {
     destinazioni: destinazioni.filter(d => d.categoria_nome === nome && d.parent_id === null && d.slug),
   }))
 }
+export const getDestinazioniPerCategoria = memoize(_getDestinazioniPerCategoria)
 
 export async function getSlugCategorie() {
   const categorie = await getDestinazioniPerCategoria()
@@ -235,7 +267,7 @@ export async function getStrutturaCompleta(slug: string) {
       .eq('struttura_id', struttura.id),
     supabase
       .from('tipologie_camera')
-      .select('id, nome, capienza_max, note, immagine_url')
+      .select('id, nome, capienza_max, note, tipologia_camera_media(url, copertina, ordine)')
       .eq('struttura_id', struttura.id)
       .eq('attiva', true)
       .order('ordine'),
@@ -286,6 +318,16 @@ export async function getStrutturaCompleta(slug: string) {
   // le righe orfane per sicurezza.
   const prezziValidi = (prezzi ?? []).filter(p => p.tipologie_camera)
 
+  // Ogni tipologia camera puo' avere piu' foto (galleria propria, come per
+  // la struttura): qui riordinate copertina-prima cosi' la pagina mostra
+  // sempre la stessa foto principale che vede l'agenzia nel gestionale.
+  const camereConFoto = (camere ?? []).map(c => ({
+    ...c,
+    foto: [...(c.tipologia_camera_media ?? [])]
+      .sort((a, b) => Number(b.copertina) - Number(a.copertina) || a.ordine - b.ordine)
+      .map(m => m.url),
+  }))
+
   return {
     struttura: strutturaConDestinazione,
     servizi: nomiServizi,
@@ -294,7 +336,7 @@ export async function getStrutturaCompleta(slug: string) {
     animazione: nomiServizi.has('Animazione'),
     spiaggiaPrivata: nomiServizi.has('Spiaggia privata'),
     serviziBambini,
-    camere: camere ?? [],
+    camere: camereConFoto,
     prezzi: prezziValidi,
     riduzioni: riduzioni ?? [],
     galleria: (media ?? []).map(m => m.url),
@@ -330,7 +372,12 @@ interface RigaOfferta {
   } | null
 }
 
-async function offerteConDettagli() {
+// Ogni scheda struttura la chiama (per mostrare l'eventuale offerta attiva
+// su quella struttura), quindi senza cache l'intera tabella offerte con
+// tutti i join veniva ricaricata da zero per ognuna delle centinaia di
+// pagine /villaggi/: memoizzata, e' la stessa query indipendentemente da
+// quale struttura la richiede.
+const offerteConDettagli = memoize(async () => {
   const { data } = await supabase
     .from('offerte')
     .select(
@@ -392,7 +439,7 @@ async function offerteConDettagli() {
       }
     })
     .filter((o): o is NonNullable<typeof o> => o !== null)
-}
+})
 
 export async function getOfferte() {
   return offerteConDettagli()

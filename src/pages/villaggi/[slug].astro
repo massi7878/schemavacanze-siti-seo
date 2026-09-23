@@ -314,9 +314,12 @@ const sezioniTab = [
           <div class="griglia-camere">
             {camere.map(c => (
               <article class="scheda-camera">
-                {c.immagine_url && (
-                  <div class="scheda-camera__foto">
-                    <img src={c.immagine_url} alt={c.nome} loading="lazy" />
+                {c.foto.length > 0 && (
+                  <div class="scheda-camera__foto" class:list={{ 'scheda-camera__foto--multipla': c.foto.length > 1 }}>
+                    {c.foto.map((url, i) => (
+                      <img src={url} alt={i === 0 ? c.nome : ''} loading="lazy" />
+                    ))}
+                    {c.foto.length > 1 && <span class="scheda-camera__conteggio">{c.foto.length} foto</span>}
                   </div>
                 )}
                 <div class="scheda-camera__corpo">
@@ -1101,6 +1104,7 @@ const sezioniTab = [
   }
 
   .scheda-camera__foto {
+    position: relative;
     aspect-ratio: 4 / 3;
     overflow: hidden;
   }
@@ -1109,6 +1113,37 @@ const sezioniTab = [
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  /* Piu' di una foto: filmstrip orizzontale scorrevole (scroll-snap, senza
+     JS), invece del semplice riquadro singolo. */
+  .scheda-camera__foto--multipla {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .scheda-camera__foto--multipla::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scheda-camera__foto--multipla img {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+  }
+
+  .scheda-camera__conteggio {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    background: rgba(15, 15, 20, 0.55);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: 999px;
+    pointer-events: none;
   }
 
   .scheda-camera__corpo {
