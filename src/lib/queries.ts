@@ -65,19 +65,31 @@ export async function getStruttureElenco() {
 
 // Non filtriamo per struttura_id qui: con centinaia di strutture la lista
 // di ID in un `.in()` genera un URL troppo lungo e la query fallisce in
-// silenzio (nessun errore visibile, solo dati vuoti). Le righe con
-// copertina=true sono comunque poche, prendiamo tutte e le smistiamo qui.
+// silenzio (nessun errore visibile, solo dati vuoti). Prendiamo tutte le
+// foto immagine (ordinate) e scegliamo qui la prima per struttura: quella
+// con copertina=true se c'e', altrimenti la prima per `ordine` - stesso
+// criterio di riserva gia' usato dalla scheda struttura, cosi' una foto
+// caricata ma non segnata come copertina compare comunque nelle pagine
+// di elenco invece di sparire.
 // Chiamata da ogni pagina di elenco (Home, Categoria, Destinazioni,
 // Strutture): memoizzata, e' sempre la stessa query per l'intera build.
 const getTutteCopertine = memoize(async () => {
-  const { data } = await supabase.from('struttura_media').select('struttura_id, url').eq('copertina', true)
+  const { data } = await supabase
+    .from('struttura_media')
+    .select('struttura_id, url, copertina, ordine')
+    .eq('tipo', 'immagine')
+    .order('copertina', { ascending: false })
+    .order('ordine', { ascending: true })
   return data ?? []
 })
 
 async function conCopertine<T extends { id: string }>(strutture: T[]): Promise<(T & { copertina: string | null })[]> {
   if (strutture.length === 0) return []
-  const copertine = await getTutteCopertine()
-  const copertinaPerStruttura = new Map(copertine.map(c => [c.struttura_id, c.url]))
+  const foto = await getTutteCopertine()
+  const copertinaPerStruttura = new Map<string, string>()
+  for (const f of foto) {
+    if (!copertinaPerStruttura.has(f.struttura_id)) copertinaPerStruttura.set(f.struttura_id, f.url)
+  }
   return strutture.map(s => ({ ...s, copertina: copertinaPerStruttura.get(s.id) ?? null }))
 }
 
