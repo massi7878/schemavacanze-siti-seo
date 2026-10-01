@@ -269,7 +269,9 @@ export async function getStrutturaCompleta(slug: string) {
     : null
   const strutturaConDestinazione = {
     ...struttura,
-    destinazioni: destinazioneStruttura ? { nome: destinazioneStruttura.nome, slug: destinazioneStruttura.slug } : null,
+    destinazioni: destinazioneStruttura
+      ? { nome: destinazioneStruttura.nome, slug: destinazioneStruttura.slug, categoria_nome: destinazioneStruttura.categoria_nome }
+      : null,
   }
 
   const [{ data: servizi }, { data: camere }, { data: prezzi }, { data: riduzioni }, { data: media }] = await Promise.all([

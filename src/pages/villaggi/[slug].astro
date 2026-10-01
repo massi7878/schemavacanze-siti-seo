@@ -76,8 +76,16 @@ const mapUrl =
   (struttura.latitudine != null && struttura.longitudine != null
     ? `https://www.google.com/maps?q=${struttura.latitudine},${struttura.longitudine}`
     : null)
+// Montagna mostra "Sci" al posto di "Spiaggia": stessa sezione concettuale,
+// contenuto diverso a seconda della categoria destinazione (stessa logica
+// di EditStrutturaForm/StrutturaDetail nel gestionale).
+const isMontagna = struttura.destinazioni?.categoria_nome === 'Montagna'
 const haPosizioneOSpiaggia = Boolean(
-  struttura.indirizzo || struttura.descrizione_spiaggia || struttura.spiaggia_tipo || distanze.length > 0 || mapUrl
+  struttura.indirizzo ||
+    (isMontagna ? struttura.descrizione_sci : struttura.descrizione_spiaggia) ||
+    struttura.spiaggia_tipo ||
+    distanze.length > 0 ||
+    mapUrl
 )
 const haCamere = camere.length > 0 || Boolean(struttura.descrizione_camere)
 const haServizi = serviziPerCategoria.length > 0
@@ -274,20 +282,24 @@ const sezioniTab = [
 
     {haPosizioneOSpiaggia && (
       <section class="sezione" id="posizione">
-        <h2 class="sezione__titolo">Posizione e spiaggia</h2>
+        <h2 class="sezione__titolo">Posizione{isMontagna ? ` e ${etichettaSezione('sci', etichetteExtra).toLowerCase()}` : ' e spiaggia'}</h2>
         {struttura.indirizzo && <p>{struttura.indirizzo}{localitaBreve ? `, ${localitaBreve}` : ''}</p>}
         {distanze.length > 0 && (
           <ul class="lista-fatti">
             {distanze.map(d => <li>{d}</li>)}
           </ul>
         )}
-        {struttura.spiaggia_tipo && (
+        {!isMontagna && struttura.spiaggia_tipo && (
           <p>
             Spiaggia di {ETICHETTA_SPIAGGIA_TIPO[struttura.spiaggia_tipo] ?? struttura.spiaggia_tipo}
             {spiaggiaPrivata ? ', privata.' : '.'}
           </p>
         )}
-        {struttura.descrizione_spiaggia && <p>{struttura.descrizione_spiaggia}</p>}
+        {isMontagna ? (
+          struttura.descrizione_sci && <p>{struttura.descrizione_sci}</p>
+        ) : (
+          struttura.descrizione_spiaggia && <p>{struttura.descrizione_spiaggia}</p>
+        )}
         {mapUrl && (
           <a class="banner-mappa" href={mapUrl} target="_blank" rel="noopener noreferrer">
             <span class="banner-mappa__icona" aria-hidden="true">

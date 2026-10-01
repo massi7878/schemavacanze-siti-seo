@@ -6,6 +6,7 @@
 export const SEZIONI_STRUTTURA = [
   { chiave: 'caratteristiche_tecniche', defaultLabel: 'Caratteristiche tecniche' },
   { chiave: 'spiaggia', defaultLabel: 'Spiaggia' },
+  { chiave: 'sci', defaultLabel: 'Sci' },
   { chiave: 'ristorazione', defaultLabel: 'Trattamento e ristorazione' },
   { chiave: 'intrattenimento', defaultLabel: 'Intrattenimento' },
   { chiave: 'tessera_club', defaultLabel: 'Tessera Club' },
