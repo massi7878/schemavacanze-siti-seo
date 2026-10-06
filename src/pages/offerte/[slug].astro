@@ -13,17 +13,17 @@ import {
   descriviPartenza,
   euro,
   getOffertaPubblica,
-  getOffertePubbliche,
 } from '../../lib/offerte'
 
-export async function getStaticPaths() {
-  const offerte = await getOffertePubbliche()
-  return offerte.map(o => ({ params: { slug: o.slug } }))
-}
+// Pagina generata al momento della richiesta e tenuta in cache da Vercel per poco: un'offerta
+// modificata nel gestionale compare entro ~1 minuto senza ripubblicare il sito.
+export const prerender = false
 
 const { slug } = Astro.params
 const o = await getOffertaPubblica(slug as string)
-if (!o) throw new Error(`Offerta ${slug} non trovata`)
+// offerta non piu' attiva (o indirizzo sbagliato): si torna all'elenco
+if (!o) return Astro.redirect('/offerte/', 302)
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600')
 
 const azienda = await getAzienda()
 const canali = o.canali_richiesta ?? []

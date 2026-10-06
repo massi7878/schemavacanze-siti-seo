@@ -245,8 +245,16 @@ const sezioniTab = [
   )}
 
   <main class="contenitore">
-    {offerta && (
-      <section class="sezione offerta-struttura" id="offerta">
+    <section
+      class="sezione offerta-struttura"
+      id="offerta"
+      hidden={!offerta}
+      data-slug={struttura.slug}
+      data-url={import.meta.env.PUBLIC_SUPABASE_URL}
+      data-chiave={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
+    >
+      {offerta && (
+      <div class="offerta-struttura__voce">
         <h2 class="sezione__titolo">{offerta.titolo}</h2>
         <div class="offerta-struttura__dettagli">
           {offerta.checkIn && offerta.checkOut && <span>{formattaPeriodo(offerta.checkIn, offerta.checkOut)}</span>}
@@ -268,8 +276,9 @@ const sezioniTab = [
             Richiedi questa offerta
           </a>
         )}
-      </section>
-    )}
+      </div>
+      )}
+    </section>
 
     {haDescrizione && (
       <section class="sezione" id="descrizione">
@@ -652,6 +661,58 @@ const sezioniTab = [
     if (evento.key === 'ArrowLeft') vaiA(indiceCorrente - 1)
     if (evento.key === 'ArrowRight') vaiA(indiceCorrente + 1)
   })
+</script>
+
+<script>
+  // Le offerte della struttura si leggono al momento della visita (stessa funzione del database
+  // usata dal gestionale): un'offerta nuova o scaduta compare/sparisce senza ripubblicare il sito.
+  const sezione = document.querySelector<HTMLElement>('#offerta')
+  const slugStruttura = sezione?.dataset.slug
+  const urlBase = sezione?.dataset.url
+  const chiaveAnon = sezione?.dataset.chiave
+
+  function esc(t: string) {
+    return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  }
+  const dataBreve = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+
+  async function aggiornaOfferte() {
+    if (!sezione || !slugStruttura || !urlBase || !chiaveAnon) return
+    try {
+      const r = await fetch(`${urlBase}/rest/v1/rpc/offerte_struttura`, {
+        method: 'POST',
+        headers: { apikey: chiaveAnon, Authorization: `Bearer ${chiaveAnon}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_slug: slugStruttura }),
+      })
+      if (!r.ok) return
+      const offerte: Array<Record<string, any>> = await r.json()
+      if (offerte.length === 0) {
+        sezione.hidden = true
+        return
+      }
+      sezione.innerHTML = offerte
+        .map(o => {
+          const dettagli: string[] = []
+          if (o.check_in && o.check_out) dettagli.push(`${dataBreve(o.check_in)} – ${dataBreve(o.check_out)}`)
+          else if (o.prossima_partenza) dettagli.push(`Dal ${dataBreve(o.prossima_partenza)}`)
+          else if (o.valida_dal && o.valida_al) dettagli.push(`${dataBreve(o.valida_dal)} – ${dataBreve(o.valida_al)}`)
+          if (o.notti) dettagli.push(`${o.notti} notti`)
+          if (o.trattamento) dettagli.push(esc(o.trattamento))
+          return `<div class="offerta-struttura__voce">
+            <h2 class="sezione__titolo">${esc(o.titolo)}</h2>
+            <div class="offerta-struttura__dettagli">${dettagli.map(d => `<span>${d}</span>`).join('')}</div>
+            ${o.prezzo_da != null ? `<p class="offerta-struttura__prezzo">da <strong>${Math.round(Number(o.prezzo_da))}€</strong> <span>a persona</span></p>` : ''}
+            <a class="pulsante" href="/offerte/${encodeURIComponent(o.slug)}/">Vedi l'offerta e richiedi disponibilità</a>
+          </div>`
+        })
+        .join('')
+      sezione.hidden = false
+    } catch {
+      /* resta il contenuto generato alla pubblicazione */
+    }
+  }
+
+  aggiornaOfferte()
 </script>
 
 <style>
@@ -1056,7 +1117,13 @@ const sezioniTab = [
     padding: 1.75rem;
   }
 
-  .offerta-struttura__dettagli {
+  .offerta-struttura :global(.offerta-struttura__voce + .offerta-struttura__voce) {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--bordo);
+  }
+
+  .offerta-struttura :global(.offerta-struttura__dettagli) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem 1rem;
@@ -1065,13 +1132,13 @@ const sezioniTab = [
     margin-top: 0.5rem;
   }
 
-  .offerta-struttura__prezzo {
+  .offerta-struttura :global(.offerta-struttura__prezzo) {
     margin: 1rem 0 1.25rem;
     font-size: 1rem;
     color: var(--testo-tenue);
   }
 
-  .offerta-struttura__prezzo strong {
+  .offerta-struttura :global(.offerta-struttura__prezzo strong) {
     font-family: var(--font-display);
     font-size: 1.75rem;
     color: var(--colore-primario-scuro);

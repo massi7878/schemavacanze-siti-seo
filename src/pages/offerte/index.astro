@@ -3,6 +3,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import CardOfferta from '../../components/CardOfferta.astro'
 import { getFiltriOfferte, getOffertePubbliche, NOME_TIPO_OFFERTA, NOME_TIPO_PUNTO } from '../../lib/offerte'
 
+// Generata al momento della richiesta (cache breve su Vercel): le offerte salvate nel gestionale
+// compaiono senza ripubblicare il sito.
+export const prerender = false
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600')
+
 const offerte = await getOffertePubbliche()
 const filtri = await getFiltriOfferte()
 const tipiPresenti = [...new Set(offerte.map(o => o.tipo))]

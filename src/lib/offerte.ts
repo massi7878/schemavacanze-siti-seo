@@ -140,18 +140,25 @@ export interface OffertaDettaglio {
   } | null
 }
 
-// Una sola interrogazione per build (come le altre query del sito)
-let cacheElenco: Promise<OffertaElenco[]> | null = null
+// Le pagine delle offerte sono generate a ogni richiesta: l'elenco si riusa solo per pochi secondi
+// (stessa istanza del server, stessa pagina che lo chiede piu' volte)
+let cacheElenco: { quando: number; promessa: Promise<OffertaElenco[]> } | null = null
 
 export function getOffertePubbliche(): Promise<OffertaElenco[]> {
-  cacheElenco ??= (async () => {
+  if (cacheElenco && Date.now() - cacheElenco.quando < 20_000) return cacheElenco.promessa
+  const promessa = (async () => {
     const { data, error } = await supabase.rpc('offerte_ricerca', { p_limit: 500 })
     // Meglio far fallire il build (il sito precedente resta online) che pubblicare
     // una pagina offerte vuota per un errore temporaneo.
     if (error) throw new Error(`offerte_ricerca: ${error.message}`)
     return (data ?? []) as OffertaElenco[]
   })()
-  return cacheElenco
+  cacheElenco = { quando: Date.now(), promessa }
+  // se fallisce non resta in cache
+  promessa.catch(() => {
+    cacheElenco = null
+  })
+  return promessa
 }
 
 export async function getOffertaPubblica(slug: string): Promise<OffertaDettaglio | null> {

@@ -16,7 +16,17 @@ import { nomeRegioneNormalizzato, slugifica } from './formato'
 // la cache, si ricrea da zero al prossimo `astro build`.
 function memoize<T>(fn: () => Promise<T>): () => Promise<T> {
   let cache: Promise<T> | null = null
-  return () => (cache ??= fn())
+  let quando = 0
+  // Durante il build il processo vive pochi minuti: la cache vale per tutto il build. Le pagine
+  // generate a ogni richiesta (offerte) girano in un processo che vive molto di piu': dopo 5 minuti
+  // i dati condivisi (azienda, menu, destinazioni) vengono riletti.
+  return () => {
+    if (!cache || Date.now() - quando > 300_000) {
+      quando = Date.now()
+      cache = fn()
+    }
+    return cache
+  }
 }
 
 async function _getAzienda() {
