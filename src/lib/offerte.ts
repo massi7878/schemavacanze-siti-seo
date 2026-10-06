@@ -88,14 +88,14 @@ export interface OffertaDettaglio {
   aggiornata_il: string
   destinazione: { id: string; nome: string; slug: string; area: string | null } | null
   tag: string[]
-  punti: Array<{ tipo: string; nome: string; dettaglio: string | null }>
+  punti: Array<{ id: string; tipo: string; nome: string; dettaglio: string | null }>
   partenze: Array<{
     id: string
     data_partenza: string
     data_rientro: string
     prezzo_da: number | null
     stato: string
-    prezzi: Array<{ categoria: string; occupazione: string | null; prezzo_da: number }>
+    prezzi: Array<{ categoria: string; occupazione: string | null; prezzo_da: number; punto: { id: string; tipo: string; nome: string } | null }>
   }>
   trasporti: Array<{ fase: string; modo: string; da: string | null; a: string | null; incluso: boolean; supplemento: number | null; note: string | null }>
   struttura: { slug: string; nome: string; localita: string | null; regione: string | null; stelle: number | null } | null

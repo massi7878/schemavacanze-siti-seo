@@ -1,22 +1,47 @@
 ---
-import { descriviPartenza, euro } from '../lib/offerte'
+import { NOME_TIPO_PUNTO, descriviPartenza, euro } from '../lib/offerte'
 
 interface Props {
   offertaId: string
   codice: number
   titolo: string
-  partenze: Array<{ id: string; data_partenza: string; data_rientro: string; prezzo_da: number | null; stato: string }>
+  partenze: Array<{
+    id: string
+    data_partenza: string
+    data_rientro: string
+    prezzo_da: number | null
+    stato: string
+    prezzi?: Array<{ prezzo_da: number; punto: { id: string; tipo: string; nome: string } | null }>
+  }>
+  punti?: Array<{ id: string; tipo: string; nome: string }>
   validaDal: string | null
   validaAl: string | null
 }
 
-const { offertaId, codice, titolo, partenze, validaDal, validaAl } = Astro.props
+const { offertaId, codice, titolo, partenze, punti = [], validaDal, validaAl } = Astro.props
+
+function nomePunto(p: { tipo: string; nome: string }) {
+  return `${NOME_TIPO_PUNTO[p.tipo] ?? ''} ${p.nome}`.trim()
+}
+
+// Per ogni data: da quali localita' si puo' partire e a che prezzo (il minimo se ce n'e' piu' di uno)
+function puntiDellaPartenza(p: (typeof partenze)[number]) {
+  const perPunto = new Map<string, { id: string; nome: string; prezzo: number }>()
+  for (const z of p.prezzi ?? []) {
+    if (!z.punto) continue
+    const attuale = perPunto.get(z.punto.id)
+    if (!attuale || Number(z.prezzo_da) < attuale.prezzo) perPunto.set(z.punto.id, { id: z.punto.id, nome: nomePunto(z.punto), prezzo: Number(z.prezzo_da) })
+  }
+  return [...perPunto.values()]
+}
+
+const puntiOfferta = punti.map(p => ({ id: p.id, nome: nomePunto(p), prezzo: null as number | null }))
 const prenotabili = partenze.filter(p => p.stato !== 'esaurita')
 const urlSupabase = import.meta.env.PUBLIC_SUPABASE_URL
 const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
 
-<dialog id="dialog-richiesta" class="richiesta" data-offerta={offertaId} data-url={urlSupabase} data-chiave={chiaveAnon}>
+<dialog id="dialog-richiesta" class="richiesta" data-offerta={offertaId} data-url={urlSupabase} data-chiave={chiaveAnon} data-punti-offerta={JSON.stringify(puntiOfferta)}>
   <form method="dialog" class="richiesta__modulo" id="modulo-richiesta" novalidate>
     <header class="richiesta__testata">
       <div>
@@ -33,7 +58,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
           <select name="partenza" required>
             <option value="">Scegli la data…</option>
             {prenotabili.map(p => (
-              <option value={p.id} data-dal={p.data_partenza} data-al={p.data_rientro}>
+              <option value={p.id} data-dal={p.data_partenza} data-al={p.data_rientro} data-punti={JSON.stringify(puntiDellaPartenza(p))}>
                 {descriviPartenza(p.data_partenza, p.data_rientro)}{p.prezzo_da != null ? ` — da ${euro(Number(p.prezzo_da))}` : ''}
               </option>
             ))}
@@ -52,6 +77,11 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
           </label>
         </div>
       )}
+
+      <label class="campo" id="campo-punto" hidden>
+        Partenza da
+        <select name="punto"></select>
+      </label>
 
       <div class="riga-2">
         <label class="campo">
@@ -140,6 +170,43 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     /* storage non disponibile */
   }
 
+  // "Partenza da": le localita' della data scelta (con il prezzo), altrimenti quelle dell'offerta
+  const campoPunto = document.querySelector<HTMLElement>('#campo-punto')
+  const selectPunto = campoPunto?.querySelector<HTMLSelectElement>('select')
+  const puntiOfferta: Array<{ id: string; nome: string; prezzo: number | null }> = JSON.parse(dialog?.dataset.puntiOfferta ?? '[]')
+  const euroFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+
+  function aggiornaPunti() {
+    if (!campoPunto || !selectPunto) return
+    const sel = modulo?.elements.namedItem('partenza') as HTMLSelectElement | null
+    let elenco: Array<{ id: string; nome: string; prezzo: number | null }> = []
+    try {
+      elenco = JSON.parse(sel?.selectedOptions[0]?.dataset.punti ?? '[]')
+    } catch {
+      elenco = []
+    }
+    if (elenco.length === 0) elenco = puntiOfferta
+    selectPunto.innerHTML = ''
+    if (elenco.length === 0) {
+      campoPunto.hidden = true
+      selectPunto.required = false
+      return
+    }
+    const vuota = document.createElement('option')
+    vuota.value = ''
+    vuota.textContent = elenco.length > 1 ? 'Scegli da dove partire…' : 'Indifferente'
+    selectPunto.appendChild(vuota)
+    for (const p of elenco) {
+      const o = document.createElement('option')
+      o.value = p.id
+      o.textContent = p.prezzo != null ? `${p.nome} — ${euroFmt.format(p.prezzo)}` : p.nome
+      selectPunto.appendChild(o)
+    }
+    if (elenco.length === 1) selectPunto.value = elenco[0].id
+    selectPunto.required = elenco.length > 1
+    campoPunto.hidden = false
+  }
+
   function apri(partenzaId?: string) {
     if (!dialog || !modulo) return
     if (esito) esito.hidden = true
@@ -147,6 +214,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     if (errore) errore.hidden = true
     const sel = modulo.elements.namedItem('partenza') as HTMLSelectElement | null
     if (sel && partenzaId) sel.value = partenzaId
+    aggiornaPunti()
     dialog.showModal()
   }
 
@@ -157,6 +225,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   dialog?.addEventListener('click', e => {
     if (e.target === dialog) dialog.close()
   })
+
+  const selezionePartenza = modulo?.elements.namedItem('partenza') as HTMLSelectElement | null
+  selezionePartenza?.addEventListener('change', aggiornaPunti)
+  aggiornaPunti()
 
   // un campo "eta'" per ogni bambino
   const campoBambini = modulo?.elements.namedItem('bambini') as HTMLInputElement | null
@@ -234,6 +306,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
           p_utm_medium: utm.utm_medium ?? null,
           p_utm_campaign: utm.utm_campaign ?? null,
           p_consenso_marketing: dati.get('marketing') === 'on',
+          p_punto_id: (dati.get('punto') as string) || null,
         }),
       })
       if (!r.ok) {
@@ -249,6 +322,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
         body: JSON.stringify({ leadId }),
       }).catch(() => {})
       modulo.reset()
+      aggiornaPunti()
       if (etaBox) {
         etaBox.innerHTML = ''
         etaBox.hidden = true

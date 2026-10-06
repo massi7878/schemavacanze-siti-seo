@@ -222,7 +222,11 @@ function giorniTappa(da: number, a: number | null) {
                     {(p.prezzi ?? []).length > 0 && (
                       <div class="partenze__categorie">
                         {p.prezzi.map(z => (
-                          <span>{z.categoria}{z.occupazione ? ` (${z.occupazione})` : ''}: <strong>{euro(Number(z.prezzo_da))}</strong></span>
+                          <span>
+                            {z.punto ? `Da ${NOME_TIPO_PUNTO[z.punto.tipo] ?? ''} ${z.punto.nome}` : ''}
+                            {z.punto && z.categoria ? ' · ' : ''}
+                            {z.categoria}{z.occupazione ? ` (${z.occupazione})` : ''}: <strong>{euro(Number(z.prezzo_da))}</strong>
+                          </span>
                         ))}
                       </div>
                     )}
@@ -357,6 +361,7 @@ function giorniTappa(da: number, a: number | null) {
       codice={o.codice}
       titolo={o.titolo}
       partenze={partenze}
+      punti={o.punti ?? []}
       validaDal={o.valida_dal}
       validaAl={o.valida_al}
     />
