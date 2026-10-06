@@ -1,0 +1,139 @@
+---
+interface Props {
+  url: string
+  titolo: string
+  testo: string
+  slug: string
+  immagine: string | null
+  immagineCondivisione: string | null
+}
+
+const { url, titolo, testo, slug, immagine, immagineCondivisione } = Astro.props
+
+// Ogni canale riceve un indirizzo con la propria provenienza (UTM): la richiesta che ne nasce
+// riporta da quale canale e' arrivata l'offerta.
+function conUtm(canale: string) {
+  const u = new URL(url)
+  u.searchParams.set('utm_source', canale)
+  u.searchParams.set('utm_medium', 'share')
+  u.searchParams.set('utm_campaign', slug)
+  return u.toString()
+}
+
+const e = encodeURIComponent
+const canali = [
+  { id: 'whatsapp', nome: 'WhatsApp', href: `https://wa.me/?text=${e(`${testo} ${conUtm('whatsapp')}`)}` },
+  { id: 'facebook', nome: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${e(conUtm('facebook'))}` },
+  { id: 'messenger', nome: 'Messenger', href: `fb-messenger://share/?link=${e(conUtm('messenger'))}`, soloMobile: true },
+  { id: 'x', nome: 'X', href: `https://twitter.com/intent/tweet?url=${e(conUtm('x'))}&text=${e(testo)}` },
+  { id: 'telegram', nome: 'Telegram', href: `https://t.me/share/url?url=${e(conUtm('telegram'))}&text=${e(testo)}` },
+  { id: 'linkedin', nome: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${e(conUtm('linkedin'))}` },
+  ...(immagine
+    ? [{ id: 'pinterest', nome: 'Pinterest', href: `https://pinterest.com/pin/create/button/?url=${e(conUtm('pinterest'))}&media=${e(immagine)}&description=${e(testo)}` }]
+    : []),
+  { id: 'email', nome: 'E-mail', href: `mailto:?subject=${e(titolo)}&body=${e(`${testo}\n\n${conUtm('email')}`)}` },
+]
+---
+
+<div class="condividi" data-url={conUtm('link')} data-titolo={titolo} data-testo={testo}>
+  <p class="condividi__titolo">Condividi l’offerta</p>
+  <ul class="condividi__lista">
+    {canali.map(c => (
+      <li class={c.soloMobile ? 'solo-mobile' : undefined}>
+        <a class="condividi__btn" href={c.href} target="_blank" rel="noopener noreferrer" aria-label={`Condividi su ${c.nome}`}>
+          {c.nome}
+        </a>
+      </li>
+    ))}
+    <li>
+      <button type="button" class="condividi__btn" data-copia aria-live="polite">Copia il link</button>
+    </li>
+    <li class="solo-nativo" hidden>
+      <button type="button" class="condividi__btn" data-nativo>Altre app…</button>
+    </li>
+    {immagineCondivisione && (
+      <li>
+        <a class="condividi__btn" href={immagineCondivisione} download={`${slug}.jpg`} title="Immagine pronta da pubblicare, ad esempio su Instagram">
+          Scarica l’immagine
+        </a>
+      </li>
+    )}
+  </ul>
+</div>
+
+<script>
+  const box = document.querySelector<HTMLElement>('.condividi')
+  const copia = box?.querySelector<HTMLButtonElement>('[data-copia]')
+  const nativo = box?.querySelector<HTMLButtonElement>('[data-nativo]')
+  const liNativo = box?.querySelector<HTMLElement>('.solo-nativo')
+
+  copia?.addEventListener('click', async () => {
+    const link = box?.dataset.url ?? location.href
+    try {
+      await navigator.clipboard.writeText(link)
+      copia.textContent = 'Link copiato ✓'
+    } catch {
+      window.prompt('Copia il link:', link)
+    }
+    window.setTimeout(() => (copia.textContent = 'Copia il link'), 2500)
+  })
+
+  // pulsante "Condividi" del telefono (menu di sistema), solo dove esiste
+  if (typeof navigator.share === 'function' && liNativo) {
+    liNativo.hidden = false
+    nativo?.addEventListener('click', () => {
+      navigator
+        .share({ title: box?.dataset.titolo, text: box?.dataset.testo, url: box?.dataset.url })
+        .catch(() => {})
+    })
+  }
+</script>
+
+<style>
+  .condividi__titolo {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--inchiostro);
+  }
+
+  .condividi__lista {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .condividi__btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.45em 0.9em;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--bordo);
+    border-radius: 999px;
+    background: var(--superficie);
+    color: var(--testo);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .condividi__btn:hover {
+    border-color: var(--colore-primario-scuro);
+    color: var(--colore-primario-scuro);
+  }
+
+  .solo-mobile {
+    display: none;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .solo-mobile {
+      display: list-item;
+    }
+  }
+</style>

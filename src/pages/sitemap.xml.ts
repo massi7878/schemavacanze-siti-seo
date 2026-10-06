@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
-import { getStruttureSitemap, getDestinazioniPerCategoria, getTipologieStruttura, getOfferte } from '../lib/queries'
+import { getStruttureSitemap, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
+import { getOffertePubbliche } from '../lib/offerte'
 
 export const prerender = true
 
@@ -12,13 +13,14 @@ export const GET: APIRoute = async ({ site }) => {
     getStruttureSitemap(),
     getDestinazioniPerCategoria(),
     getTipologieStruttura(),
-    getOfferte(),
+    getOffertePubbliche(),
   ])
   const base = site?.toString().replace(/\/$/, '') ?? ''
 
   const urls = [
     { loc: `${base}/`, lastmod: null },
     ...(offerte.length > 0 ? [{ loc: `${base}/offerte/`, lastmod: null }] : []),
+    ...offerte.map(o => ({ loc: `${base}/offerte/${o.slug}/`, lastmod: null })),
     ...categorie.map(c => ({ loc: `${base}/categoria/${c.slug}/`, lastmod: null })),
     ...categorie.flatMap(c => c.destinazioni.map(d => ({ loc: `${base}/destinazioni/${d.slug}/`, lastmod: null }))),
     ...tipologie.map(t => ({ loc: `${base}/strutture/${t.slug}/`, lastmod: null })),

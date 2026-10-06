@@ -258,7 +258,12 @@ const sezioniTab = [
             da <strong>{offerta.prezzoDa}€</strong> <span>a persona</span>
           </p>
         )}
-        {azienda?.numero_whatsapp && (
+        {offerta.slug && (
+          <a class="pulsante" href={`/offerte/${offerta.slug}/`}>
+            Vedi l'offerta e richiedi disponibilità
+          </a>
+        )}
+        {!offerta.slug && azienda?.numero_whatsapp && (
           <a class="pulsante" href={`https://wa.me/39${soloNumeri(azienda.numero_whatsapp)}?text=${encodeURIComponent(`Ciao, sono interessato all'offerta "${offerta.titolo}"`)}`} target="_blank" rel="noopener">
             Richiedi questa offerta
           </a>

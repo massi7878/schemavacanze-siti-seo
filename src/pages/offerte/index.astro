@@ -1,22 +1,21 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
-import SchedaOfferta from '../../components/SchedaOfferta.astro'
-import { getOfferte, getDestinazioniPerCategoria } from '../../lib/queries'
+import CardOfferta from '../../components/CardOfferta.astro'
+import { getFiltriOfferte, getOffertePubbliche, NOME_TIPO_OFFERTA, NOME_TIPO_PUNTO } from '../../lib/offerte'
 
-const offerte = await getOfferte()
-// Filtro per sezione (Mare Italia/Estero/Montagna/Crociere), non piu' per il
-// campo di testo "regione": stessa categoria usata da /categoria/ e
-// /destinazioni/, cosi' il filtro resta coerente col resto del sito invece
-// di essere un sistema di geografia a se'. getDestinazioniPerCategoria()
-// mantiene l'ordine gia' impostato in Impostazioni nel gestionale.
-const categorieConOfferte = new Set(offerte.map(o => o.categoriaNome).filter((c): c is string => Boolean(c)))
-const categorie = (await getDestinazioniPerCategoria()).filter(c => categorieConOfferte.has(c.nome))
+const offerte = await getOffertePubbliche()
+const filtri = await getFiltriOfferte()
+const tipiPresenti = [...new Set(offerte.map(o => o.tipo))]
+
 const urlCanonica = new URL('/offerte/', Astro.site).toString()
-const titolo = 'Offerte villaggi e resort | Hotellando'
+const titolo = 'Offerte viaggi, villaggi e crociere | Hotellando'
 const descrizione =
   offerte.length > 0
-    ? `${offerte.length} offerte attive sui villaggi selezionati da Hotellando, con prezzo e date reali.`
+    ? `${offerte.length} offerte attive: soggiorni, pacchetti, tour e crociere con prezzi e date reali. Scegli il periodo e richiedi disponibilità.`
     : 'Le offerte di Hotellando sono in arrivo: nessuna promozione attiva al momento.'
+
+const urlSupabase = import.meta.env.PUBLIC_SUPABASE_URL
+const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
@@ -32,58 +31,234 @@ const descrizione =
     </div>
   </section>
 
-  <main class="contenitore pagina-offerte">
+  <main class="contenitore pagina-offerte" data-url-supabase={urlSupabase} data-chiave={chiaveAnon}>
     {offerte.length > 0 && (
-      <div class="filtri" role="group" aria-label="Filtra le offerte">
-        <button type="button" class="filtro filtro--attivo" data-filtro-sezione="">Tutte</button>
-        {categorie.map(c => <button type="button" class="filtro" data-filtro-sezione={c.nome}>{c.nome}</button>)}
-        <button type="button" class="filtro filtro--bimbi" data-filtro-bambini-gratis="1">Bimbi gratis</button>
-      </div>
+      <form class="filtri" id="filtri-offerte" aria-label="Filtra le offerte">
+        <div class="filtri__riga">
+          <label>
+            Dal
+            <input type="date" name="dal" />
+          </label>
+          <label>
+            Al
+            <input type="date" name="al" />
+          </label>
+          <label class="filtri__flex">
+            <input type="checkbox" name="flessibile" />
+            <span>Date flessibili <small>(anche un solo giorno in comune)</small></span>
+          </label>
+        </div>
+
+        <div class="filtri__riga">
+          {tipiPresenti.length > 1 && (
+            <label>
+              Tipo
+              <select name="tipo">
+                <option value="">Tutti</option>
+                {tipiPresenti.map(t => <option value={t}>{NOME_TIPO_OFFERTA[t] ?? t}</option>)}
+              </select>
+            </label>
+          )}
+          {filtri.aree.length > 1 && (
+            <label>
+              Area
+              <select name="area">
+                <option value="">Tutte</option>
+                {filtri.aree.map(a => <option value={a}>{a}</option>)}
+              </select>
+            </label>
+          )}
+          <label>
+            Raggio
+            <select name="raggio">
+              <option value="">Tutti</option>
+              <option value="breve">Breve raggio</option>
+              <option value="medio">Medio raggio</option>
+              <option value="lungo">Lungo raggio</option>
+            </select>
+          </label>
+          {filtri.destinazioni.length > 0 && (
+            <label>
+              Destinazione
+              <select name="destinazione">
+                <option value="">Tutte</option>
+                {filtri.destinazioni.map(d => <option value={d.id}>{d.nome}</option>)}
+              </select>
+            </label>
+          )}
+          <label>
+            Prezzo massimo (€)
+            <input type="number" name="prezzo" min="0" step="50" inputmode="numeric" />
+          </label>
+          <label>
+            Notti
+            <select name="notti">
+              <option value="">Qualsiasi</option>
+              <option value="0-4">Fino a 4</option>
+              <option value="5-8">5 – 8</option>
+              <option value="9-14">9 – 14</option>
+              <option value="15-99">Più di 14</option>
+            </select>
+          </label>
+          <label>
+            Ordina per
+            <select name="ordine">
+              <option value="data">Prima partenza</option>
+              <option value="prezzo">Prezzo</option>
+              <option value="recenti">Più recenti</option>
+            </select>
+          </label>
+        </div>
+
+        {filtri.punti.length > 0 && (
+          <fieldset class="filtri__gruppo">
+            <legend>Partenza da</legend>
+            <div class="filtri__scelte">
+              {filtri.punti.map(p => (
+                <label class="scelta">
+                  <input type="checkbox" name="punti" value={p.id} />
+                  <span>{NOME_TIPO_PUNTO[p.tipo] ?? p.tipo} {p.nome}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        {filtri.tag.length > 0 && (
+          <fieldset class="filtri__gruppo">
+            <legend>Caratteristiche</legend>
+            <div class="filtri__scelte">
+              {filtri.tag.map(t => (
+                <label class="scelta">
+                  <input type="checkbox" name="tag" value={t.id} />
+                  <span>{t.nome}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        <label class="scelta filtri__trasporto">
+          <input type="checkbox" name="trasporto" />
+          <span>Solo con trasporto incluso</span>
+        </label>
+
+        <div class="filtri__azioni">
+          <button type="reset" class="filtri__azzera" id="azzera-filtri">Azzera i filtri</button>
+          <span class="filtri__esito" id="esito-filtri" role="status" aria-live="polite"></span>
+        </div>
+      </form>
     )}
 
     {offerte.length > 0 ? (
       <ul class="griglia-offerte" id="griglia-offerte">
         {offerte.map(o => (
-          <li data-sezione={o.categoriaNome ?? ''} data-bambini-gratis={o.bambiniGratis ? '1' : '0'}>
-            <SchedaOfferta offerta={o} />
+          <li data-id={o.id}>
+            <CardOfferta offerta={o} />
           </li>
         ))}
       </ul>
     ) : (
       <p class="vuoto">Non ci sono ancora offerte pubblicate. <a href="/">Vedi tutti i villaggi</a>.</p>
     )}
+    <p class="vuoto" id="nessuna-offerta" hidden>Nessuna offerta corrisponde ai filtri scelti. Prova ad allargare il periodo o ad attivare le date flessibili.</p>
   </main>
 </BaseLayout>
 
 <script>
-  const filtriSezione = document.querySelectorAll<HTMLButtonElement>('[data-filtro-sezione]')
-  const filtroBimbi = document.querySelector<HTMLButtonElement>('[data-filtro-bambini-gratis]')
-  const righe = document.querySelectorAll<HTMLLIElement>('#griglia-offerte > li')
+  // La ricerca usa la stessa funzione del database (offerte_ricerca) che usa il gestionale:
+  // stesse regole per "date flessibili", tag, partenza da. L'elenco gia' presente nella pagina
+  // (utile ai motori di ricerca) viene solo filtrato mostrando/nascondendo le schede.
+  const principale = document.querySelector<HTMLElement>('.pagina-offerte')
+  const modulo = document.querySelector<HTMLFormElement>('#filtri-offerte')
+  const righe = Array.from(document.querySelectorAll<HTMLLIElement>('#griglia-offerte > li'))
+  const griglia = document.querySelector<HTMLElement>('#griglia-offerte')
+  const esito = document.querySelector<HTMLElement>('#esito-filtri')
+  const nessuna = document.querySelector<HTMLElement>('#nessuna-offerta')
+  const urlSupabase = principale?.dataset.urlSupabase
+  const chiave = principale?.dataset.chiave
 
-  let sezioneAttiva = ''
-  let soloBimbiGratis = false
+  let richiestaCorrente = 0
+  let attesa: number | undefined
 
-  function applica() {
-    righe.forEach(riga => {
-      const passaSezione = !sezioneAttiva || riga.dataset.sezione === sezioneAttiva
-      const passaBimbi = !soloBimbiGratis || riga.dataset.bambiniGratis === '1'
-      riga.hidden = !(passaSezione && passaBimbi)
-    })
+  function valore(nome: string) {
+    return (modulo?.elements.namedItem(nome) as HTMLInputElement | HTMLSelectElement | null)?.value ?? ''
   }
 
-  filtriSezione.forEach(pulsante => {
-    pulsante.addEventListener('click', () => {
-      sezioneAttiva = pulsante.dataset.filtroSezione ?? ''
-      filtriSezione.forEach(p => p.classList.toggle('filtro--attivo', p === pulsante))
-      applica()
-    })
-  })
+  function parametri() {
+    const dati = new FormData(modulo!)
+    const p: Record<string, unknown> = { p_limit: 500, p_ordine: valore('ordine') || 'data' }
+    const dal = valore('dal')
+    const al = valore('al')
+    if (dal) p.p_dal = dal
+    if (al) p.p_al = al
+    if (dal || al) p.p_flessibile = dati.get('flessibile') === 'on'
+    if (valore('tipo')) p.p_tipo = valore('tipo')
+    if (valore('area')) p.p_area = valore('area')
+    if (valore('raggio')) p.p_raggio = valore('raggio')
+    if (valore('destinazione')) p.p_destinazione_id = valore('destinazione')
+    if (valore('prezzo')) p.p_prezzo_max = Number(valore('prezzo'))
+    if (valore('notti')) {
+      const [min, max] = valore('notti').split('-').map(Number)
+      p.p_notti_min = min
+      p.p_notti_max = max
+    }
+    const tag = dati.getAll('tag')
+    if (tag.length) p.p_tag_ids = tag
+    const punti = dati.getAll('punti')
+    if (punti.length) p.p_punti_ids = punti
+    if (dati.get('trasporto') === 'on') p.p_trasporto_incluso = true
+    return p
+  }
 
-  filtroBimbi?.addEventListener('click', () => {
-    soloBimbiGratis = !soloBimbiGratis
-    filtroBimbi.classList.toggle('filtro--attivo', soloBimbiGratis)
-    applica()
-  })
+  function nessunFiltro(p: Record<string, unknown>) {
+    return Object.keys(p).every(k => k === 'p_limit' || (k === 'p_ordine' && p[k] === 'data'))
+  }
+
+  async function applica() {
+    if (!modulo || !urlSupabase || !chiave || !griglia) return
+    const p = parametri()
+    const numero = ++richiestaCorrente
+    if (nessunFiltro(p)) {
+      righe.forEach(r => (r.hidden = false))
+      if (nessuna) nessuna.hidden = true
+      if (esito) esito.textContent = ''
+      return
+    }
+    if (esito) esito.textContent = 'Ricerca in corso…'
+    try {
+      const risposta = await fetch(`${urlSupabase}/rest/v1/rpc/offerte_ricerca`, {
+        method: 'POST',
+        headers: { apikey: chiave, Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(p),
+      })
+      if (!risposta.ok) throw new Error(String(risposta.status))
+      const trovate: Array<{ id: string }> = await risposta.json()
+      if (numero !== richiestaCorrente) return
+      const ordine = new Map(trovate.map((o, i) => [o.id, i]))
+      righe.forEach(r => (r.hidden = !ordine.has(r.dataset.id ?? '')))
+      // riordina le schede come il risultato della ricerca (data / prezzo / piu' recenti)
+      righe
+        .filter(r => !r.hidden)
+        .sort((a, b) => (ordine.get(a.dataset.id ?? '') ?? 0) - (ordine.get(b.dataset.id ?? '') ?? 0))
+        .forEach(r => griglia.appendChild(r))
+      if (nessuna) nessuna.hidden = trovate.length > 0
+      if (esito) esito.textContent = trovate.length === 1 ? '1 offerta trovata' : `${trovate.length} offerte trovate`
+    } catch {
+      if (numero !== richiestaCorrente) return
+      if (esito) esito.textContent = 'Non riesco a filtrare in questo momento: riprova tra poco.'
+    }
+  }
+
+  function programma() {
+    window.clearTimeout(attesa)
+    attesa = window.setTimeout(applica, 250)
+  }
+
+  modulo?.addEventListener('input', programma)
+  modulo?.addEventListener('change', programma)
+  modulo?.addEventListener('reset', () => window.setTimeout(applica, 0))
+  modulo?.addEventListener('submit', e => e.preventDefault())
 </script>
 
 <style>
@@ -123,36 +298,119 @@ const descrizione =
   }
 
   .filtri {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 2rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+  }
+
+  .filtri__riga {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    gap: 0.75rem 1rem;
+    align-items: end;
+  }
+
+  .filtri label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--testo);
+  }
+
+  .filtri input[type='date'],
+  .filtri input[type='number'],
+  .filtri select {
+    font: inherit;
+    font-size: 0.92rem;
+    padding: 0.55em 0.7em;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    min-width: 0;
+  }
+
+  .filtri__flex {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 0.5rem !important;
+    font-weight: 600;
+  }
+
+  .filtri__flex small {
+    font-weight: 400;
+    color: var(--testo-tenue);
+  }
+
+  .filtri__gruppo {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .filtri__gruppo legend {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--testo);
+    margin-bottom: 0.4rem;
+    padding: 0;
+  }
+
+  .filtri__scelte {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
-    margin-bottom: 2rem;
+    gap: 0.5rem;
   }
 
-  .filtro {
-    border: 1px solid var(--bordo);
-    background: var(--superficie);
-    color: var(--testo);
-    font-size: 0.88rem;
+  .scelta {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 0.4rem !important;
     font-weight: 600;
-    padding: 0.5em 1.1em;
+    border: 1px solid var(--bordo);
     border-radius: 999px;
+    padding: 0.35em 0.9em;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
 
-  .filtro:hover {
-    border-color: var(--colore-primario-scuro);
-  }
-
-  .filtro--attivo {
+  .scelta:has(input:checked) {
     background: var(--colore-primario-scuro);
     border-color: var(--colore-primario-scuro);
     color: #fff;
   }
 
-  .filtro--bimbi {
-    margin-left: auto;
+  .filtri__trasporto {
+    align-self: start;
+    width: fit-content;
+  }
+
+  .filtri__azioni {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .filtri__azzera {
+    font: inherit;
+    font-size: 0.88rem;
+    background: none;
+    border: none;
+    color: var(--colore-primario-scuro);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .filtri__esito {
+    font-size: 0.9rem;
+    color: var(--testo-tenue);
   }
 
   .griglia-offerte {
@@ -164,17 +422,15 @@ const descrizione =
     grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   }
 
+  .griglia-offerte > li[hidden] {
+    display: none;
+  }
+
   .vuoto {
     color: var(--testo-tenue);
   }
 
   .vuoto a {
     color: var(--colore-primario-scuro);
-  }
-
-  @media (max-width: 600px) {
-    .filtro--bimbi {
-      margin-left: 0;
-    }
   }
 </style>

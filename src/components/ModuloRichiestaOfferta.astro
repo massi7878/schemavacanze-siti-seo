@@ -1,0 +1,414 @@
+---
+import { descriviPartenza, euro } from '../lib/offerte'
+
+interface Props {
+  offertaId: string
+  codice: number
+  titolo: string
+  partenze: Array<{ id: string; data_partenza: string; data_rientro: string; prezzo_da: number | null; stato: string }>
+  validaDal: string | null
+  validaAl: string | null
+}
+
+const { offertaId, codice, titolo, partenze, validaDal, validaAl } = Astro.props
+const prenotabili = partenze.filter(p => p.stato !== 'esaurita')
+const urlSupabase = import.meta.env.PUBLIC_SUPABASE_URL
+const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+---
+
+<dialog id="dialog-richiesta" class="richiesta" data-offerta={offertaId} data-url={urlSupabase} data-chiave={chiaveAnon}>
+  <form method="dialog" class="richiesta__modulo" id="modulo-richiesta" novalidate>
+    <header class="richiesta__testata">
+      <div>
+        <h2>Richiedi disponibilità</h2>
+        <p class="richiesta__rif">{titolo} · Rif. OFF-{codice}</p>
+      </div>
+      <button type="button" class="richiesta__chiudi" data-chiudi aria-label="Chiudi">×</button>
+    </header>
+
+    <div class="richiesta__corpo" id="richiesta-campi">
+      {prenotabili.length > 0 ? (
+        <label class="campo">
+          Partenza
+          <select name="partenza" required>
+            <option value="">Scegli la data…</option>
+            {prenotabili.map(p => (
+              <option value={p.id} data-dal={p.data_partenza} data-al={p.data_rientro}>
+                {descriviPartenza(p.data_partenza, p.data_rientro)}{p.prezzo_da != null ? ` — da ${euro(Number(p.prezzo_da))}` : ''}
+              </option>
+            ))}
+            <option value="altra">Altra data (la indico nelle note)</option>
+          </select>
+        </label>
+      ) : (
+        <div class="riga-2">
+          <label class="campo">
+            Dal
+            <input type="date" name="dal" min={validaDal ?? undefined} max={validaAl ?? undefined} />
+          </label>
+          <label class="campo">
+            Al
+            <input type="date" name="al" min={validaDal ?? undefined} max={validaAl ?? undefined} />
+          </label>
+        </div>
+      )}
+
+      <div class="riga-2">
+        <label class="campo">
+          Adulti
+          <input type="number" name="adulti" min="1" max="20" value="2" required inputmode="numeric" />
+        </label>
+        <label class="campo">
+          Bambini
+          <input type="number" name="bambini" min="0" max="10" value="0" inputmode="numeric" />
+        </label>
+      </div>
+      <div class="eta-bambini" id="eta-bambini" hidden></div>
+
+      <div class="riga-2">
+        <label class="campo">
+          Nome
+          <input type="text" name="nome" required autocomplete="given-name" maxlength="100" />
+        </label>
+        <label class="campo">
+          Cognome
+          <input type="text" name="cognome" required autocomplete="family-name" maxlength="100" />
+        </label>
+      </div>
+      <div class="riga-2">
+        <label class="campo">
+          E-mail
+          <input type="email" name="email" required autocomplete="email" />
+        </label>
+        <label class="campo">
+          Telefono
+          <input type="tel" name="telefono" required autocomplete="tel" inputmode="tel" />
+        </label>
+      </div>
+      <label class="campo">
+        Note (facoltative)
+        <textarea name="note" rows="3" maxlength="1500" placeholder="Esigenze particolari, altra data, aeroporto di partenza preferito…"></textarea>
+      </label>
+
+      <label class="consenso">
+        <input type="checkbox" name="privacy" required />
+        <span>Acconsento al trattamento dei miei dati per essere ricontattato in merito a questa richiesta.</span>
+      </label>
+      <label class="consenso">
+        <input type="checkbox" name="marketing" />
+        <span>Desidero ricevere altre offerte via e-mail (facoltativo).</span>
+      </label>
+
+      <!-- trappola per i bot: i visitatori veri non la vedono -->
+      <div class="trappola" aria-hidden="true">
+        <label>Non compilare questo campo<input type="text" name="sito" tabindex="-1" autocomplete="off" /></label>
+      </div>
+
+      <p class="richiesta__errore" id="richiesta-errore" role="alert" hidden></p>
+      <p class="richiesta__nota">Nessun pagamento online: ti rispondiamo con la disponibilità e il prezzo definitivo.</p>
+      <button type="submit" class="pulsante richiesta__invia" id="richiesta-invia">Invia la richiesta</button>
+    </div>
+
+    <div class="richiesta__esito" id="richiesta-esito" hidden>
+      <h3>Richiesta inviata</h3>
+      <p>Grazie! Abbiamo ricevuto la tua richiesta per «{titolo}». Ti ricontatteremo al più presto con la disponibilità.</p>
+      <button type="button" class="pulsante" data-chiudi>Chiudi</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>('#dialog-richiesta')
+  const modulo = document.querySelector<HTMLFormElement>('#modulo-richiesta')
+  const campi = document.querySelector<HTMLElement>('#richiesta-campi')
+  const esito = document.querySelector<HTMLElement>('#richiesta-esito')
+  const errore = document.querySelector<HTMLElement>('#richiesta-errore')
+  const invia = document.querySelector<HTMLButtonElement>('#richiesta-invia')
+  const etaBox = document.querySelector<HTMLElement>('#eta-bambini')
+
+  // Provenienza del visitatore (UTM): si ricorda per la sessione, cosi' resta anche dopo aver cambiato pagina
+  const utm: Record<string, string> = {}
+  try {
+    const params = new URLSearchParams(location.search)
+    for (const k of ['utm_source', 'utm_medium', 'utm_campaign']) {
+      const v = params.get(k)
+      if (v) sessionStorage.setItem(k, v.slice(0, 120))
+      const salvato = sessionStorage.getItem(k)
+      if (salvato) utm[k] = salvato
+    }
+  } catch {
+    /* storage non disponibile */
+  }
+
+  function apri(partenzaId?: string) {
+    if (!dialog || !modulo) return
+    if (esito) esito.hidden = true
+    if (campi) campi.hidden = false
+    if (errore) errore.hidden = true
+    const sel = modulo.elements.namedItem('partenza') as HTMLSelectElement | null
+    if (sel && partenzaId) sel.value = partenzaId
+    dialog.showModal()
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-apri-richiesta]').forEach(el =>
+    el.addEventListener('click', () => apri(el.dataset.partenza))
+  )
+  document.querySelectorAll<HTMLElement>('[data-chiudi]').forEach(el => el.addEventListener('click', () => dialog?.close()))
+  dialog?.addEventListener('click', e => {
+    if (e.target === dialog) dialog.close()
+  })
+
+  // un campo "eta'" per ogni bambino
+  const campoBambini = modulo?.elements.namedItem('bambini') as HTMLInputElement | null
+  campoBambini?.addEventListener('input', () => {
+    if (!etaBox) return
+    const n = Math.max(0, Math.min(10, Number(campoBambini.value) || 0))
+    const esistenti = etaBox.querySelectorAll('input').length
+    if (n > esistenti) {
+      for (let i = esistenti; i < n; i++) {
+        const l = document.createElement('label')
+        l.className = 'campo'
+        l.innerHTML = `Età bambino ${i + 1}<input type="number" min="0" max="17" required inputmode="numeric" />`
+        etaBox.appendChild(l)
+      }
+    } else {
+      while (etaBox.querySelectorAll('label').length > n) etaBox.lastElementChild?.remove()
+    }
+    etaBox.hidden = n === 0
+  })
+
+  function mostraErrore(testo: string) {
+    if (!errore) return
+    errore.textContent = testo
+    errore.hidden = false
+  }
+
+  modulo?.addEventListener('submit', async e => {
+    e.preventDefault()
+    if (!modulo || !dialog || !invia) return
+    errore && (errore.hidden = true)
+    if (!modulo.checkValidity()) {
+      modulo.reportValidity()
+      return
+    }
+    const dati = new FormData(modulo)
+    // bot: finge di aver inviato senza fare nulla
+    if (dati.get('sito')) {
+      if (campi) campi.hidden = true
+      if (esito) esito.hidden = false
+      return
+    }
+
+    const sel = modulo.elements.namedItem('partenza') as HTMLSelectElement | null
+    const opzione = sel?.selectedOptions[0]
+    const partenzaId = sel && sel.value && sel.value !== 'altra' ? sel.value : null
+    const dal = (dati.get('dal') as string) || opzione?.dataset.dal || null
+    const al = (dati.get('al') as string) || opzione?.dataset.al || null
+    const eta = Array.from(etaBox?.querySelectorAll('input') ?? []).map(i => Number(i.value) || 0)
+
+    const url = dialog.dataset.url
+    const chiave = dialog.dataset.chiave
+    const intestazioni = { apikey: chiave ?? '', Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' }
+
+    invia.disabled = true
+    invia.textContent = 'Invio in corso…'
+    try {
+      const r = await fetch(`${url}/rest/v1/rpc/crea_richiesta_offerta`, {
+        method: 'POST',
+        headers: intestazioni,
+        body: JSON.stringify({
+          p_offerta_id: dialog.dataset.offerta,
+          p_partenza_id: partenzaId,
+          p_nome: dati.get('nome'),
+          p_cognome: dati.get('cognome'),
+          p_email: dati.get('email'),
+          p_telefono: dati.get('telefono'),
+          p_data_dal: dal || null,
+          p_data_al: al || null,
+          p_adulti: Number(dati.get('adulti')) || 1,
+          p_bambini: Number(dati.get('bambini')) || 0,
+          p_eta_bambini: eta,
+          p_note: (dati.get('note') as string) || null,
+          p_canale: 'email',
+          p_utm_source: utm.utm_source ?? null,
+          p_utm_medium: utm.utm_medium ?? null,
+          p_utm_campaign: utm.utm_campaign ?? null,
+          p_consenso_marketing: dati.get('marketing') === 'on',
+        }),
+      })
+      if (!r.ok) {
+        const corpo = await r.json().catch(() => null)
+        throw new Error(corpo?.message ?? `Errore ${r.status}`)
+      }
+      const leadId = await r.json()
+      // la richiesta e' gia' salvata: se l'invio delle e-mail dovesse fallire non lo mostriamo
+      // al cliente (lo staff la vede comunque nel gestionale)
+      fetch(`${url}/functions/v1/invia-richiesta-offerta`, {
+        method: 'POST',
+        headers: intestazioni,
+        body: JSON.stringify({ leadId }),
+      }).catch(() => {})
+      modulo.reset()
+      if (etaBox) {
+        etaBox.innerHTML = ''
+        etaBox.hidden = true
+      }
+      if (campi) campi.hidden = true
+      if (esito) esito.hidden = false
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      mostraErrore(
+        /e-mail non valida|almeno un/i.test(msg)
+          ? msg
+          : 'Non siamo riusciti a inviare la richiesta. Riprova tra poco oppure scrivici su WhatsApp.'
+      )
+    } finally {
+      invia.disabled = false
+      invia.textContent = 'Invia la richiesta'
+    }
+  })
+</script>
+
+<style>
+  .richiesta {
+    border: none;
+    border-radius: var(--raggio);
+    padding: 0;
+    width: min(34rem, calc(100vw - 1.5rem));
+    max-height: calc(100vh - 2rem);
+    box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.45);
+    background: var(--superficie);
+    color: var(--testo);
+  }
+
+  .richiesta::backdrop {
+    background: rgba(20, 22, 18, 0.55);
+  }
+
+  .richiesta__modulo {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .richiesta__testata {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 0.75rem;
+    border-bottom: 1px solid var(--bordo);
+  }
+
+  .richiesta__testata h2 {
+    font-size: 1.4rem;
+  }
+
+  .richiesta__rif {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+  }
+
+  .richiesta__chiudi {
+    font-size: 1.8rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--testo-tenue);
+    align-self: flex-start;
+  }
+
+  .richiesta__corpo {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem 1.5rem 1.5rem;
+    overflow-y: auto;
+  }
+
+  .riga-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .eta-bambini {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    gap: 0.75rem;
+  }
+
+  .richiesta :global(.campo) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .richiesta :global(.campo input),
+  .richiesta :global(.campo select),
+  .richiesta :global(.campo textarea) {
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 400;
+    padding: 0.6em 0.75em;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    min-width: 0;
+  }
+
+  .consenso {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    font-size: 0.85rem;
+  }
+
+  .consenso input {
+    margin-top: 0.25rem;
+  }
+
+  .trappola {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .richiesta__errore {
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    background: #fdecec;
+    color: #8a1f1f;
+    border-radius: var(--raggio-piccolo);
+    font-size: 0.9rem;
+  }
+
+  .richiesta__nota {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--testo-tenue);
+  }
+
+  .richiesta__invia {
+    width: 100%;
+  }
+
+  .richiesta__esito {
+    padding: 2rem 1.5rem;
+    text-align: center;
+    display: grid;
+    gap: 1rem;
+    justify-items: center;
+  }
+
+  @media (max-width: 480px) {
+    .riga-2 {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

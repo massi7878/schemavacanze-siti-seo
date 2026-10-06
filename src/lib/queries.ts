@@ -359,6 +359,7 @@ export async function getStrutturaCompleta(slug: string) {
 
 interface RigaOfferta {
   id: string
+  slug: string | null
   titolo: string
   immagine_url: string | null
   prezzo_da: number | null
@@ -395,7 +396,7 @@ const offerteConDettagli = memoize(async () => {
   const { data } = await supabase
     .from('offerte')
     .select(
-      `id, titolo, immagine_url, prezzo_da, valida_dal, valida_al, timer_scadenza,
+      `id, slug, titolo, immagine_url, prezzo_da, valida_dal, valida_al, timer_scadenza,
        dettaglio_offerta_struttura!inner(struttura_id, check_in, check_out, notti, trattamento,
          strutture(slug, nome, localita, regione, formula, stelle, destinazione_id))`
     )
@@ -432,6 +433,7 @@ const offerteConDettagli = memoize(async () => {
       if (!dettaglio || !struttura?.slug) return null
       return {
         id: r.id,
+        slug: r.slug,
         titolo: r.titolo,
         immagine: r.immagine_url,
         prezzoDa: r.prezzo_da,

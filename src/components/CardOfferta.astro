@@ -1,0 +1,148 @@
+---
+import { NOME_TIPO_OFFERTA, dataBreve, euro, urlOfferta, type OffertaElenco } from '../lib/offerte'
+
+interface Props {
+  offerta: OffertaElenco
+}
+
+const { offerta } = Astro.props
+
+// Cosa mostrare come "quando": la prossima partenza se ce ne sono, altrimenti il periodo di validita'
+const prossima = offerta.partenze[0]?.data_partenza ?? offerta.prossima_partenza
+const quando = prossima
+  ? `Dal ${dataBreve(prossima)}${offerta.partenze.length > 1 ? ` · ${offerta.partenze.length}+ date` : ''}`
+  : offerta.valida_dal && offerta.valida_al
+    ? `${dataBreve(offerta.valida_dal)} – ${dataBreve(offerta.valida_al)}`
+    : null
+---
+
+<a class="card-offerta" href={urlOfferta(offerta.slug)}>
+  <div class="card-offerta__immagine">
+    {offerta.immagine_url
+      ? <img src={offerta.immagine_url} alt={offerta.titolo} loading="lazy" />
+      : <span class="card-offerta__segnaposto" aria-hidden="true">{offerta.titolo.charAt(0)}</span>}
+    <span class="card-offerta__tipo">{NOME_TIPO_OFFERTA[offerta.tipo] ?? 'Offerta'}</span>
+  </div>
+  <div class="card-offerta__corpo">
+    {offerta.destinazione_nome && <span class="card-offerta__luogo">{offerta.destinazione_nome}</span>}
+    <span class="card-offerta__titolo">{offerta.titolo}</span>
+    <div class="card-offerta__dettagli">
+      {quando && <span>{quando}</span>}
+      {offerta.durata_notti != null && <span>{offerta.durata_notti} notti</span>}
+      {offerta.trasporto_incluso && <span>Trasporto incluso</span>}
+    </div>
+    {offerta.tag.length > 0 && (
+      <div class="card-offerta__tag">
+        {offerta.tag.slice(0, 3).map(t => <span class="pillola">{t}</span>)}
+      </div>
+    )}
+    {offerta.prezzo_da != null && (
+      <p class="card-offerta__prezzo">
+        da <strong>{euro(Number(offerta.prezzo_da))}</strong>
+      </p>
+    )}
+  </div>
+</a>
+
+<style>
+  .card-offerta {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    overflow: hidden;
+    box-shadow: var(--ombra);
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .card-offerta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(52, 54, 58, 0.08), 0 16px 32px -16px rgba(52, 54, 58, 0.28);
+  }
+
+  .card-offerta__immagine {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--superficie-tenue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-offerta__immagine img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card-offerta__segnaposto {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    color: var(--colore-primario-scuro);
+  }
+
+  .card-offerta__tipo {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: var(--colore-primario-scuro);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.3em 0.7em;
+    border-radius: 999px;
+  }
+
+  .card-offerta__corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1.1rem 1.25rem 1.35rem;
+    flex: 1;
+  }
+
+  .card-offerta__luogo {
+    font-size: 0.82rem;
+    color: var(--testo-tenue);
+  }
+
+  .card-offerta__titolo {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--inchiostro);
+  }
+
+  .card-offerta__dettagli {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.7rem;
+    font-size: 0.82rem;
+    color: var(--testo-tenue);
+  }
+
+  .card-offerta__tag {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.3rem;
+  }
+
+  .card-offerta__prezzo {
+    margin: auto 0 0;
+    padding-top: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--testo-tenue);
+  }
+
+  .card-offerta__prezzo strong {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--colore-primario-scuro);
+  }
+</style>
