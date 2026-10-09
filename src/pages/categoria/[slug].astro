@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
 import FiltroSezioni from '../../components/FiltroSezioni.astro'
 import FiltroStelle from '../../components/FiltroStelle.astro'
+import Briciole from '../../components/Briciole.astro'
 import SelettoreDestinazioneCategoria from '../../components/SelettoreDestinazioneCategoria.astro'
 import { getSlugCategorie, getStruttureCategoria, getDestinazioniPerCategoria } from '../../lib/queries'
 
@@ -27,11 +28,7 @@ const descrizione = strutture.length > 0
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
   <section class="apertura">
     <div class="contenitore apertura__interno">
-      <nav class="briciole" aria-label="Percorso">
-        <a href="/">Home</a>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{categoria.nome}</span>
-      </nav>
+      <Briciole voci={[{ nome: categoria.nome }]} />
       <h1>{categoria.nome}</h1>
       {strutture.length > 0 && <p>{strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.</p>}
       <FiltroSezioni categorie={categorie} categoriaSlugAttuale={categoria.slug} />

@@ -1,0 +1,46 @@
+---
+// Percorso "dove siamo" (Home / Estero / Medio Raggio / Sharm El Sheik / nome): ogni voce
+// tranne l'ultima e' un link. Lo stesso componente serve scheda struttura, destinazione e sezione.
+interface Voce {
+  nome: string
+  href?: string | null
+}
+interface Props {
+  voci: Voce[]
+}
+
+const { voci } = Astro.props
+---
+
+<nav class="briciole" aria-label="Percorso">
+  <a href="/">Home</a>
+  {voci.map((v, i) => (
+    <>
+      <span aria-hidden="true">/</span>
+      {v.href && i < voci.length - 1
+        ? <a href={v.href}>{v.nome}</a>
+        : <span aria-current={i === voci.length - 1 ? 'page' : undefined}>{v.nome}</span>}
+    </>
+  ))}
+</nav>
+
+<style>
+  .briciole {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+    margin-bottom: 1.25rem;
+  }
+
+  .briciole a {
+    color: var(--testo-tenue);
+    text-decoration: none;
+  }
+
+  .briciole a:hover {
+    color: var(--colore-primario-scuro);
+    text-decoration: underline;
+  }
+</style>

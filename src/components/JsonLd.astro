@@ -10,10 +10,11 @@ interface Props {
   prezzoMinimo: number | null
   urlPagina: string
   urlDestinazione: string | null
+  percorso?: { nome: string; href: string }[]
   galleria?: string[]
 }
 
-const { struttura, azienda, servizi, animaliAmmessi, prezzoMinimo, urlPagina, urlDestinazione, galleria = [] } = Astro.props
+const { struttura, azienda, servizi, animaliAmmessi, prezzoMinimo, urlPagina, urlDestinazione, percorso = [], galleria = [] } = Astro.props
 
 const resort: Record<string, any> = {
   '@type': 'Resort',
@@ -70,7 +71,11 @@ if (Array.isArray(struttura.faq) && struttura.faq.length > 0) {
 }
 
 const listaBriciole = [{ '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', urlPagina).toString() }]
-if (urlDestinazione && struttura.destinazioni?.nome) {
+if (percorso.length > 0) {
+  for (const v of percorso) {
+    listaBriciole.push({ '@type': 'ListItem', position: listaBriciole.length + 1, name: v.nome, item: new URL(v.href, urlPagina).toString() })
+  }
+} else if (urlDestinazione && struttura.destinazioni?.nome) {
   listaBriciole.push({
     '@type': 'ListItem',
     position: 2,

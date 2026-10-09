@@ -2,7 +2,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import JsonLd from '../../components/JsonLd.astro'
 import IconaServizio from '../../components/IconaServizio.astro'
-import { getAzienda, getOffertaStruttura, getSlugStruttureAttive, getStrutturaCompleta } from '../../lib/queries'
+import Briciole from '../../components/Briciole.astro'
+import { getAzienda, getOffertaStruttura, getSlugStruttureAttive, getStrutturaCompleta, percorsoDestinazione } from '../../lib/queries'
 import {
   ETICHETTA_FORMULA,
   ETICHETTA_SPIAGGIA_TIPO,
@@ -57,6 +58,7 @@ if (!descrizione) {
 descrizione = troncaConEllissi(descrizione, 155)
 
 const urlCanonica = new URL(`/struttura/${struttura.slug}/`, Astro.site).toString()
+const percorso = await percorsoDestinazione(struttura.destinazione_id)
 const urlDestinazione = struttura.destinazioni?.slug
   ? new URL(`/destinazioni/${struttura.destinazioni.slug}/`, Astro.site).toString()
   : null
@@ -140,41 +142,23 @@ const sezioniTab = [
       prezzoMinimo={prezzoDa}
       urlPagina={urlCanonica}
       urlDestinazione={urlDestinazione}
+      percorso={percorso}
       galleria={galleria}
     />
   </Fragment>
 
   <header class="testata">
     <div class="contenitore testata__interno">
-      <nav class="briciole" aria-label="Percorso">
-        <a href="/">Home</a>
-        {struttura.tipologie_struttura?.nome && (
-          <>
-            <span aria-hidden="true">/</span>
-            <a href={`/strutture/${slugifica(struttura.tipologie_struttura.nome)}/`}>{struttura.tipologie_struttura.nome}</a>
-          </>
-        )}
-        {struttura.destinazioni && (
-          <>
-            <span aria-hidden="true">/</span>
-            <a href={`/destinazioni/${struttura.destinazioni.slug}/`}>{struttura.destinazioni.nome}</a>
-          </>
-        )}
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{struttura.nome}</span>
-      </nav>
+      <Briciole voci={[...percorso, { nome: struttura.nome }]} />
 
       {struttura.catena && <span class="pillola testata__catena">{struttura.catena}</span>}
 
-      <h1 class="testata__titolo">{struttura.nome}</h1>
+      <h1 class="testata__titolo">
+        {struttura.nome}
+        {struttura.stelle && <span class="testata__stelle" aria-label={`${struttura.stelle} stelle`}>{'★'.repeat(struttura.stelle)}</span>}
+      </h1>
 
-      {(localitaBreve || struttura.stelle) && (
-        <p class="testata__sottotitolo">
-          {localitaBreve}
-          {localitaBreve && struttura.stelle && <span aria-hidden="true"> · </span>}
-          {struttura.stelle && <span class="testata__stelle">{'★'.repeat(struttura.stelle)}</span>}
-        </p>
-      )}
+      {localitaBreve && <p class="testata__sottotitolo">{localitaBreve}</p>}
 
       {prezzoDa != null && (
         <p class="testata__prezzo">
@@ -777,7 +761,11 @@ const sezioniTab = [
 
   .testata__stelle {
     color: var(--colore-primario-scuro);
-    letter-spacing: 0.05em;
+    font-size: 0.45em;
+    letter-spacing: 0.08em;
+    margin-left: 0.6em;
+    white-space: nowrap;
+    vertical-align: middle;
   }
 
   .testo-descrizione {

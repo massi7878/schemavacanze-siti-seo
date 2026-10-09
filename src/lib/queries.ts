@@ -194,6 +194,20 @@ async function _getDestinazioniPerCategoria() {
 }
 export const getDestinazioniPerCategoria = memoize(_getDestinazioniPerCategoria)
 
+// Percorso "dove siamo" di una destinazione: sezione (Estero) > gruppo (Medio Raggio, se esiste) > destinazione.
+// Ogni voce ha il suo indirizzo, tranne l'ultima che e' la pagina stessa.
+export async function percorsoDestinazione(destinazioneId: string | null | undefined) {
+  if (!destinazioneId) return [] as { nome: string; href: string }[]
+  const tutte = await destinazioniPubbliche()
+  const destinazione = tutte.find(d => d.id === destinazioneId)
+  if (!destinazione) return []
+  const genitore = destinazione.parent_id ? tutte.find(d => d.id === destinazione.parent_id) : null
+  const voci: { nome: string; href: string }[] = [{ nome: destinazione.categoria_nome, href: `/categoria/${slugifica(destinazione.categoria_nome)}/` }]
+  if (genitore?.slug) voci.push({ nome: genitore.nome.trim(), href: `/destinazioni/${genitore.slug}/` })
+  if (destinazione.slug) voci.push({ nome: destinazione.nome.trim(), href: `/destinazioni/${destinazione.slug}/` })
+  return voci
+}
+
 export async function getSlugCategorie() {
   const categorie = await getDestinazioniPerCategoria()
   return categorie.map(c => c.slug)
@@ -265,10 +279,9 @@ export async function getGerarchiaRegioniDestinazioni(categoriaNome: string) {
       slug: r.slug as string,
       figlie: destinazioni
         .filter(d => d.parent_id === r.id && d.slug)
-        .map(f => ({ nome: f.nome.trim(), slug: f.slug as string }))
-        .sort((a, b) => a.nome.localeCompare(b.nome, 'it')),
+        .map(f => ({ nome: f.nome.trim(), slug: f.slug as string })),
     }))
-    .sort((a, b) => a.nome.localeCompare(b.nome, 'it'))
+// L'ordine e' quello impostato nel gestionale (Corto, Medio, Lungo Raggio), gia' applicato dalla RPC: niente ordine alfabetico
 }
 
 export async function getStrutturaCompleta(slug: string) {

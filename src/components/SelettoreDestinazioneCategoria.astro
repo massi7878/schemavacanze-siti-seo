@@ -9,7 +9,8 @@ interface Props {
 }
 
 const { destinazioni } = Astro.props
-const ordinate = [...destinazioni].sort((a, b) => a.nome.localeCompare(b.nome, 'it'))
+// Stesso ordine del menu (impostato in Destinazioni nel gestionale: Corto, Medio, Lungo Raggio), non alfabetico
+const ordinate = destinazioni
 ---
 
 <label class="selettore-destinazione">

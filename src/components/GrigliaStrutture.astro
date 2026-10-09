@@ -29,13 +29,13 @@ const { strutture } = Astro.props
         </div>
         <div class="scheda-struttura__corpo">
           {s.formula && <span class="pillola scheda-struttura__pillola">{ETICHETTA_FORMULA[s.formula] ?? s.formula}</span>}
+          {s.stelle && <span class="scheda-struttura__stelle" aria-label={`${s.stelle} stelle`}>{'★'.repeat(s.stelle)}</span>}
           <span class="scheda-struttura__nome">{s.nome}</span>
           {s.localita && (
             <span class="scheda-struttura__luogo">
               {s.localita}{s.regione ? `, ${s.regione}` : ''}
             </span>
           )}
-          {s.stelle && <span class="scheda-struttura__stelle">{'★'.repeat(s.stelle)}</span>}
         </div>
       </a>
     </li>
@@ -122,9 +122,11 @@ const { strutture } = Astro.props
   }
 
   .scheda-struttura__stelle {
+    align-self: center;
     color: var(--colore-primario-scuro);
-    font-size: 0.8rem;
-    margin-top: 0.15rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.1rem;
   }
 
   .griglia-strutture__vuoto {
