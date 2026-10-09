@@ -32,6 +32,16 @@ function puntiDellaPartenza(p: (typeof partenze)[number]) {
     const attuale = perPunto.get(z.punto.id)
     if (!attuale || Number(z.prezzo_da) < attuale.prezzo) perPunto.set(z.punto.id, { id: z.punto.id, nome: nomePunto(z.punto), prezzo: Number(z.prezzo_da) })
   }
+  // un prezzo senza localita' vale per tutte: quelle dell'offerta restano scegliere
+  const validoPerTutti = (p.prezzi ?? []).filter(z => !z.punto).map(z => Number(z.prezzo_da))
+  if (validoPerTutti.length > 0) {
+    const minimo = Math.min(...validoPerTutti)
+    for (const o of punti) {
+      const attuale = perPunto.get(o.id)
+      if (!attuale) perPunto.set(o.id, { id: o.id, nome: nomePunto(o), prezzo: minimo })
+      else if (minimo < attuale.prezzo) attuale.prezzo = minimo
+    }
+  }
   return [...perPunto.values()]
 }
 
@@ -112,7 +122,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
         </label>
         <label class="campo">
           Telefono
-          <input type="tel" name="telefono" required autocomplete="tel" inputmode="tel" />
+          <input type="tel" name="telefono" required autocomplete="tel" inputmode="tel" pattern="[0-9+()s.-]{8,}" title="Almeno 8 cifre, ad esempio 333 1234567" />
         </label>
       </div>
       <label class="campo">
@@ -177,6 +187,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   const euroFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 
   function aggiornaPunti() {
+    // "Altra data": senza partenza scelta le note servono per capire quando vuole partire
+    const scelta = (modulo?.elements.namedItem('partenza') as HTMLSelectElement | null)?.value
+    const campoNote = modulo?.elements.namedItem('note') as HTMLTextAreaElement | null
+    if (campoNote) campoNote.required = scelta === 'altra'
     if (!campoPunto || !selectPunto) return
     const sel = modulo?.elements.namedItem('partenza') as HTMLSelectElement | null
     let elenco: Array<{ id: string; nome: string; prezzo: number | null }> = []
@@ -332,7 +346,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
       mostraErrore(
-        /e-mail non valida|almeno un/i.test(msg)
+        /e-mail non valida|almeno un|telefono non valido|troppe richieste/i.test(msg)
           ? msg
           : 'Non siamo riusciti a inviare la richiesta. Riprova tra poco oppure scrivici su WhatsApp.'
       )

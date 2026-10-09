@@ -26,7 +26,7 @@ interface Props {
 const { offerta } = Astro.props
 ---
 
-<a class="scheda-offerta" href={`/villaggi/${offerta.strutturaSlug}/`}>
+<a class="scheda-offerta" href={`/struttura/${offerta.strutturaSlug}/`}>
   <div class="scheda-offerta__immagine">
     {offerta.immagine
       ? <img src={offerta.immagine} alt={offerta.titolo} loading="lazy" />

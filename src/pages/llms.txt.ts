@@ -2,7 +2,8 @@ import type { APIRoute } from 'astro'
 import { getStruttureSitemap, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
 import { getOffertePubbliche, NOME_TIPO_OFFERTA } from '../lib/offerte'
 
-export const prerender = true
+// Generata a ogni richiesta (con cache CDN di un'ora): le offerte nuove entrano subito, quelle scadute escono.
+export const prerender = false
 
 export const GET: APIRoute = async ({ site }) => {
   const [strutture, categorie, tipologie, offerte] = await Promise.all([
@@ -24,7 +25,7 @@ export const GET: APIRoute = async ({ site }) => {
     .join('\n')
 
   const righeStrutture = strutture
-    .map(s => `- [${s.nome}](${base}/villaggi/${s.slug}/)${s.localita ? ` — ${s.localita}${s.regione ? `, ${s.regione}` : ''}` : ''}`)
+    .map(s => `- [${s.nome}](${base}/struttura/${s.slug}/)${s.localita ? ` — ${s.localita}${s.regione ? `, ${s.regione}` : ''}` : ''}`)
     .join('\n')
 
   const corpo = `# Hotellando

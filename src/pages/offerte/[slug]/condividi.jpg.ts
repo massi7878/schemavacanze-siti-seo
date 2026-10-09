@@ -21,18 +21,22 @@ export const GET: APIRoute = async ({ params }) => {
   let originale: Buffer | null = null
   if (sorgente) {
     try {
-      const risposta = await fetch(sorgente)
+      const risposta = await fetch(sorgente, { signal: AbortSignal.timeout(5000) })
       if (risposta.ok) originale = Buffer.from(await risposta.arrayBuffer())
     } catch {
       /* foto non raggiungibile: si usa il fondo neutro qui sotto */
     }
   }
 
-  const base = originale
-    ? sharp(originale).resize(1200, 630, { fit: 'cover', position: 'attention' })
-    : sharp({ create: { width: 1200, height: 630, channels: 3, background: '#e5e4e8' } })
-
-  const jpeg = await base.jpeg({ quality: 82, mozjpeg: true }).toBuffer()
+  const fondoNeutro = () => sharp({ create: { width: 1200, height: 630, channels: 3, background: '#e5e4e8' } })
+  let jpeg: Buffer
+  try {
+    const base = originale ? sharp(originale).resize(1200, 630, { fit: 'cover', position: 'attention' }) : fondoNeutro()
+    jpeg = await base.jpeg({ quality: 82, mozjpeg: true }).toBuffer()
+  } catch {
+    // la foto non e' decodificabile (file corrotto, pagina d'errore): si usa il fondo neutro
+    jpeg = await fondoNeutro().jpeg({ quality: 82 }).toBuffer()
+  }
   return new Response(new Uint8Array(jpeg), {
     headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
   })

@@ -2,7 +2,8 @@ import type { APIRoute } from 'astro'
 import { getStruttureSitemap, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
 import { getOffertePubbliche } from '../lib/offerte'
 
-export const prerender = true
+// Generata a ogni richiesta (con cache CDN di un'ora): le offerte nuove entrano subito, quelle scadute escono.
+export const prerender = false
 
 // La sitemap deve elencare tutte le pagine "hub" (destinazioni, sezioni,
 // tipologie, offerte), non solo le schede struttura: sono le pagine che
@@ -25,7 +26,7 @@ export const GET: APIRoute = async ({ site }) => {
     ...categorie.flatMap(c => c.destinazioni.map(d => ({ loc: `${base}/destinazioni/${d.slug}/`, lastmod: null }))),
     ...tipologie.map(t => ({ loc: `${base}/strutture/${t.slug}/`, lastmod: null })),
     ...strutture.map(s => ({
-      loc: `${base}/villaggi/${s.slug}/`,
+      loc: `${base}/struttura/${s.slug}/`,
       lastmod: s.data_aggiornamento_contenuti ?? s.updated_at ?? null,
     })),
   ]
@@ -36,5 +37,5 @@ export const GET: APIRoute = async ({ site }) => {
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${corpo}\n</urlset>\n`
 
-  return new Response(xml, { headers: { 'Content-Type': 'application/xml' } })
+  return new Response(xml, { headers: { 'Content-Type': 'application/xml', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } })
 }

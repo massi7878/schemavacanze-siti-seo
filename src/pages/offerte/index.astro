@@ -225,7 +225,11 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     const p = parametri()
     const numero = ++richiestaCorrente
     if (nessunFiltro(p)) {
-      righe.forEach(r => (r.hidden = false))
+      // ordine originale della pagina (dopo un "ordina per prezzo" le schede vanno rimesse com'erano)
+      righe.forEach(r => {
+        r.hidden = false
+        griglia.appendChild(r)
+      })
       if (nessuna) nessuna.hidden = true
       if (esito) esito.textContent = ''
       return

@@ -24,3 +24,5 @@ pnpm-debug.log*
 .idea/
 dev-out.log
 dev-err.log
+
+.vercel

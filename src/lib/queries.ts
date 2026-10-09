@@ -23,7 +23,17 @@ function memoize<T>(fn: () => Promise<T>): () => Promise<T> {
   return () => {
     if (!cache || Date.now() - quando > 300_000) {
       quando = Date.now()
-      cache = fn()
+      const corrente = fn()
+      cache = corrente
+      // un errore o un risultato vuoto non resta in cache: la chiamata dopo riprova
+      corrente.then(
+        r => {
+          if (r == null || (Array.isArray(r) && r.length === 0)) cache = cache === corrente ? null : cache
+        },
+        () => {
+          cache = cache === corrente ? null : cache
+        }
+      )
     }
     return cache
   }
@@ -400,7 +410,7 @@ interface RigaOfferta {
 // Ogni scheda struttura la chiama (per mostrare l'eventuale offerta attiva
 // su quella struttura), quindi senza cache l'intera tabella offerte con
 // tutti i join veniva ricaricata da zero per ognuna delle centinaia di
-// pagine /villaggi/: memoizzata, e' la stessa query indipendentemente da
+// pagine /struttura/: memoizzata, e' la stessa query indipendentemente da
 // quale struttura la richiede.
 const offerteConDettagli = memoize(async () => {
   const { data } = await supabase

@@ -77,7 +77,8 @@ const grafo: Record<string, unknown>[] = [
     ],
   },
 ]
-const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grafo })
+// "<" va protetto: un titolo o un testo con </script> chiuderebbe il tag e il resto diventerebbe HTML eseguibile
+const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grafo }).replace(/</g, '\u003c')
 
 function giorniTappa(da: number, a: number | null) {
   return a && a !== da ? `Giorni ${da}–${a}` : `Giorno ${da}`
@@ -143,7 +144,7 @@ function giorniTappa(da: number, a: number | null) {
           <section class="blocco">
             <h2>{o.tipo === 'crociera' ? 'La nave' : 'La struttura'}</h2>
             <p>
-              <a href={`/villaggi/${o.struttura.slug}/`}><strong>{o.struttura.nome}</strong></a>
+              <a href={`/struttura/${o.struttura.slug}/`}><strong>{o.struttura.nome}</strong></a>
               {o.struttura.localita ? ` — ${o.struttura.localita}` : ''}
               {o.struttura.stelle ? ` · ${'★'.repeat(o.struttura.stelle)}` : ''}
             </p>
@@ -155,7 +156,7 @@ function giorniTappa(da: number, a: number | null) {
                 {o.soggiorno.trattamento ? ` · ${o.soggiorno.trattamento}` : ''}
               </p>
             )}
-            <p><a href={`/villaggi/${o.struttura.slug}/`}>Scopri la scheda completa →</a></p>
+            <p><a href={`/struttura/${o.struttura.slug}/`}>Scopri la scheda completa →</a></p>
           </section>
         )}
 
