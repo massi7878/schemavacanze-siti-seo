@@ -1,0 +1,346 @@
+---
+import { euro } from '../../lib/offerte'
+import type { DatiPaginaTour } from '../../lib/tourPagina'
+
+interface Props {
+  d: DatiPaginaTour
+}
+
+const { d } = Astro.props
+const { t, partenze, periodi, numeroWa } = d
+
+// dati per il calendario (sono poche centinaia di righe: stanno nella pagina, niente richieste)
+const datiCalendario = partenze.map(p => ({ p: p.data_partenza, r: p.data_rientro, e: Number(p.prezzo_da), s: p.stato }))
+const primaData = partenze[0]?.data_partenza ?? null
+---
+
+<section class="partenze-tour" id="partenze">
+  <h2>Date di partenza e prezzi</h2>
+  <p class="partenze-tour__nota">
+    Prezzi a persona in camera doppia. Scegli il giorno di partenza sul calendario: il rientro si calcola da solo
+    ({t.notti} {t.notti === 1 ? 'notte' : 'notti'} dopo).
+  </p>
+
+  {periodi.length > 0 && (
+    <ul class="partenze-tour__periodi">
+      {periodi.map(p => (
+        <li>
+          <span>{p.descrizione}</span>
+          <strong>{euro(p.prezzo)}</strong>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <div
+    class="cal"
+    data-partenze={JSON.stringify(datiCalendario)}
+    data-iniziale={primaData}
+    data-notti={t.notti}
+    data-wa={numeroWa}
+    data-tour={t.nome}
+  >
+    <div class="cal__testata">
+      <button type="button" class="cal__nav" data-prec aria-label="Mese precedente">‹</button>
+      <strong class="cal__mese" aria-live="polite"></strong>
+      <button type="button" class="cal__nav" data-succ aria-label="Mese successivo">›</button>
+    </div>
+    <div class="cal__griglia" data-griglia></div>
+    <div class="cal__scelta" data-scelta aria-live="polite">Scegli un giorno evidenziato sul calendario.</div>
+  </div>
+</section>
+
+<script>
+  const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
+  const GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
+  const box = document.querySelector<HTMLElement>('.cal')
+  if (box) {
+    type Partenza = { p: string; r: string; e: number; s: string }
+    const partenze: Partenza[] = JSON.parse(box.dataset.partenze ?? '[]')
+    const perData = new Map(partenze.map(x => [x.p, x]))
+    const griglia = box.querySelector<HTMLElement>('[data-griglia]')!
+    const scelta = box.querySelector<HTMLElement>('[data-scelta]')!
+    const titoloMese = box.querySelector<HTMLElement>('.cal__mese')!
+    const euro = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
+    const lunga = (iso: string) => {
+      const [a, m, g] = iso.split('-').map(Number)
+      return new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
+    }
+    const due = (n: number) => String(n).padStart(2, '0')
+    const iniziale = box.dataset.iniziale || new Date().toISOString().slice(0, 10)
+    let [anno, mese] = iniziale.split('-').map(Number)
+    const primo = partenze[0]?.p ?? iniziale
+    const ultimo = partenze[partenze.length - 1]?.p ?? iniziale
+    let selezionata: string | null = null
+
+    function disegna() {
+      titoloMese.textContent = `${MESI[mese - 1]} ${anno}`
+      const giorniMese = new Date(anno, mese, 0).getDate()
+      // lunedi' = 0
+      const offset = (new Date(anno, mese - 1, 1).getDay() + 6) % 7
+      let html = GIORNI.map(g => `<span class="cal__giorno-nome">${g}</span>`).join('')
+      html += '<span></span>'.repeat(offset)
+      for (let g = 1; g <= giorniMese; g++) {
+        const iso = `${anno}-${due(mese)}-${due(g)}`
+        const x = perData.get(iso)
+        if (x) {
+          html += `<button type="button" class="cal__giorno cal__giorno--si${iso === selezionata ? ' cal__giorno--scelto' : ''}" data-data="${iso}" aria-label="${lunga(iso)}, ${euro(x.e)}"><span>${g}</span><small>${euro(x.e)}</small></button>`
+        } else {
+          html += `<span class="cal__giorno cal__giorno--no"><span>${g}</span></span>`
+        }
+      }
+      griglia.innerHTML = html
+      const prec = box!.querySelector<HTMLButtonElement>('[data-prec]')!
+      const succ = box!.querySelector<HTMLButtonElement>('[data-succ]')!
+      prec.disabled = `${anno}-${due(mese)}` <= primo.slice(0, 7)
+      succ.disabled = `${anno}-${due(mese)}` >= ultimo.slice(0, 7)
+    }
+
+    function mostra(iso: string) {
+      const x = perData.get(iso)
+      if (!x) return
+      selezionata = iso
+      const nottiN = Math.round((Date.parse(x.r) - Date.parse(x.p)) / 86400000)
+      const numero = box!.dataset.wa
+      const testo = `Buongiorno, vorrei informazioni sul tour "${box!.dataset.tour}" in partenza il ${lunga(iso)}.`
+      const link = numero ? `https://wa.me/39${numero}?text=${encodeURIComponent(testo)}` : null
+      const stato = x.s === 'ultimi_posti' ? '<span class="cal__badge">Ultimi posti</span>' : ''
+      scelta.innerHTML = `<div class="cal__riepilogo">
+        <div><span>Partenza</span><strong>${lunga(x.p)}</strong></div>
+        <div><span>Rientro</span><strong>${lunga(x.r)}</strong><small>${nottiN} ${nottiN === 1 ? 'notte' : 'notti'}</small></div>
+        <div><span>Prezzo a persona</span><strong class="cal__prezzo">${euro(x.e)}</strong>${stato}</div>
+        ${link ? `<a class="cal__richiedi" href="${link}" target="_blank" rel="noopener">Richiedi questa data</a>` : ''}
+      </div>`
+      disegna()
+    }
+
+    box.addEventListener('click', e => {
+      const t = e.target as HTMLElement
+      const giorno = t.closest<HTMLElement>('[data-data]')
+      if (giorno?.dataset.data) return mostra(giorno.dataset.data)
+      if (t.closest('[data-prec]')) {
+        mese--
+        if (mese < 1) {
+          mese = 12
+          anno--
+        }
+        disegna()
+      }
+      if (t.closest('[data-succ]')) {
+        mese++
+        if (mese > 12) {
+          mese = 1
+          anno++
+        }
+        disegna()
+      }
+    })
+
+    // si parte dal mese della prima partenza disponibile
+    ;[anno, mese] = primo.split('-').map(Number)
+    disegna()
+  }
+</script>
+
+<style is:global>
+  .partenze-tour {
+    margin: 0 0 2rem;
+  }
+
+  .partenze-tour h2 {
+    font-size: 1.4rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .partenze-tour__nota {
+    margin: 0 0 1rem;
+    color: var(--testo-tenue);
+    line-height: 1.5;
+  }
+
+  .partenze-tour__periodi {
+    list-style: none;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .partenze-tour__periodi li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    padding: 0.65rem 1rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    color: var(--testo);
+  }
+
+  .partenze-tour__periodi strong {
+    color: var(--colore-primario-scuro);
+  }
+
+  .cal {
+    max-width: 34rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    padding: 1rem;
+  }
+
+  .cal__testata {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+
+  .cal__mese {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    color: var(--inchiostro);
+  }
+
+  .cal__nav {
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 1px solid var(--bordo);
+    border-radius: 50%;
+    background: var(--superficie);
+    color: var(--colore-primario-scuro);
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .cal__nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .cal__griglia {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+
+  .cal__giorno-nome {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--testo-tenue);
+    padding-bottom: 0.2rem;
+  }
+
+  .cal__giorno {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    border-radius: var(--raggio-piccolo);
+    font: inherit;
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+    padding: 0.15rem;
+  }
+
+  .cal__giorno small {
+    font-size: 0.62rem;
+    line-height: 1.1;
+    color: var(--colore-primario-scuro);
+    font-weight: 700;
+  }
+
+  .cal__giorno--no {
+    color: var(--testo-tenue);
+    opacity: 0.45;
+  }
+
+  .cal__giorno--si {
+    background: var(--superficie-tenue);
+    border-color: var(--bordo);
+    color: var(--inchiostro);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .cal__giorno--si:hover {
+    border-color: var(--colore-primario-scuro);
+  }
+
+  .cal__giorno--scelto {
+    background: var(--colore-primario-scuro);
+    border-color: var(--colore-primario-scuro);
+    color: #fff;
+  }
+
+  .cal__giorno--scelto small {
+    color: #fff;
+  }
+
+  .cal__scelta {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--bordo-tenue);
+    color: var(--testo-tenue);
+    font-size: 0.92rem;
+  }
+
+  .cal__riepilogo {
+    display: grid;
+    gap: 0.6rem;
+    color: var(--testo);
+  }
+
+  .cal__riepilogo > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .cal__riepilogo span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--testo-tenue);
+  }
+
+  .cal__riepilogo strong {
+    color: var(--inchiostro);
+    text-transform: capitalize;
+  }
+
+  .cal__prezzo {
+    font-size: 1.6rem;
+    color: var(--colore-primario-scuro) !important;
+    text-transform: none !important;
+  }
+
+  .cal__badge {
+    width: fit-content;
+    background: #b0413e;
+    color: #fff !important;
+    font-size: 0.72rem !important;
+    padding: 0.2em 0.7em;
+    border-radius: 999px;
+  }
+
+  .cal__richiedi {
+    display: inline-block;
+    width: fit-content;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 700;
+    padding: 0.7em 1.4em;
+    border-radius: 999px;
+    background: var(--colore-primario-scuro);
+    color: #fff;
+  }
+
+  .cal__richiedi:hover {
+    background: var(--colore-primario-scuro-hover);
+  }
+</style>

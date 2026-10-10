@@ -39,6 +39,7 @@ export interface TourDettaglio {
   cancellazione: Array<{ da_giorni: number; a_giorni: number; percentuale: number }>
   seo_titolo: string | null
   seo_meta_description: string | null
+  modello?: string
   galleria: string[]
   tappe: Array<{
     giorno_da: number

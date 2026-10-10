@@ -1,0 +1,167 @@
+---
+interface Props {
+  url: string
+  titolo: string
+  testo: string
+  slug: string
+  immagine: string | null
+}
+
+const { url, titolo, testo, slug, immagine } = Astro.props
+
+// Ogni canale riceve un indirizzo con la propria provenienza (UTM), come per le offerte.
+function conUtm(canale: string) {
+  const u = new URL(url)
+  u.searchParams.set('utm_source', canale)
+  u.searchParams.set('utm_medium', 'share')
+  u.searchParams.set('utm_campaign', slug)
+  return u.toString()
+}
+
+const e = encodeURIComponent
+// Icone: tracciati SVG semplici a 24x24 (pieni) o a linea (e-mail, link, inoltra)
+const canali = [
+  { id: 'whatsapp', nome: 'WhatsApp', colore: '#25d366', href: `https://wa.me/?text=${e(`${testo} ${conUtm('whatsapp')}`)}`, d: 'M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-1.4-.7-2.4-1.2-3.3-2.8-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.7.7-1 1.5-1 2.3 0 .9.4 1.7.9 2.4 1.3 1.8 2.9 3.1 5.1 3.9 1.9.7 2.6.6 3.1.5.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z' },
+  { id: 'facebook', nome: 'Facebook', colore: '#1877f2', href: `https://www.facebook.com/sharer/sharer.php?u=${e(conUtm('facebook'))}`, d: 'M13.5 21v-8h2.7l.4-3.2h-3.1V7.8c0-.9.3-1.5 1.6-1.5h1.7V3.4c-.3 0-1.3-.1-2.4-.1-2.4 0-4.1 1.5-4.1 4.2v2.3H7.5V13h2.8v8h3.2z' },
+  { id: 'messenger', nome: 'Messenger', colore: '#0084ff', href: `fb-messenger://share/?link=${e(conUtm('messenger'))}`, soloMobile: true, d: 'M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.4 5.4 3.7 7.1V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.5 0 10-4.1 10-9.2S17.5 2 12 2zm1 12.3-2.5-2.7-4.9 2.7 5.4-5.7 2.6 2.7 4.8-2.7z' },
+  { id: 'x', nome: 'X', colore: '#111111', href: `https://twitter.com/intent/tweet?url=${e(conUtm('x'))}&text=${e(testo)}`, d: 'M18.2 2.5h3.1l-6.8 7.7 8 10.6h-6.3l-4.9-6.4-5.6 6.4H2.6l7.2-8.3L2.2 2.5h6.4l4.4 5.8 5.2-5.8zm-1.1 16.4h1.7L7.3 4.3H5.5l11.6 14.6z' },
+  { id: 'telegram', nome: 'Telegram', colore: '#26a5e4', href: `https://t.me/share/url?url=${e(conUtm('telegram'))}&text=${e(testo)}`, d: 'M21.9 3.6 2.9 10.9c-1.3.5-1.3 1.2-.2 1.5l4.9 1.5 1.9 5.8c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.5c.9.5 1.5.2 1.7-.8l3.2-15.1c.3-1.3-.5-1.9-1.4-1.5zM8.5 13.3l9.9-6.2c.5-.3.9-.1.5.2l-8.2 7.4-.3 3.4-1.9-4.8z' },
+  { id: 'linkedin', nome: 'LinkedIn', colore: '#0a66c2', href: `https://www.linkedin.com/sharing/share-offsite/?url=${e(conUtm('linkedin'))}`, d: 'M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4V21H3zM10 9.5h3.8v1.6h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.6 4.8 6V21h-4v-5c0-1.2 0-2.8-1.7-2.8s-2 1.3-2 2.7V21h-4z' },
+  ...(immagine
+    ? [{ id: 'pinterest', nome: 'Pinterest', colore: '#e60023', href: `https://pinterest.com/pin/create/button/?url=${e(conUtm('pinterest'))}&media=${e(immagine)}&description=${e(testo)}`, d: 'M12 2C6.5 2 3 5.7 3 9.9c0 2.5 1.4 4.5 3.5 5.3.3.1.5 0 .6-.3l.3-1.1c.1-.3 0-.4-.2-.7-.6-.7-1-1.6-1-2.8 0-3.6 2.7-6.2 6.2-6.2 3 0 4.8 1.8 4.8 4.4 0 3.3-1.5 6-3.6 6-1.2 0-2-1-1.8-2.1.3-1.4 1-2.9 1-3.9 0-.9-.5-1.7-1.5-1.7-1.2 0-2.2 1.2-2.2 2.9 0 1 .4 1.8.4 1.8l-1.5 6.2c-.3 1.3 0 3.1 0 3.3 0 .1.2.1.2.1.1-.1 1.4-1.8 1.8-3.4l.7-2.6c.4.8 1.5 1.4 2.7 1.4 3.5 0 5.9-3.2 5.9-7.5C20.5 5.2 17.7 2 12 2z' }]
+    : []),
+]
+const hrefEmail = `mailto:?subject=${e(titolo)}&body=${e(`${testo}\n\n${conUtm('email')}`)}`
+---
+
+<div class="barra-condividi" data-url={conUtm('link')} data-titolo={titolo} data-testo={testo} role="group" aria-label="Condividi il tour">
+  <span class="barra-condividi__etichetta">Condividi</span>
+  <ul class="barra-condividi__lista">
+    {canali.map(c => (
+      <li class={c.soloMobile ? 'solo-mobile' : undefined}>
+        <a
+          class="barra-condividi__btn"
+          style={`--colore-canale:${c.colore}`}
+          href={c.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Condividi su ${c.nome}`}
+          title={c.nome}
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d={c.d} fill="currentColor" /></svg>
+        </a>
+      </li>
+    ))}
+    <li>
+      <a class="barra-condividi__btn" style="--colore-canale:#6b7280" href={hrefEmail} aria-label="Invia per e-mail" title="E-mail">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
+      </a>
+    </li>
+    <li>
+      <button type="button" class="barra-condividi__btn" style="--colore-canale:var(--colore-primario-scuro)" data-copia aria-label="Copia il link" title="Copia il link">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7" /><path d="M14 11a5 5 0 0 0-7.1 0l-3 3A5 5 0 0 0 11 21.1l1.7-1.7" /></svg>
+      </button>
+    </li>
+    <li class="solo-nativo" hidden>
+      <button type="button" class="barra-condividi__btn" style="--colore-canale:#374151" data-nativo aria-label="Inoltra con altre app" title="Inoltra con altre app">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
+      </button>
+    </li>
+  </ul>
+  <span class="barra-condividi__esito" role="status" aria-live="polite"></span>
+</div>
+
+<script>
+  const box = document.querySelector<HTMLElement>('.barra-condividi')
+  const copia = box?.querySelector<HTMLButtonElement>('[data-copia]')
+  const nativo = box?.querySelector<HTMLButtonElement>('[data-nativo]')
+  const liNativo = box?.querySelector<HTMLElement>('.solo-nativo')
+  const esito = box?.querySelector<HTMLElement>('.barra-condividi__esito')
+
+  copia?.addEventListener('click', async () => {
+    const link = box?.dataset.url ?? location.href
+    try {
+      await navigator.clipboard.writeText(link)
+      if (esito) esito.textContent = 'Link copiato ✓'
+    } catch {
+      window.prompt('Copia il link:', link)
+    }
+    window.setTimeout(() => {
+      if (esito) esito.textContent = ''
+    }, 2500)
+  })
+
+  // "Inoltra" con il menu di condivisione del telefono, solo dove esiste
+  if (typeof navigator.share === 'function' && liNativo) {
+    liNativo.hidden = false
+    nativo?.addEventListener('click', () => {
+      navigator.share({ title: box?.dataset.titolo, text: box?.dataset.testo, url: box?.dataset.url }).catch(() => {})
+    })
+  }
+</script>
+
+<style>
+  .barra-condividi {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+    padding: 0.7rem 1rem;
+    margin: 0.75rem 0 1.5rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+  }
+
+  .barra-condividi__etichetta {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--inchiostro);
+  }
+
+  .barra-condividi__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .barra-condividi__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--colore-canale);
+    color: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  .barra-condividi__btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.45);
+  }
+
+  .barra-condividi__esito {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--colore-primario-scuro);
+  }
+
+  .solo-mobile {
+    display: none;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .solo-mobile {
+      display: list-item;
+    }
+  }
+</style>

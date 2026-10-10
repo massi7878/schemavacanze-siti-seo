@@ -1,0 +1,596 @@
+---
+import BarraCondividi from '../BarraCondividi.astro'
+import CalendarioPartenze from './CalendarioPartenze.astro'
+import { euro } from '../../lib/offerte'
+import { PASTI, etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
+
+// Modello "stile SoFly": foto a tutta larghezza con il titolo sopra, indice delle sezioni,
+// tappe del viaggio, giorni come schede numerate, riquadro prezzo fisso a destra.
+
+interface Props {
+  d: DatiPaginaTour
+}
+
+const { d } = Astro.props
+const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazione, linkTel, telefono } = d
+const galleria = immagini.slice(1)
+const tappeNome = t.tappe.filter(tp => tp.nome)
+---
+
+<main class="contenitore sofly">
+  <nav class="briciole" aria-label="Percorso">
+    <a href="/tour/">← Torna ai tour</a>
+  </nav>
+
+  <div class="sofly__colonne">
+    <div class="sofly__principale">
+      <header class="hero">
+        {d.copertina ? <img class="hero__immagine" src={d.copertina} alt={t.nome} /> : <div class="hero__immagine hero__immagine--vuota"></div>}
+        <div class="hero__velo"></div>
+        <div class="hero__testo">
+          <span class="hero__tipo">Tour con guida in italiano</span>
+          <h1>{t.nome}</h1>
+          <ul class="hero__chip">
+            {paesi.map(p => <li>{p}</li>)}
+            <li>{t.durata_giorni} giorni / {t.notti} notti</li>
+            {t.lingue?.length > 0 && <li>{t.lingue.join(', ')}</li>}
+            {t.gruppo_max && <li>Max {t.gruppo_max} persone</li>}
+          </ul>
+        </div>
+      </header>
+
+      <BarraCondividi url={d.urlCanonica} titolo={t.nome} testo={d.testoCondivisione} slug={t.slug} immagine={d.copertina} />
+
+      <nav class="indice" aria-label="Sezioni della pagina">
+        <a href="#sintesi">In sintesi</a>
+        {t.tappe.length > 0 && <a href="#programma">Programma</a>}
+        {(incluso.length > 0 || nonIncluso.length > 0) && <a href="#incluso">Incluso</a>}
+        {partenze.length > 0 && <a href="#partenze">Partenze</a>}
+        {galleria.length > 0 && <a href="#galleria">Galleria</a>}
+      </nav>
+
+      <section class="sezione" id="sintesi">
+        {tappeNome.length > 0 && (
+          <>
+            <h2 class="sezione__titolo">Le tappe del viaggio</h2>
+            <ul class="tappe-chip">
+              {tappeNome.map(tp => (
+                <li>
+                  <strong>{tp.nome}</strong>
+                  <span>{etichettaGiorni(tp.giorno_da, tp.giorno_a)}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {t.introduzione && (
+          <>
+            <h2 class="sezione__titolo">Il viaggio</h2>
+            {t.introduzione.split(/\n{2,}/).map(par => <p class="testo">{par}</p>)}
+          </>
+        )}
+        {t.highlights?.length > 0 && (
+          <>
+            <h2 class="sezione__titolo">Da non perdere</h2>
+            <ul class="check">
+              {t.highlights.map(h => <li>{h}</li>)}
+            </ul>
+          </>
+        )}
+      </section>
+
+      {t.tappe.length > 0 && (
+        <section class="sezione" id="programma">
+          <h2 class="sezione__titolo">Programma giorno per giorno</h2>
+          <ol class="giorni">
+            {t.tappe.map(tp => (
+              <li class="scheda-giorno">
+                <div class="scheda-giorno__numero">
+                  <span>{tp.giorno_a && tp.giorno_a > tp.giorno_da ? 'Giorni' : 'Giorno'}</span>
+                  <strong>{tp.giorno_a && tp.giorno_a > tp.giorno_da ? `${tp.giorno_da}–${tp.giorno_a}` : tp.giorno_da}</strong>
+                </div>
+                <div class="scheda-giorno__corpo">
+                  <h3>{tp.nome}{tp.sottonome ? ` · ${tp.sottonome}` : ''}</h3>
+                  {tp.foto_url && <img src={tp.foto_url} alt={tp.nome} loading="lazy" />}
+                  {tp.descrizione && tp.descrizione.split(/\n{2,}/).map(par => <p class="testo">{par}</p>)}
+                  <ul class="scheda-giorno__dati">
+                    {tp.hotel && <li><strong>Pernottamento</strong> {tp.hotel}</li>}
+                    {tp.pasti?.length > 0 && <li><strong>Pasti inclusi</strong> {tp.pasti.map(p => PASTI[p] ?? p).join(', ')}</li>}
+                  </ul>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {(incluso.length > 0 || nonIncluso.length > 0) && (
+        <section class="sezione" id="incluso">
+          <div class="due-schede">
+            {incluso.length > 0 && (
+              <div class="scheda">
+                <h2 class="sezione__titolo">La quota include</h2>
+                <ul class="check">{incluso.map(r => <li>{r}</li>)}</ul>
+              </div>
+            )}
+            {nonIncluso.length > 0 && (
+              <div class="scheda">
+                <h2 class="sezione__titolo">La quota non include</h2>
+                <ul class="croce">{nonIncluso.map(r => <li>{r}</li>)}</ul>
+              </div>
+            )}
+          </div>
+          {cancellazione.length > 0 && (
+            <div class="scheda scheda--distanza">
+              <h2 class="sezione__titolo">Condizioni di cancellazione</h2>
+              <ul class="semplice">
+                {cancellazione.map(c => (
+                  <li>
+                    Da {c.da_giorni} a {c.a_giorni} giorni prima della partenza: <strong>penale del {c.percentuale}%</strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
+      {partenze.length > 0 && (
+        <div class="sezione">
+          <CalendarioPartenze d={d} />
+        </div>
+      )}
+
+      {galleria.length > 0 && (
+        <section class="sezione" id="galleria">
+          <h2 class="sezione__titolo">Galleria</h2>
+          <div class="foto-griglia">
+            {galleria.slice(0, 12).map(u => <img src={u} alt="" loading="lazy" />)}
+          </div>
+        </section>
+      )}
+    </div>
+
+    <aside class="sofly__lato">
+      <div class="prenota">
+        {prezzoMin != null && (
+          <>
+            <span class="prenota__da">Prezzo a partire da</span>
+            <p class="prenota__prezzo">{euro(prezzoMin)}</p>
+            <span class="prenota__nota">a persona in camera doppia · prezzo indicativo, scegli la partenza</span>
+          </>
+        )}
+        <dl class="prenota__dati">
+          <div><dt>Durata</dt><dd>{t.durata_giorni} giorni / {t.notti} notti</dd></div>
+          {t.partenza_da && <div><dt>Partenza da</dt><dd>{t.partenza_da}</dd></div>}
+          {t.arrivo_a && <div><dt>Arrivo a</dt><dd>{t.arrivo_a}</dd></div>}
+          {t.lingue?.length > 0 && <div><dt>Guida</dt><dd>{t.lingue.join(', ')}</dd></div>}
+        </dl>
+        {partenze.length > 0 && <a class="prenota__btn" href="#partenze">Scegli la partenza</a>}
+        {d.linkWa() && <a class="prenota__btn prenota__btn--secondario" href={d.linkWa()!} target="_blank" rel="noopener">Scrivici su WhatsApp</a>}
+        {linkTel && <a class="prenota__btn prenota__btn--secondario" href={linkTel}>Chiama {telefono}</a>}
+      </div>
+    </aside>
+  </div>
+</main>
+
+<style>
+  .sofly {
+    padding-block: 1.25rem 4rem;
+  }
+
+  .briciole {
+    margin-bottom: 1rem;
+  }
+
+  .briciole a {
+    font-size: 0.88rem;
+    color: var(--testo-tenue);
+    text-decoration: none;
+  }
+
+  .briciole a:hover {
+    color: var(--colore-primario-scuro);
+  }
+
+  .sofly__colonne {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 21rem;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  @media (max-width: 960px) {
+    .sofly__colonne {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sofly__lato {
+      order: -1;
+    }
+  }
+
+  .hero {
+    position: relative;
+    border-radius: var(--raggio);
+    overflow: hidden;
+    min-height: 22rem;
+    display: flex;
+    align-items: flex-end;
+    background: var(--superficie-tenue);
+  }
+
+  .hero__immagine {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .hero__velo {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(10, 14, 20, 0.82) 0%, rgba(10, 14, 20, 0.35) 45%, rgba(10, 14, 20, 0) 75%);
+  }
+
+  .hero__testo {
+    position: relative;
+    padding: 1.5rem 1.5rem 1.4rem;
+    color: #fff;
+    width: 100%;
+  }
+
+  .hero__tipo {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(4px);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25em 0.8em;
+    margin-bottom: 0.6rem;
+  }
+
+  .hero h1 {
+    margin: 0 0 0.7rem;
+    color: #fff;
+    font-size: clamp(1.7rem, 1.2rem + 2vw, 2.7rem);
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  }
+
+  .hero__chip {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .hero__chip li {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(4px);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.25em 0.85em;
+  }
+
+  .indice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding: 0.6rem 0;
+    background: var(--sfondo);
+  }
+
+  .indice a {
+    border: 1px solid var(--bordo);
+    background: var(--superficie);
+    border-radius: 999px;
+    padding: 0.4em 1.1em;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--testo);
+    text-decoration: none;
+  }
+
+  .indice a:hover {
+    border-color: var(--colore-primario-scuro);
+    color: var(--colore-primario-scuro);
+  }
+
+  .sezione {
+    margin-bottom: 2.5rem;
+    scroll-margin-top: 4.5rem;
+  }
+
+  .sezione__titolo {
+    font-size: 1.45rem;
+    margin: 1.5rem 0 0.8rem;
+  }
+
+  .sezione__titolo:first-child {
+    margin-top: 0;
+  }
+
+  .testo {
+    line-height: 1.7;
+    color: var(--testo);
+  }
+
+  .tappe-chip {
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .tappe-chip li {
+    display: flex;
+    flex-direction: column;
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--bordo);
+    background: var(--superficie);
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .tappe-chip strong {
+    color: var(--inchiostro);
+  }
+
+  .tappe-chip span {
+    font-size: 0.78rem;
+    color: var(--testo-tenue);
+  }
+
+  .check,
+  .croce,
+  .semplice {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .check li,
+  .croce li {
+    position: relative;
+    padding-left: 1.6rem;
+    line-height: 1.5;
+    color: var(--testo);
+  }
+
+  .check li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+    color: var(--colore-primario-scuro);
+  }
+
+  .croce li::before {
+    content: '✕';
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+    color: #b0413e;
+  }
+
+  .giorni {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .scheda-giorno {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1.1rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+  }
+
+  @media (max-width: 560px) {
+    .scheda-giorno {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .scheda-giorno__numero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    align-self: start;
+    background: var(--colore-primario-scuro);
+    color: #fff;
+    border-radius: var(--raggio-piccolo);
+    padding: 0.6rem 0.3rem;
+    text-align: center;
+  }
+
+  .scheda-giorno__numero span {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .scheda-giorno__numero strong {
+    font-size: 1.5rem;
+    line-height: 1.1;
+  }
+
+  .scheda-giorno h3 {
+    margin: 0 0 0.6rem;
+    font-size: 1.15rem;
+  }
+
+  .scheda-giorno img {
+    width: 100%;
+    max-height: 20rem;
+    object-fit: cover;
+    border-radius: var(--raggio-piccolo);
+    margin-bottom: 0.7rem;
+  }
+
+  .scheda-giorno__dati {
+    list-style: none;
+    margin: 0.6rem 0 0;
+    padding: 0.6rem 0 0;
+    border-top: 1px solid var(--bordo-tenue);
+    display: grid;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+    color: var(--testo);
+  }
+
+  .scheda-giorno__dati:empty {
+    display: none;
+  }
+
+  .scheda-giorno__dati strong {
+    margin-right: 0.4rem;
+    color: var(--inchiostro);
+  }
+
+  .due-schede {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1rem;
+  }
+
+  .scheda {
+    padding: 1.25rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+  }
+
+  .scheda--distanza {
+    margin-top: 1rem;
+  }
+
+  .foto-griglia {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.6rem;
+  }
+
+  .foto-griglia img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .sofly__lato {
+    position: sticky;
+    top: 1rem;
+  }
+
+  @media (max-width: 960px) {
+    .sofly__lato {
+      position: static;
+    }
+  }
+
+  .prenota {
+    display: grid;
+    gap: 0.6rem;
+    padding: 1.4rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+  }
+
+  .prenota__da {
+    font-size: 0.8rem;
+    color: var(--testo-tenue);
+    text-align: center;
+  }
+
+  .prenota__prezzo {
+    margin: 0;
+    text-align: center;
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--colore-primario-scuro);
+    line-height: 1.1;
+  }
+
+  .prenota__nota {
+    font-size: 0.78rem;
+    color: var(--testo-tenue);
+    text-align: center;
+  }
+
+  .prenota__dati {
+    margin: 0.4rem 0;
+    padding: 0.8rem 0;
+    border-block: 1px solid var(--bordo-tenue);
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .prenota__dati div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .prenota__dati dt {
+    color: var(--testo-tenue);
+  }
+
+  .prenota__dati dd {
+    margin: 0;
+    font-weight: 700;
+    color: var(--inchiostro);
+    text-align: right;
+  }
+
+  .prenota__btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 700;
+    padding: 0.85em 1.2em;
+    border-radius: var(--raggio-piccolo);
+    background: var(--accento);
+    color: #fff;
+  }
+
+  .prenota__btn:hover {
+    background: var(--accento-scuro);
+  }
+
+  .prenota__btn--secondario {
+    background: var(--superficie);
+    color: var(--colore-primario-scuro);
+    border: 2px solid var(--colore-primario-scuro);
+  }
+
+  .prenota__btn--secondario:hover {
+    background: var(--superficie-tenue);
+  }
+</style>
