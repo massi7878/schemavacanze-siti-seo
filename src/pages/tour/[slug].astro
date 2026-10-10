@@ -1,0 +1,555 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import CondividiOfferta from '../../components/CondividiOfferta.astro'
+import { getAzienda } from '../../lib/queries'
+import { soloNumeri } from '../../lib/formato'
+import { dataCompleta, descriviPartenza, euro } from '../../lib/offerte'
+import { getTourPubblico, paesiDi, righe } from '../../lib/tour'
+
+// Pagina generata al momento della richiesta e tenuta in cache da Vercel per poco: un tour o una
+// partenza modificati nel gestionale compaiono entro ~1 minuto senza ripubblicare il sito.
+export const prerender = false
+
+const { slug } = Astro.params
+const t = await getTourPubblico(slug as string)
+// tour non piu' attivo (o indirizzo sbagliato): si torna all'elenco
+if (!t) return Astro.redirect('/tour/', 302)
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600')
+
+const azienda = await getAzienda()
+const numeroWa = soloNumeri(azienda?.numero_whatsapp)
+const telefono = azienda?.telefono || azienda?.cellulare
+
+const immagini = [...new Set([t.immagine_url, ...(t.galleria ?? [])].filter((u): u is string => Boolean(u)))]
+const copertina = immagini[0] ?? null
+const partenze = t.partenze ?? []
+const prezzoMin = partenze.length ? Math.min(...partenze.map(p => Number(p.prezzo_da))) : null
+const incluso = righe(t.incluso)
+const nonIncluso = righe(t.non_incluso)
+const paesi = paesiDi(t.paese)
+const cancellazione = [...(t.cancellazione ?? [])].sort((a, b) => b.da_giorni - a.da_giorni)
+
+const urlCanonica = new URL(`/tour/${t.slug}/`, Astro.site).toString()
+const titolo = t.seo_titolo || `${t.nome} | Hotellando`
+const riassunto = [t.paese, `${t.notti} notti`, prezzoMin != null ? `da ${euro(prezzoMin)} a persona` : null].filter(Boolean).join(' · ')
+const descrizione =
+  t.seo_meta_description || (t.introduzione ? `${t.introduzione.replace(/\s+/g, ' ').slice(0, 140)}… ` : '') + riassunto + '. Richiedi disponibilità senza impegno.'
+
+const testoWa = (partenza?: string) =>
+  `Buongiorno, vorrei informazioni sul tour "${t.nome}"${partenza ? ` in partenza il ${dataCompleta(partenza)}` : ''}.`
+const linkWa = (partenza?: string) => (numeroWa ? `https://wa.me/39${numeroWa}?text=${encodeURIComponent(testoWa(partenza))}` : null)
+const linkTel = telefono ? `tel:+39${soloNumeri(telefono)}` : null
+
+const pasti: Record<string, string> = { colazione: 'colazione', pranzo: 'pranzo', cena: 'cena' }
+const etichettaGiorni = (da: number, a: number | null) => (a && a > da ? `Giorni ${da}–${a}` : `Giorno ${da}`)
+
+const testoCondivisione = `${t.nome}${prezzoMin != null ? ` — da ${euro(prezzoMin)} a persona` : ''}`
+
+const grafo = {
+  '@context': 'https://schema.org',
+  '@type': 'TouristTrip',
+  name: t.nome,
+  description: descrizione,
+  url: urlCanonica,
+  ...(copertina ? { image: copertina } : {}),
+  ...(prezzoMin != null ? { offers: { '@type': 'Offer', priceCurrency: 'EUR', price: prezzoMin, availability: 'https://schema.org/InStock' } } : {}),
+}
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={copertina}>
+  <script type="application/ld+json" set:html={JSON.stringify(grafo)} />
+
+  <section class="apertura">
+    <div class="contenitore">
+      <nav class="briciole" aria-label="Percorso">
+        <a href="/">Home</a>
+        <span aria-hidden="true">/</span>
+        <a href="/tour/">Tour</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{t.nome}</span>
+      </nav>
+      <h1>{t.nome}</h1>
+      {t.sottotitolo && <p class="sottotitolo">{t.sottotitolo}</p>}
+      <ul class="pillole">
+        {paesi.map(p => <li>{p}</li>)}
+        <li>{t.notti} {t.notti === 1 ? 'notte' : 'notti'} · {t.durata_giorni} giorni</li>
+        {t.lingue?.length > 0 && <li>Guida: {t.lingue.join(', ')}</li>}
+        {t.partenza_da && t.arrivo_a && <li>{t.partenza_da} → {t.arrivo_a}</li>}
+        {t.gruppo_max && <li>Max {t.gruppo_max} persone</li>}
+      </ul>
+    </div>
+  </section>
+
+  <main class="contenitore pagina-tour">
+    <div class="colonne">
+      <div class="colonna-principale">
+        {immagini.length > 0 && (
+          <div class="galleria">
+            <img class="galleria__grande" src={immagini[0]} alt={t.nome} />
+            {immagini.length > 1 && (
+              <div class="galleria__miniature">
+                {immagini.slice(1, 7).map(u => <img src={u} alt="" loading="lazy" />)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {t.introduzione && (
+          <section class="blocco">
+            <h2>Il viaggio</h2>
+            {t.introduzione.split(/\n{2,}/).map(par => <p>{par}</p>)}
+          </section>
+        )}
+
+        {t.highlights?.length > 0 && (
+          <section class="blocco">
+            <h2>Da non perdere</h2>
+            <ul class="elenco-check">
+              {t.highlights.map(h => <li>{h}</li>)}
+            </ul>
+          </section>
+        )}
+
+        {t.tappe.length > 0 && (
+          <section class="blocco">
+            <h2>Programma giorno per giorno</h2>
+            <ol class="programma">
+              {t.tappe.map(tp => (
+                <li class="giorno">
+                  <details open={tp.giorno_da === 1}>
+                    <summary>
+                      <span class="giorno__quando">{etichettaGiorni(tp.giorno_da, tp.giorno_a)}</span>
+                      <span class="giorno__nome">{tp.nome}{tp.sottonome ? ` · ${tp.sottonome}` : ''}</span>
+                    </summary>
+                    <div class="giorno__corpo">
+                      {tp.foto_url && <img class="giorno__foto" src={tp.foto_url} alt={tp.nome} loading="lazy" />}
+                      {tp.descrizione && tp.descrizione.split(/\n{2,}/).map(par => <p>{par}</p>)}
+                      {tp.hotel && <p class="giorno__hotel"><strong>Pernottamento:</strong> {tp.hotel}</p>}
+                      {tp.pasti?.length > 0 && <p class="giorno__hotel"><strong>Pasti inclusi:</strong> {tp.pasti.map(p => pasti[p] ?? p).join(', ')}</p>}
+                    </div>
+                  </details>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {(incluso.length > 0 || nonIncluso.length > 0) && (
+          <section class="blocco due-liste">
+            {incluso.length > 0 && (
+              <div>
+                <h2>Cosa è incluso</h2>
+                <ul class="elenco-check">{incluso.map(r => <li>{r}</li>)}</ul>
+              </div>
+            )}
+            {nonIncluso.length > 0 && (
+              <div>
+                <h2>Cosa non è incluso</h2>
+                <ul class="elenco-croce">{nonIncluso.map(r => <li>{r}</li>)}</ul>
+              </div>
+            )}
+          </section>
+        )}
+
+        {cancellazione.length > 0 && (
+          <section class="blocco">
+            <h2>Condizioni di cancellazione</h2>
+            <ul class="elenco-semplice">
+              {cancellazione.map(c => (
+                <li>
+                  Da {c.da_giorni} a {c.a_giorni} giorni prima della partenza: <strong>penale del {c.percentuale}%</strong>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+
+      <aside class="colonna-lato">
+        <div class="riquadro">
+          {prezzoMin != null && (
+            <p class="riquadro__prezzo">
+              da <strong>{euro(prezzoMin)}</strong> <span>a persona in camera doppia</span>
+            </p>
+          )}
+          <p class="riquadro__nota">Il prezzo cambia con la data di partenza. Scrivici: ti confermiamo disponibilità e quota esatta, senza impegno.</p>
+          <div class="riquadro__azioni">
+            {linkWa() && <a class="pulsante" href={linkWa()!} target="_blank" rel="noopener">Scrivici su WhatsApp</a>}
+            {linkTel && <a class="pulsante pulsante--secondario" href={linkTel}>Chiama {telefono}</a>}
+          </div>
+        </div>
+        <CondividiOfferta
+          url={urlCanonica}
+          titolo={t.nome}
+          testo={testoCondivisione}
+          slug={t.slug}
+          immagine={copertina}
+          immagineCondivisione={null}
+          etichetta="Condividi il tour"
+        />
+      </aside>
+    </div>
+
+    {partenze.length > 0 && (
+      <section class="blocco partenze" id="partenze">
+        <h2>Date di partenza e prezzi</h2>
+        <p class="muted">Prezzi a persona in camera doppia. {partenze.length} partenze disponibili.</p>
+        <div class="partenze__tabella">
+          <table>
+            <thead>
+              <tr>
+                <th>Partenza → rientro</th>
+                <th>Prezzo a persona</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {partenze.map(p => (
+                <tr>
+                  <td data-label="Partenza">{descriviPartenza(p.data_partenza, p.data_rientro)}</td>
+                  <td data-label="Prezzo"><strong>{euro(Number(p.prezzo_da))}</strong></td>
+                  <td>
+                    {linkWa(p.data_partenza)
+                      ? <a class="link-richiedi" href={linkWa(p.data_partenza)!} target="_blank" rel="noopener">Richiedi</a>
+                      : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .apertura {
+    padding: 2rem 0 1.5rem;
+  }
+
+  .briciole {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+    margin-bottom: 1.25rem;
+  }
+
+  .briciole a {
+    color: var(--testo-tenue);
+    text-decoration: none;
+  }
+
+  .briciole a:hover {
+    color: var(--colore-primario-scuro);
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 1.4rem + 1.8vw, 2.8rem);
+    margin: 0 0 0.4rem;
+  }
+
+  .sottotitolo {
+    margin: 0 0 0.9rem;
+    color: var(--testo-tenue);
+  }
+
+  .pillole {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pillole li {
+    border: 1px solid var(--bordo);
+    background: var(--superficie);
+    border-radius: 999px;
+    padding: 0.3em 0.9em;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--testo);
+  }
+
+  .pagina-tour {
+    padding: 0.5rem 0 4rem;
+  }
+
+  .colonne {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .colonne {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .colonna-lato {
+      order: -1;
+    }
+  }
+
+  .galleria {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .galleria__grande {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--raggio);
+  }
+
+  .galleria__miniature {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    gap: 0.5rem;
+  }
+
+  .galleria__miniature img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .blocco {
+    margin: 0 0 2rem;
+  }
+
+  .blocco h2 {
+    font-size: 1.4rem;
+    margin: 0 0 0.75rem;
+  }
+
+  .blocco p {
+    line-height: 1.65;
+    color: var(--testo);
+  }
+
+  .muted {
+    color: var(--testo-tenue);
+  }
+
+  .elenco-check,
+  .elenco-croce,
+  .elenco-semplice {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .elenco-check li,
+  .elenco-croce li {
+    position: relative;
+    padding-left: 1.5rem;
+    color: var(--testo);
+    line-height: 1.5;
+  }
+
+  .elenco-check li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--colore-primario-scuro);
+    font-weight: 700;
+  }
+
+  .elenco-croce li::before {
+    content: '✕';
+    position: absolute;
+    left: 0;
+    color: #b0413e;
+    font-weight: 700;
+  }
+
+  .elenco-semplice li {
+    color: var(--testo);
+  }
+
+  .due-liste {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 2rem;
+  }
+
+  .programma {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .giorno {
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    background: var(--superficie);
+    overflow: hidden;
+  }
+
+  .giorno summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    align-items: baseline;
+    padding: 0.85rem 1.1rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .giorno summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .giorno__quando {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--colore-primario-scuro);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .giorno__nome {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--inchiostro);
+  }
+
+  .giorno__corpo {
+    padding: 0 1.1rem 1.1rem;
+  }
+
+  .giorno__foto {
+    width: 100%;
+    max-height: 22rem;
+    object-fit: cover;
+    border-radius: var(--raggio-piccolo);
+    margin-bottom: 0.75rem;
+  }
+
+  .giorno__hotel {
+    font-size: 0.92rem;
+    margin: 0.4rem 0 0;
+  }
+
+  .colonna-lato {
+    position: sticky;
+    top: 1rem;
+  }
+
+  @media (max-width: 900px) {
+    .colonna-lato {
+      position: static;
+    }
+  }
+
+  .riquadro {
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+    padding: 1.25rem;
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .riquadro__prezzo {
+    margin: 0;
+    color: var(--testo);
+  }
+
+  .riquadro__prezzo strong {
+    font-size: 1.9rem;
+    color: var(--colore-primario-scuro);
+  }
+
+  .riquadro__prezzo span {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--testo-tenue);
+  }
+
+  .riquadro__nota {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--testo-tenue);
+  }
+
+  .riquadro__azioni {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .pulsante {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 700;
+    padding: 0.8em 1.2em;
+    border-radius: 999px;
+    background: var(--colore-primario-scuro);
+    color: #fff;
+  }
+
+  .pulsante:hover {
+    background: var(--colore-primario-scuro-hover);
+  }
+
+  .pulsante--secondario {
+    background: var(--superficie);
+    color: var(--colore-primario-scuro);
+    border: 2px solid var(--colore-primario-scuro);
+  }
+
+  .partenze__tabella {
+    max-height: 32rem;
+    overflow: auto;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    background: var(--superficie);
+  }
+
+  .partenze table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .partenze th,
+  .partenze td {
+    text-align: left;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--bordo-tenue);
+  }
+
+  .partenze th {
+    position: sticky;
+    top: 0;
+    background: var(--superficie-tenue);
+    font-size: 0.8rem;
+    color: var(--testo);
+  }
+
+  .link-richiedi {
+    font-weight: 700;
+    color: var(--colore-primario-scuro);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .link-richiedi:hover {
+    text-decoration: underline;
+  }
+</style>

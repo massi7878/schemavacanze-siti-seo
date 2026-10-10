@@ -1,0 +1,137 @@
+---
+import { dataBreve, euro } from '../lib/offerte'
+import { urlTour, type TourElenco } from '../lib/tour'
+
+interface Props {
+  tour: TourElenco
+}
+
+const { tour } = Astro.props
+---
+
+<a class="card-tour" href={urlTour(tour.slug)}>
+  <div class="card-tour__immagine">
+    {tour.immagine_url
+      ? <img src={tour.immagine_url} alt={tour.nome} loading="lazy" />
+      : <span class="card-tour__segnaposto" aria-hidden="true">{tour.nome.charAt(0)}</span>}
+    <span class="card-tour__tipo">{tour.notti} {tour.notti === 1 ? 'notte' : 'notti'}</span>
+  </div>
+  <div class="card-tour__corpo">
+    {tour.paese && <span class="card-tour__luogo">{tour.paese}</span>}
+    <span class="card-tour__titolo">{tour.nome}</span>
+    {tour.sottotitolo && <span class="card-tour__sottotitolo">{tour.sottotitolo}</span>}
+    <div class="card-tour__dettagli">
+      {tour.prossima && <span>Dal {dataBreve(tour.prossima)}{tour.n_partenze > 1 ? ` · ${tour.n_partenze} date` : ''}</span>}
+    </div>
+    {tour.prezzo_min != null && (
+      <p class="card-tour__prezzo">
+        da <strong>{euro(Number(tour.prezzo_min))}</strong> <span>a persona</span>
+      </p>
+    )}
+  </div>
+</a>
+
+<!-- stili globali: le stesse schede vengono ricreate dal browser quando si applicano i filtri -->
+<style is:global>
+  .card-tour {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    overflow: hidden;
+    box-shadow: var(--ombra);
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .card-tour:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(52, 54, 58, 0.08), 0 16px 32px -16px rgba(52, 54, 58, 0.28);
+  }
+
+  .card-tour__immagine {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--superficie-tenue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-tour__immagine img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card-tour__segnaposto {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    color: var(--colore-primario-scuro);
+  }
+
+  .card-tour__tipo {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: var(--colore-primario-scuro);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.3em 0.7em;
+    border-radius: 999px;
+  }
+
+  .card-tour__corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1.1rem 1.25rem 1.35rem;
+    flex: 1;
+  }
+
+  .card-tour__luogo {
+    font-size: 0.82rem;
+    color: var(--testo-tenue);
+  }
+
+  .card-tour__titolo {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--inchiostro);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-tour__sottotitolo {
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+  }
+
+  .card-tour__dettagli {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--testo);
+  }
+
+  .card-tour__prezzo {
+    margin: auto 0 0;
+    padding-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--testo);
+  }
+
+  .card-tour__prezzo strong {
+    font-size: 1.25rem;
+    color: var(--colore-primario-scuro);
+  }
+</style>

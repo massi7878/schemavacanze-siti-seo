@@ -6,9 +6,10 @@ interface Props {
   slug: string
   immagine: string | null
   immagineCondivisione: string | null
+  etichetta?: string
 }
 
-const { url, titolo, testo, slug, immagine, immagineCondivisione } = Astro.props
+const { url, titolo, testo, slug, immagine, immagineCondivisione, etichetta = 'Condividi l’offerta' } = Astro.props
 
 // Ogni canale riceve un indirizzo con la propria provenienza (UTM): la richiesta che ne nasce
 // riporta da quale canale e' arrivata l'offerta.
@@ -36,7 +37,7 @@ const canali = [
 ---
 
 <div class="condividi" data-url={conUtm('link')} data-titolo={titolo} data-testo={testo}>
-  <p class="condividi__titolo">Condividi l’offerta</p>
+  <p class="condividi__titolo">{etichetta}</p>
   <ul class="condividi__lista">
     {canali.map(c => (
       <li class={c.soloMobile ? 'solo-mobile' : undefined}>

@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { getStruttureSitemap, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
 import { getOffertePubbliche } from '../lib/offerte'
+import { getToursPubblici } from '../lib/tour'
 
 // Generata a ogni richiesta (con cache CDN di un'ora): le offerte nuove entrano subito, quelle scadute escono.
 export const prerender = false
@@ -10,11 +11,12 @@ export const prerender = false
 // raccolgono e collegano le strutture, quelle che un motore di ricerca deve
 // trovare per prime per poi scoprire tutto il resto.
 export const GET: APIRoute = async ({ site }) => {
-  const [strutture, categorie, tipologie, offerte] = await Promise.all([
+  const [strutture, categorie, tipologie, offerte, tour] = await Promise.all([
     getStruttureSitemap(),
     getDestinazioniPerCategoria(),
     getTipologieStruttura(),
     getOffertePubbliche(),
+    getToursPubblici(),
   ])
   const base = site?.toString().replace(/\/$/, '') ?? ''
 
@@ -22,6 +24,8 @@ export const GET: APIRoute = async ({ site }) => {
     { loc: `${base}/`, lastmod: null },
     ...(offerte.length > 0 ? [{ loc: `${base}/offerte/`, lastmod: null }] : []),
     ...offerte.map(o => ({ loc: `${base}/offerte/${o.slug}/`, lastmod: null })),
+    ...(tour.length > 0 ? [{ loc: `${base}/tour/`, lastmod: null }] : []),
+    ...tour.map(t => ({ loc: `${base}/tour/${t.slug}/`, lastmod: null })),
     ...categorie.map(c => ({ loc: `${base}/categoria/${c.slug}/`, lastmod: null })),
     ...categorie.flatMap(c => c.destinazioni.map(d => ({ loc: `${base}/destinazioni/${d.slug}/`, lastmod: null }))),
     ...tipologie.map(t => ({ loc: `${base}/strutture/${t.slug}/`, lastmod: null })),
