@@ -28,14 +28,15 @@ const quando = intervalloDate(tour.prossima, tour.notti)
     <div class="card-tour__riga">
       <div class="card-tour__sinistra">
         {tour.sottotitolo && <span class="card-tour__sottotitolo">{tour.sottotitolo}</span>}
-        {tour.prezzo_min != null && (
-          <span class="card-tour__prezzo">
-            da <strong>{euro(Number(tour.prezzo_min))}</strong> <small>a persona</small>
-          </span>
+        {quando && (
+          <span class="card-tour__quando">{quando}{tour.n_partenze > 1 && <small>{tour.n_partenze} date</small>}</span>
         )}
       </div>
-      {quando && (
-        <span class="card-tour__quando">{quando}{tour.n_partenze > 1 && <small>{tour.n_partenze} date</small>}</span>
+      {tour.prezzo_min != null && (
+        <span class="card-tour__prezzo">
+          <span class="card-tour__importo">da <strong>{euro(Number(tour.prezzo_min))}</strong></span>
+          <small>a persona</small>
+        </span>
       )}
     </div>
   </div>
@@ -160,56 +161,61 @@ const quando = intervalloDate(tour.prossima, tour.notti)
     flex: 1;
   }
 
-  /* sotto la foto: "Delhi to Delhi" e il prezzo sulla stessa riga, le date a destra */
+  /* sotto la foto: a sinistra la tratta e le date, a destra il prezzo con "a persona" sotto */
   .card-tour__riga {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 0.35rem 0.9rem;
+    gap: 0.5rem 1rem;
   }
 
   .card-tour__sinistra {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.2rem 0.75rem;
+    flex-direction: column;
+    gap: 0.25rem;
     min-width: 0;
   }
 
   .card-tour__sottotitolo {
-    font-size: 0.88rem;
+    font-size: 0.9rem;
     color: var(--testo-tenue);
   }
 
-  .card-tour__prezzo {
-    font-size: 0.88rem;
+  .card-tour__quando {
+    font-size: 0.9rem;
+    font-weight: 600;
     color: var(--testo);
+  }
+
+  .card-tour__quando small {
+    font-weight: 400;
+    font-size: 0.78rem;
+    color: var(--testo-tenue);
+    margin-left: 0.4rem;
+  }
+
+  .card-tour__prezzo {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    line-height: 1.15;
     white-space: nowrap;
   }
 
+  .card-tour__importo {
+    font-size: 0.88rem;
+    color: var(--testo);
+  }
+
   .card-tour__prezzo strong {
-    font-size: 1.2rem;
+    font-size: 1.35rem;
     color: var(--colore-primario-scuro);
   }
 
   .card-tour__prezzo small {
-    font-size: 0.8rem;
-  }
-
-  .card-tour__quando {
-    margin-left: auto;
-    text-align: right;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--testo);
-    white-space: nowrap;
-  }
-
-  .card-tour__quando small {
-    display: block;
-    font-weight: 400;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     color: var(--testo-tenue);
   }
 </style>

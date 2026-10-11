@@ -229,9 +229,9 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
         <div class="card-tour__riga">
           <div class="card-tour__sinistra">
             ${t.sottotitolo ? `<span class="card-tour__sottotitolo">${esc(t.sottotitolo)}</span>` : ''}
-            ${t.prezzo_min != null ? `<span class="card-tour__prezzo">da <strong>${euro(Number(t.prezzo_min))}</strong> <small>a persona</small></span>` : ''}
+            ${quando ? `<span class="card-tour__quando">${esc(quando)}${t.n_partenze > 1 ? `<small>${t.n_partenze} date</small>` : ''}</span>` : ''}
           </div>
-          ${quando ? `<span class="card-tour__quando">${esc(quando)}${t.n_partenze > 1 ? `<small>${t.n_partenze} date</small>` : ''}</span>` : ''}
+          ${t.prezzo_min != null ? `<span class="card-tour__prezzo"><span class="card-tour__importo">da <strong>${euro(Number(t.prezzo_min))}</strong></span><small>a persona</small></span>` : ''}
         </div>
       </div></a></li>`
   }
