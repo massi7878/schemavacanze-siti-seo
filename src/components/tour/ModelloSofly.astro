@@ -16,6 +16,10 @@ interface Props {
 const { d } = Astro.props
 const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazione, linkTel, telefono } = d
 const tappeNome = t.tappe.filter(tp => tp.nome)
+// Le stesse indicazioni compaiono sulla foto e nel riquadro di riepilogo a destra
+const tipoViaggio = t.tipo_viaggio === 'self' ? 'Self made' : 'Guidato'
+const guidaChip = t.guida_italiano === 'si' ? 'Guida in italiano' : t.guida_italiano === 'su_richiesta' ? 'Guida in italiano su richiesta' : t.lingue?.length > 0 ? 'Assistenza in italiano' : null
+const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' : t.guida_italiano === 'su_richiesta' ? 'Guida in italiano su richiesta' : 'Tour con assistenza in italiano'
 ---
 
 <main class="contenitore sofly">
@@ -29,13 +33,13 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
         {d.copertina ? <img class="hero__immagine" data-foto-principale src={d.copertina} alt={t.nome} /> : <div class="hero__immagine hero__immagine--vuota"></div>}
         <div class="hero__velo"></div>
         <div class="hero__testo">
-          <span class="hero__tipo">Tour con guida in italiano</span>
+          <span class="hero__tipo">{etichettaHero}</span>
           <h1>{t.nome}</h1>
           <ul class="hero__chip">
             {paesi.map(p => <li>{p}</li>)}
             <li>{t.durata_giorni} giorni / {t.notti} notti</li>
-            <li>{t.tipo_viaggio === 'self' ? 'Self made' : 'Guidato'}</li>
-            {t.guida_italiano === 'si' ? <li>Guida in italiano</li> : t.guida_italiano === 'su_richiesta' ? <li>Guida in italiano su richiesta</li> : t.lingue?.length > 0 && <li>Assistenza in italiano</li>}
+            <li>{tipoViaggio}</li>
+            {guidaChip && <li>{guidaChip}</li>}
             {t.gruppo_max && <li>Max {t.gruppo_max} persone</li>}
           </ul>
         </div>
@@ -160,12 +164,18 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
             <span class="prenota__nota">a persona in camera doppia · prezzo indicativo, scegli la partenza</span>
           </>
         )}
-        <dl class="prenota__dati">
-          <div><dt>Durata</dt><dd>{t.durata_giorni} giorni / {t.notti} notti</dd></div>
-          {t.partenza_da && <div><dt>Partenza da</dt><dd>{t.partenza_da}</dd></div>}
-          {t.arrivo_a && <div><dt>Arrivo a</dt><dd>{t.arrivo_a}</dd></div>}
-          {t.lingue?.length > 0 && <div><dt>Guida e assistenza</dt><dd>{t.guida_italiano === 'si' ? 'Guida in italiano' : t.guida_italiano === 'su_richiesta' ? 'Guida in italiano su richiesta (o in altre lingue); assistenza in italiano' : 'Assistenza in italiano'}</dd></div>}
-        </dl>
+        <ul class="prenota__chip" aria-label="Riepilogo del tour">
+          {paesi.map(p => <li>{p}</li>)}
+          <li>{t.durata_giorni} giorni / {t.notti} notti</li>
+          <li>{tipoViaggio}</li>
+          {guidaChip && <li>{guidaChip}</li>}
+        </ul>
+        {(t.partenza_da || t.arrivo_a) && (
+          <dl class="prenota__dati">
+            {t.partenza_da && <div><dt>Partenza da</dt><dd>{t.partenza_da}</dd></div>}
+            {t.arrivo_a && <div><dt>Arrivo a</dt><dd>{t.arrivo_a}</dd></div>}
+          </dl>
+        )}
         {partenze.length > 0 && <a class="prenota__btn" href="#partenze">Scegli la partenza</a>}
         {d.linkWa() && <a class="prenota__btn prenota__btn--secondario" href={d.linkWa()!} target="_blank" rel="noopener">Scrivici su WhatsApp</a>}
         {linkTel && <a class="prenota__btn prenota__btn--secondario" href={linkTel}>Chiama {telefono}</a>}
@@ -541,6 +551,26 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
     font-size: 0.78rem;
     color: var(--testo-tenue);
     text-align: center;
+  }
+
+  /* le stesse indicazioni della foto (nazione, durata, tipo, guida) nel riquadro di riepilogo */
+  .prenota__chip {
+    list-style: none;
+    margin: 0.6rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .prenota__chip li {
+    background: var(--superficie-tenue);
+    border: 1px solid var(--bordo);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--inchiostro);
+    padding: 0.25em 0.85em;
   }
 
   .prenota__dati {
