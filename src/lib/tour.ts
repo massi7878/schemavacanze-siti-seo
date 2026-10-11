@@ -18,10 +18,12 @@ export interface TourElenco {
   prossima: string | null
   n_partenze: number
   guida_italiano: 'si' | 'su_richiesta' | 'no'
+  tipo_viaggio: 'guidato' | 'self'
 }
 
 export interface TourDettaglio {
   guida_italiano?: 'si' | 'su_richiesta' | 'no'
+  tipo_viaggio?: 'guidato' | 'self'
   id: string
   slug: string
   nome: string
@@ -87,6 +89,9 @@ export function getToursPubblici(soloGuida = false): Promise<TourElenco[]> {
 }
 
 // Testo della guida in italiano per le schede e la pagina del tour (null = niente da mostrare nelle schede)
+// Tipo di viaggio: guidato oppure self made (viaggio libero, senza guida)
+export const etichettaTipo = (valore: string | null | undefined) => (valore === 'self' ? 'Self made' : 'Guidato')
+
 export function etichettaGuida(valore: string | null | undefined): string | null {
   if (valore === 'si') return 'Guida in italiano'
   if (valore === 'su_richiesta') return 'Italiano su richiesta'

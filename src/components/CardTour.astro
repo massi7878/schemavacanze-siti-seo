@@ -1,6 +1,6 @@
 ---
 import { dataBreve, euro } from '../lib/offerte'
-import { etichettaGuida, urlTour, type TourElenco } from '../lib/tour'
+import { etichettaGuida, etichettaTipo, urlTour, type TourElenco } from '../lib/tour'
 
 interface Props {
   tour: TourElenco
@@ -19,7 +19,7 @@ const guida = etichettaGuida(tour.guida_italiano)
     {guida && <span class="card-tour__guida">{guida}</span>}
   </div>
   <div class="card-tour__corpo">
-    {tour.paese && <span class="card-tour__luogo">{tour.paese}</span>}
+    <span class="card-tour__luogo">{tour.paese ? `${tour.paese} · ` : ''}{etichettaTipo(tour.tipo_viaggio)}</span>
     <span class="card-tour__titolo">{tour.nome}</span>
     {tour.sottotitolo && <span class="card-tour__sottotitolo">{tour.sottotitolo}</span>}
     <div class="card-tour__dettagli">

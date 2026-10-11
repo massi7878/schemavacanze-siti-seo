@@ -34,6 +34,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
           <ul class="hero__chip">
             {paesi.map(p => <li>{p}</li>)}
             <li>{t.durata_giorni} giorni / {t.notti} notti</li>
+            <li>{t.tipo_viaggio === 'self' ? 'Self made' : 'Guidato'}</li>
             {t.guida_italiano === 'si' ? <li>Guida in italiano</li> : t.guida_italiano === 'su_richiesta' ? <li>Guida in italiano su richiesta</li> : t.lingue?.length > 0 && <li>Assistenza in italiano</li>}
             {t.gruppo_max && <li>Max {t.gruppo_max} persone</li>}
           </ul>

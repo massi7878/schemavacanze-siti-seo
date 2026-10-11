@@ -77,6 +77,14 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
             al
             <input type="date" name="al" />
           </label>
+          <label>
+            Tipo di viaggio
+            <select name="tipo">
+              <option value="">Tutti</option>
+              <option value="guidato">Guidato (con guida)</option>
+              <option value="self">Self made (viaggio libero)</option>
+            </select>
+          </label>
           {!soloGuida && (
             <label class="filtri__spunta">
               <input type="checkbox" name="guida" value="1" />
@@ -171,6 +179,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     prossima: string | null
     n_partenze: number
     guida_italiano?: string
+    tipo_viaggio?: string
   }
 
   let base: Tour[] = [] // risultati degli altri filtri (senza la durata)
@@ -210,7 +219,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
           : `<span class="card-tour__segnaposto" aria-hidden="true">${esc(t.nome.charAt(0))}</span>`
       }<span class="card-tour__tipo">${t.notti} ${t.notti === 1 ? 'notte' : 'notti'}</span>${guida ? `<span class="card-tour__guida">${guida}</span>` : ''}</div>
       <div class="card-tour__corpo">
-        ${t.paese ? `<span class="card-tour__luogo">${esc(t.paese)}</span>` : ''}
+        <span class="card-tour__luogo">${t.paese ? `${esc(t.paese)} · ` : ''}${t.tipo_viaggio === 'self' ? 'Self made' : 'Guidato'}</span>
         <span class="card-tour__titolo">${esc(t.nome)}</span>
         ${t.sottotitolo ? `<span class="card-tour__sottotitolo">${esc(t.sottotitolo)}</span>` : ''}
         <div class="card-tour__dettagli">${quando ? `<span>${esc(quando)}</span>` : ''}</div>
@@ -282,6 +291,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     if (campo('al')) corpo.p_al = campo('al')
     if (campo('prezzo')) corpo.p_prezzo_max = Number(campo('prezzo'))
     if (guidaAttiva()) corpo.p_guida = true
+    if (campo('tipo')) corpo.p_tipo = campo('tipo')
     if (filtrata) {
       corpo.p_notti_min = da
       corpo.p_notti_max = a
@@ -313,6 +323,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     if (campo('al')) p.p_al = campo('al')
     if (campo('prezzo')) p.p_prezzo_max = Number(campo('prezzo'))
     if (guidaAttiva()) p.p_guida = true
+    if (campo('tipo')) p.p_tipo = campo('tipo')
     return p // niente durata: la applica il browser sui risultati
   }
 
