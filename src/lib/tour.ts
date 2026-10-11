@@ -51,7 +51,15 @@ export interface TourDettaglio {
     pasti: string[]
     hotel: string | null
   }>
-  partenze: Array<{ data_partenza: string; data_rientro: string; prezzo_da: number; stato: string }>
+  partenze: Array<{
+    data_partenza: string
+    data_rientro: string
+    prezzo_da: number
+    stato: string
+    supplemento_singola: number | null
+    riduzione_tripla: number | null
+    riduzione_bambino: number | null
+  }>
 }
 
 let cacheElenco: { quando: number; promessa: Promise<TourElenco[]> } | null = null

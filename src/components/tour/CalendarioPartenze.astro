@@ -10,7 +10,16 @@ const { d } = Astro.props
 const { t, partenze, periodi, numeroWa } = d
 
 // dati per il calendario (sono poche centinaia di righe: stanno nella pagina, niente richieste)
-const datiCalendario = partenze.map(p => ({ p: p.data_partenza, r: p.data_rientro, e: Number(p.prezzo_da), s: p.stato }))
+const datiCalendario = partenze.map(p => ({
+  p: p.data_partenza,
+  r: p.data_rientro,
+  e: Number(p.prezzo_da),
+  s: p.stato,
+  sg: p.supplemento_singola != null ? Number(p.supplemento_singola) : null,
+  tr: p.riduzione_tripla != null ? Number(p.riduzione_tripla) : null,
+  bb: p.riduzione_bambino != null ? Number(p.riduzione_bambino) : null,
+}))
+const haBambini = partenze.some(p => p.riduzione_bambino != null)
 const primaData = partenze[0]?.data_partenza ?? null
 ---
 
@@ -40,6 +49,18 @@ const primaData = partenze[0]?.data_partenza ?? null
     data-wa={numeroWa}
     data-tour={t.nome}
   >
+    <fieldset class="cal__ospiti">
+      <legend>Viaggiatori e camere</legend>
+      <div class="cal__ospiti-riga">
+        <label>Adulti<input type="number" name="adulti" min="1" max="12" value="2" inputmode="numeric" /></label>
+        {haBambini && <label>Bambini<input type="number" name="bambini" min="0" max="6" value="0" inputmode="numeric" /></label>}
+        <label>Camere singole<input type="number" name="singole" min="0" max="12" value="0" inputmode="numeric" /></label>
+        <label>Doppie / twin<input type="number" name="doppie" min="0" max="12" value="1" inputmode="numeric" /></label>
+        <label>Triple<input type="number" name="triple" min="0" max="6" value="0" inputmode="numeric" /></label>
+        <label>Quadruple<input type="number" name="quadruple" min="0" max="4" value="0" inputmode="numeric" /></label>
+      </div>
+      <p class="cal__ospiti-esito" data-ospiti-esito role="status"></p>
+    </fieldset>
     <div class="cal__testata">
       <button type="button" class="cal__nav" data-prec aria-label="Mese precedente">‹</button>
       <strong class="cal__mese" aria-live="polite"></strong>
@@ -55,7 +76,7 @@ const primaData = partenze[0]?.data_partenza ?? null
   const GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
   const box = document.querySelector<HTMLElement>('.cal')
   if (box) {
-    type Partenza = { p: string; r: string; e: number; s: string }
+    type Partenza = { p: string; r: string; e: number; s: string; sg: number | null; tr: number | null; bb: number | null }
     const partenze: Partenza[] = JSON.parse(box.dataset.partenze ?? '[]')
     const perData = new Map(partenze.map(x => [x.p, x]))
     const griglia = box.querySelector<HTMLElement>('[data-griglia]')!
@@ -96,23 +117,118 @@ const primaData = partenze[0]?.data_partenza ?? null
       succ.disabled = `${anno}-${due(mese)}` >= ultimo.slice(0, 7)
     }
 
+    // ---- adulti, bambini e camere (stesse regole di Travelexchange) ----
+    const campo = (nome: string) => Number((box!.querySelector<HTMLInputElement>(`[name="${nome}"]`)?.value ?? '0') || 0)
+    const imposta = (nome: string, v: number) => {
+      const el = box!.querySelector<HTMLInputElement>(`[name="${nome}"]`)
+      if (el) el.value = String(Math.max(0, v))
+    }
+    const ospitiEsito = box.querySelector<HTMLElement>('[data-ospiti-esito]')!
+    const ospiti = () => ({
+      adulti: campo('adulti'),
+      bambini: campo('bambini'),
+      singole: campo('singole'),
+      doppie: campo('doppie'),
+      triple: campo('triple'),
+      quadruple: campo('quadruple'),
+    })
+    const viaggiatori = () => ospiti().adulti + ospiti().bambini
+    const posti = () => ospiti().singole + ospiti().doppie * 2 + ospiti().triple * 3 + ospiti().quadruple * 4
+
+    // propone le camere in base ai viaggiatori: tutte doppie, con una singola se sono dispari
+    function proponiCamere() {
+      const n = viaggiatori()
+      imposta('triple', 0)
+      imposta('quadruple', 0)
+      imposta('singole', n % 2)
+      imposta('doppie', Math.floor(n / 2))
+    }
+
+    function descriviOspiti() {
+      const o = ospiti()
+      const parti = [`${o.adulti} ${o.adulti === 1 ? 'adulto' : 'adulti'}`]
+      if (o.bambini) parti.push(`${o.bambini} ${o.bambini === 1 ? 'bambino' : 'bambini'}`)
+      const camere: string[] = []
+      if (o.singole) camere.push(`${o.singole} singol${o.singole === 1 ? 'a' : 'e'}`)
+      if (o.doppie) camere.push(`${o.doppie} doppi${o.doppie === 1 ? 'a' : 'e'}/twin`)
+      if (o.triple) camere.push(`${o.triple} tripl${o.triple === 1 ? 'a' : 'e'}`)
+      if (o.quadruple) camere.push(`${o.quadruple} quadrupl${o.quadruple === 1 ? 'a' : 'e'}`)
+      return `${parti.join(' e ')} in ${camere.join(' + ') || 'nessuna camera'}`
+    }
+
+    // totale: viaggiatori x prezzo a persona + singole x supplemento - riduzioni delle triple
+    function calcolo(x: Partenza) {
+      const o = ospiti()
+      const n = viaggiatori()
+      const righe: Array<[string, number]> = [[`${n} ${n === 1 ? 'viaggiatore' : 'viaggiatori'} × ${euro(x.e)}`, n * x.e]]
+      if (o.singole > 0 && x.sg != null) righe.push([`${o.singole} ${o.singole === 1 ? 'camera singola' : 'camere singole'} (supplemento ${euro(x.sg)})`, o.singole * x.sg])
+      if (o.triple > 0) {
+        // un bambino in una tripla usa la riduzione bambino al posto di quella normale
+        const triple = o.triple
+        const conBambino = Math.min(o.bambini, triple)
+        let riduzione = 0
+        if (x.bb != null) riduzione += conBambino * x.bb
+        else if (x.tr != null) riduzione += conBambino * 3 * x.tr
+        if (x.tr != null) riduzione += (triple - conBambino) * 3 * x.tr
+        if (riduzione > 0) righe.push([`${triple} ${triple === 1 ? 'camera tripla' : 'camere triple'} (riduzione)`, -riduzione])
+      }
+      return { righe, totale: righe.reduce((s, r) => s + r[1], 0) }
+    }
+
+    function verificaCamere() {
+      const mancanti = viaggiatori() - posti()
+      if (viaggiatori() < 1) {
+        ospitiEsito.textContent = 'Indica almeno un adulto.'
+        return false
+      }
+      if (mancanti > 0) {
+        ospitiEsito.textContent = `Mancano ${mancanti} posti letto: aggiungi camere o riduci i viaggiatori.`
+        return false
+      }
+      if (mancanti < 0) {
+        ospitiEsito.textContent = `Ci sono ${-mancanti} posti letto in più dei viaggiatori: togli una camera.`
+        return false
+      }
+      ospitiEsito.textContent = 'Camere a posto ✓'
+      return true
+    }
+
     function mostra(iso: string) {
       const x = perData.get(iso)
       if (!x) return
       selezionata = iso
       const nottiN = Math.round((Date.parse(x.r) - Date.parse(x.p)) / 86400000)
+      const valide = verificaCamere()
+      const c = calcolo(x)
       const numero = box!.dataset.wa
-      const testo = `Buongiorno, vorrei informazioni sul tour "${box!.dataset.tour}" in partenza il ${lunga(iso)}.`
+      const testo = `Buongiorno, vorrei un preventivo per il tour "${box!.dataset.tour}" in partenza il ${lunga(iso)}: ${descriviOspiti()}. Totale indicativo ${euro(c.totale)}.`
       const link = numero ? `https://wa.me/39${numero}?text=${encodeURIComponent(testo)}` : null
       const stato = x.s === 'ultimi_posti' ? '<span class="cal__badge">Ultimi posti</span>' : ''
+      const dettaglio = c.righe.map(r => `<li><span>${r[0]}</span><b>${r[1] < 0 ? '−' + euro(-r[1]) : euro(r[1])}</b></li>`).join('')
       scelta.innerHTML = `<div class="cal__riepilogo">
         <div><span>Partenza</span><strong>${lunga(x.p)}</strong></div>
         <div><span>Rientro</span><strong>${lunga(x.r)}</strong><small>${nottiN} ${nottiN === 1 ? 'notte' : 'notti'}</small></div>
-        <div><span>Prezzo a persona</span><strong class="cal__prezzo">${euro(x.e)}</strong>${stato}</div>
-        ${link ? `<a class="cal__richiedi" href="${link}" target="_blank" rel="noopener">Richiedi questa data</a>` : ''}
+        <div><span>A persona (camera doppia)</span><strong class="cal__prezzo">${euro(x.e)}</strong>${stato}</div>
+        <div class="cal__conto">
+          <span>Il tuo preventivo · ${descriviOspiti()}</span>
+          <ul>${dettaglio}</ul>
+          <p class="cal__totale">Totale <strong>${euro(c.totale)}</strong></p>
+          ${valide ? '' : '<p class="cal__avviso">Completa le camere per avere il totale corretto.</p>'}
+        </div>
+        ${link ? `<a class="cal__richiedi" href="${link}" target="_blank" rel="noopener">Richiedi questo preventivo</a>` : ''}
       </div>`
       disegna()
     }
+
+    // cambiando i viaggiatori si propongono di nuovo le camere; cambiando le camere si ricalcola il totale
+    box.querySelector('.cal__ospiti')?.addEventListener('input', e => {
+      const nome = (e.target as HTMLInputElement).name
+      if (nome === 'adulti' || nome === 'bambini') proponiCamere()
+      verificaCamere()
+      if (selezionata) mostra(selezionata)
+    })
+    proponiCamere()
+    verificaCamere()
 
     box.addEventListener('click', e => {
       const t = e.target as HTMLElement
@@ -342,5 +458,107 @@ const primaData = partenze[0]?.data_partenza ?? null
 
   .cal__richiedi:hover {
     background: var(--colore-primario-scuro-hover);
+  }
+</style>
+
+<style is:global>
+  .cal__ospiti {
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    padding: 0.7rem 0.9rem 0.8rem;
+    margin: 0 0 1rem;
+  }
+
+  .cal__ospiti legend {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--inchiostro);
+    padding: 0 0.4rem;
+  }
+
+  .cal__ospiti-riga {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+    gap: 0.6rem;
+  }
+
+  .cal__ospiti-riga label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--testo);
+  }
+
+  .cal__ospiti-riga input {
+    font: inherit;
+    font-size: 0.95rem;
+    padding: 0.45em 0.6em;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .cal__ospiti-esito {
+    margin: 0.5rem 0 0;
+    font-size: 0.82rem;
+    color: var(--testo-tenue);
+  }
+
+  .cal__conto {
+    background: var(--superficie-tenue);
+    border-radius: var(--raggio-piccolo);
+    padding: 0.8rem 0.9rem;
+  }
+
+  .cal__conto ul {
+    list-style: none;
+    margin: 0.4rem 0 0.5rem;
+    padding: 0;
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .cal__conto li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: var(--testo);
+  }
+
+  .cal__conto li span {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  .cal__totale {
+    margin: 0;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--bordo);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 700;
+    color: var(--inchiostro);
+  }
+
+  .cal__totale strong {
+    font-size: 1.5rem;
+    color: var(--colore-primario-scuro);
+    text-transform: none;
+  }
+
+  .cal__avviso {
+    margin: 0.5rem 0 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #b0413e;
   }
 </style>
