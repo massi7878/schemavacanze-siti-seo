@@ -29,6 +29,7 @@ const slides = slide.length > 0 ? slide : RISERVA
       </div>
     </div>
   ))}
+  <div class="slide-home__sezioni"><slot /></div>
   {slides.length > 1 && (
     <>
       <button type="button" class="slide-home__freccia slide-home__freccia--prec" data-verso="-1" aria-label="Foto precedente">‹</button>
@@ -161,6 +162,37 @@ const slides = slide.length > 0 ? slide : RISERVA
 
   .slide-home__freccia--succ {
     right: 1rem;
+  }
+
+  .slide-home__sezioni {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2.6rem;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    padding-inline: 1rem;
+  }
+
+  .slide-home__sezioni:empty {
+    display: none;
+  }
+
+  .slide-home .filtro-sezioni {
+    justify-content: center;
+  }
+
+  .slide-home .filtro-sezioni__voce {
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    color: var(--inchiostro);
+  }
+
+  .slide-home .filtro-sezioni__voce:hover {
+    background: rgba(255, 255, 255, 0.85);
   }
 
   .slide-home__punti {

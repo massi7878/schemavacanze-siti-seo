@@ -30,6 +30,9 @@ const descrizione = strutture.length > 0
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
   <CopertinaSezione slide={slide} titolo={categoria.nome} sottotitolo={strutture.length > 0 ? `${strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.` : null} compatta>
     <Briciole slot="alto" voci={[{ nome: categoria.nome }]} />
+    <div slot="sezioni">
+      <FiltroSezioni categorie={categorie} categoriaSlugAttuale={categoria.slug} />
+    </div>
   </CopertinaSezione>
 
   <main class="contenitore pagina-elenco" class:list={{ 'pagina-elenco--con-filtro': strutture.length > 0 }}>
@@ -37,7 +40,6 @@ const descrizione = strutture.length > 0
       <aside class="filtro-laterale" aria-label="Filtra">
         {destinazioni.length > 0 && <SelettoreDestinazioneCategoria destinazioni={destinazioni} />}
         <FiltriElenco colonna />
-        <FiltroSezioni categorie={categorie} categoriaSlugAttuale={categoria.slug} />
       </aside>
     )}
     <div class="pagina-elenco__risultati">

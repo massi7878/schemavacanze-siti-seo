@@ -28,16 +28,11 @@ const urlCanonica = new URL('/', Astro.site).toString()
   descrizione="Villaggi turistici e strutture ricettive selezionate da Hotellando, con schede dettagliate su spiaggia, camere, formula e prezzi."
   urlCanonica={urlCanonica}
 >
-  <SlideshowHome slide={slide} />
+  <SlideshowHome slide={slide}>
+    {categorie.length > 0 && <FiltroSezioni categorie={categorie} />}
+  </SlideshowHome>
 
   <main class="contenitore pagina-home">
-    {categorie.length > 0 && (
-      <section class="esplora">
-        <h2 class="esplora__titolo">Esplora per sezione</h2>
-        <FiltroSezioni categorie={categorie} />
-      </section>
-    )}
-
     {tipologie.length > 0 && (
       <section class="esplora">
         <h2 class="esplora__titolo">Esplora per tipologia</h2>

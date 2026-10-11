@@ -16,6 +16,7 @@ const FOTO_RISERVA = 'https://www.schemavacanze.it/gallery/17595.jpg'
 const { slide = [], titolo, sottotitolo = null, compatta = false } = Astro.props
 const foto = slide.length > 0 ? slide.map(s => s.url) : [FOTO_RISERVA]
 const conFiltri = Astro.slots.has('default')
+const conSezioni = Astro.slots.has('sezioni')
 ---
 
 <section class="copertina" class:list={{ 'copertina--compatta': compatta, 'copertina--filtri': conFiltri }} data-copertina data-slideshow={foto.length > 1 ? 'true' : 'false'}>
@@ -26,6 +27,11 @@ const conFiltri = Astro.slots.has('default')
     <h1>{titolo}</h1>
     {sottotitolo && <p>{sottotitolo}</p>}
   </div>
+  {conSezioni && (
+    <div class="contenitore copertina__sezioni">
+      <slot name="sezioni" />
+    </div>
+  )}
   {conFiltri && (
     <div class="contenitore copertina__filtri">
       <div class="copertina__pannello">
@@ -60,7 +66,7 @@ const conFiltri = Astro.slots.has('default')
   }
 
   .copertina--compatta {
-    min-height: 9rem;
+    min-height: 11rem;
   }
 
   .copertina--filtri {
@@ -120,6 +126,37 @@ const conFiltri = Astro.slots.has('default')
   .copertina .briciole,
   .copertina .briciole a {
     color: rgba(255, 255, 255, 0.85);
+  }
+
+  /* le sezioni (Mare Italia, Estero, Montagna, Crociere) sulla foto, in basso al centro */
+  .copertina__sezioni {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    padding-bottom: 1rem;
+  }
+
+  .copertina .filtro-sezioni {
+    justify-content: center;
+  }
+
+  .copertina .filtro-sezioni__voce {
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    color: var(--inchiostro);
+  }
+
+  .copertina .filtro-sezioni__voce:hover {
+    background: rgba(255, 255, 255, 0.85);
+  }
+
+  .copertina .filtro-sezioni__voce[aria-current='page'] {
+    background: #fff;
+    border-color: #fff;
+    color: var(--colore-primario-scuro);
   }
 
   /* riquadro dei filtri: in basso, al centro della foto */

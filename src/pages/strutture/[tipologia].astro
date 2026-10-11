@@ -32,13 +32,15 @@ const descrizione = `${strutture.length} strutture selezionate nella categoria $
       <span aria-hidden="true">/</span>
       <span aria-current="page">{tipologia.nome}</span>
     </nav>
+    <div slot="sezioni">
+      <FiltroSezioni categorie={categorie} />
+    </div>
   </CopertinaSezione>
 
   <main class="contenitore pagina-elenco" class:list={{ 'pagina-elenco--con-filtro': strutture.length > 0 }}>
     {strutture.length > 0 && (
       <aside class="filtro-laterale" aria-label="Filtra">
         <FiltriElenco colonna />
-        <FiltroSezioni categorie={categorie} />
       </aside>
     )}
     <div class="pagina-elenco__risultati">
