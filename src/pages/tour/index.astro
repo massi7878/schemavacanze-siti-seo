@@ -10,7 +10,8 @@ Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-re
 
 const tour = await getToursPubblici()
 const paesi = [...new Set(tour.flatMap(t => paesiDi(t.paese)))].sort((a, b) => a.localeCompare(b, 'it'))
-const nottiMax = Math.max(1, ...tour.map(t => t.notti))
+const nottiMax = tour.length ? Math.max(...tour.map(t => t.notti)) : 0
+const nottiMin = tour.length ? Math.min(...tour.map(t => t.notti)) : 0
 const prezzoMax = Math.ceil(Math.max(0, ...tour.map(t => Number(t.prezzo_min ?? 0))) / 100) * 100
 const periodi = periodiProposti()
 const INIZIALI = 48
@@ -45,6 +46,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     data-chiave={chiaveAnon}
     data-iniziali={INIZIALI}
     data-notti-max={nottiMax}
+    data-notti-min={nottiMin}
   >
     {tour.length > 0 && (
       <form class="filtri" id="filtri-tour" aria-label="Filtra i tour">
@@ -91,10 +93,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
           <div class="range-doppio">
             <div class="range-doppio__traccia"></div>
             <div class="range-doppio__selezione" id="durata-selezione"></div>
-            <input type="range" name="notti_min" min="0" max={nottiMax} step="1" value="0" aria-label="Numero minimo di notti" />
-            <input type="range" name="notti_max" min="0" max={nottiMax} step="1" value={nottiMax} aria-label="Numero massimo di notti" />
+            <input type="range" name="notti_min" min={nottiMin} max={nottiMax} step="1" value={nottiMin} aria-label="Numero minimo di notti" />
+            <input type="range" name="notti_max" min={nottiMin} max={nottiMax} step="1" value={nottiMax} aria-label="Numero massimo di notti" />
           </div>
-          <div class="range-doppio__estremi"><span>0</span><span>{nottiMax} notti</span></div>
+          <div class="range-doppio__estremi"><span id="durata-estremo-min">{nottiMin} notti</span><span id="durata-estremo-max">{nottiMax} notti</span></div>
         </div>
 
         <div class="filtri__azioni">
@@ -125,8 +127,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 </BaseLayout>
 
 <script>
-  // I filtri usano la stessa funzione del database (tour_ricerca_pubblica) che alimenta l'elenco:
-  // le schede vengono ricreate dal browser con i risultati, 48 alla volta.
+  // I filtri usano la stessa funzione del database (tour_ricerca_pubblica) che alimenta l'elenco.
+  // La barra della durata NON viene mandata al database: i risultati degli altri filtri si tengono qui
+  // e la barra si restringe (a cascata) al minimo e massimo di notti dei tour rimasti; la durata scelta
+  // filtra poi questi risultati senza altre richieste.
   const principale = document.querySelector<HTMLElement>('.pagina-tour')
   const modulo = document.querySelector<HTMLFormElement>('#filtri-tour')
   const griglia = document.querySelector<HTMLElement>('#griglia-tour')
@@ -136,10 +140,13 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   const bottoneAltri = document.querySelector<HTMLButtonElement>('#mostra-altri')
   const testoDurata = document.querySelector<HTMLElement>('#durata-testo')
   const selezione = document.querySelector<HTMLElement>('#durata-selezione')
+  const estremoMin = document.querySelector<HTMLElement>('#durata-estremo-min')
+  const estremoMax = document.querySelector<HTMLElement>('#durata-estremo-max')
+  const barraMin = modulo?.elements.namedItem('notti_min') as HTMLInputElement | null
+  const barraMax = modulo?.elements.namedItem('notti_max') as HTMLInputElement | null
   const urlSupabase = principale?.dataset.urlSupabase
   const chiave = principale?.dataset.chiave
   const PER_VOLTA = Number(principale?.dataset.iniziali ?? 48)
-  const nottiMax = Number(principale?.dataset.nottiMax ?? 30)
 
   type Tour = {
     slug: string
@@ -153,10 +160,16 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     n_partenze: number
   }
 
+  let base: Tour[] = [] // risultati degli altri filtri (senza la durata)
+  let baseCaricata = false
   let risultati: Tour[] = []
   let mostrati = 0
   let numeroRichiesta = 0
   let attesa: number | undefined
+  let nMin = Number(principale?.dataset.nottiMin ?? 0)
+  let nMax = Number(principale?.dataset.nottiMax ?? 30)
+  let scelteDa: number | null = null // durata scelta dall'utente (null = tutto l'intervallo)
+  let scelteA: number | null = null
 
   const esc = (s: string | null | undefined) =>
     String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
@@ -187,16 +200,38 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     return (modulo?.elements.namedItem(nome) as HTMLInputElement | HTMLSelectElement | null)?.value ?? ''
   }
 
-  function aggiornaBarra() {
-    const da = Number(campo('notti_min'))
-    const a = Number(campo('notti_max'))
-    const filtrata = da > 0 || a < nottiMax
-    if (testoDurata) testoDurata.textContent = filtrata ? `Durata: da ${da} a ${a} ${a === 1 ? 'notte' : 'notti'}` : 'Durata: qualsiasi'
-    if (selezione) {
-      selezione.style.left = `${(da / nottiMax) * 100}%`
-      selezione.style.right = `${100 - (a / nottiMax) * 100}%`
+  // durata effettiva scelta, dentro l'intervallo attuale della barra
+  function durataScelta() {
+    const da = Math.min(Math.max(scelteDa ?? nMin, nMin), nMax)
+    const a = Math.max(Math.min(scelteA ?? nMax, nMax), da)
+    return { da, a, filtrata: da > nMin || a < nMax }
+  }
+
+  function disegnaBarra() {
+    if (!barraMin || !barraMax) return
+    const { da, a, filtrata } = durataScelta()
+    const unico = nMin === nMax
+    for (const el of [barraMin, barraMax]) {
+      el.min = String(nMin)
+      el.max = String(nMax)
+      el.disabled = unico
     }
-    return filtrata
+    barraMin.value = String(da)
+    barraMax.value = String(a)
+    const span = Math.max(nMax - nMin, 1)
+    if (testoDurata) {
+      testoDurata.textContent = unico
+        ? `Durata: ${nMin} ${nMin === 1 ? 'notte' : 'notti'} (tutti i tour scelti hanno questa durata)`
+        : filtrata
+          ? `Durata: da ${da} a ${a} ${a === 1 ? 'notte' : 'notti'}`
+          : 'Durata: qualsiasi'
+    }
+    if (selezione) {
+      selezione.style.left = `${((da - nMin) / span) * 100}%`
+      selezione.style.right = `${100 - ((a - nMin) / span) * 100}%`
+    }
+    if (estremoMin) estremoMin.textContent = `${nMin} ${nMin === 1 ? 'notte' : 'notti'}`
+    if (estremoMax) estremoMax.textContent = `${nMax} ${nMax === 1 ? 'notte' : 'notti'}`
   }
 
   function parametri() {
@@ -205,11 +240,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     if (campo('dal')) p.p_dal = campo('dal')
     if (campo('al')) p.p_al = campo('al')
     if (campo('prezzo')) p.p_prezzo_max = Number(campo('prezzo'))
-    const da = Number(campo('notti_min'))
-    const a = Number(campo('notti_max'))
-    if (da > 0) p.p_notti_min = da
-    if (a < nottiMax) p.p_notti_max = a
-    return p
+    return p // niente durata: la applica il browser sui risultati
   }
 
   function disegna(dall: number) {
@@ -223,9 +254,18 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     if (bottoneAltri) bottoneAltri.textContent = `Mostra altri tour (${risultati.length - mostrati} ancora)`
   }
 
+  // applica la durata scelta ai risultati degli altri filtri e ridisegna l'elenco
+  function rendi() {
+    const { da, a, filtrata } = durataScelta()
+    risultati = filtrata ? base.filter(t => t.notti >= da && t.notti <= a) : base
+    disegna(0)
+    disegnaBarra()
+    if (nessuno) nessuno.hidden = risultati.length > 0
+    if (esito) esito.textContent = risultati.length === 1 ? '1 tour trovato' : `${risultati.length} tour trovati`
+  }
+
   async function applica() {
     if (!modulo || !urlSupabase || !chiave) return
-    aggiornaBarra()
     const numero = ++numeroRichiesta
     if (esito) esito.textContent = 'Ricerca in corso…'
     try {
@@ -237,10 +277,13 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       if (!risposta.ok) throw new Error(String(risposta.status))
       const trovati: Tour[] = await risposta.json()
       if (numero !== numeroRichiesta) return
-      risultati = trovati
-      disegna(0)
-      if (nessuno) nessuno.hidden = trovati.length > 0
-      if (esito) esito.textContent = trovati.length === 1 ? '1 tour trovato' : `${trovati.length} tour trovati`
+      base = trovati
+      baseCaricata = true
+      // la barra si restringe alla durata dei tour rimasti
+      const notti = trovati.map(t => t.notti)
+      nMin = notti.length ? Math.min(...notti) : 0
+      nMax = notti.length ? Math.max(...notti) : 0
+      rendi()
     } catch {
       if (numero !== numeroRichiesta) return
       if (esito) esito.textContent = 'Non riesco a filtrare in questo momento: riprova tra poco.'
@@ -255,6 +298,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   // il periodo (mese) riempie le due date; scrivere una data a mano toglie il periodo
   modulo?.addEventListener('change', e => {
     const bersaglio = e.target as HTMLInputElement | HTMLSelectElement
+    if (bersaglio.name === 'notti_min' || bersaglio.name === 'notti_max') return
     if (bersaglio.name === 'periodo') {
       const opzione = (bersaglio as HTMLSelectElement).selectedOptions[0]
       ;(modulo.elements.namedItem('dal') as HTMLInputElement).value = opzione?.dataset.dal ?? ''
@@ -266,21 +310,30 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   })
   modulo?.addEventListener('input', e => {
     const nome = (e.target as HTMLInputElement).name
-    if (nome === 'notti_min') {
-      const mx = modulo.elements.namedItem('notti_max') as HTMLInputElement
-      if (Number(campo('notti_min')) > Number(mx.value)) (e.target as HTMLInputElement).value = mx.value
+    if (nome === 'notti_min' || nome === 'notti_max') {
+      // spostare la barra non richiede altre richieste: filtra i risultati gia' presenti
+      const da = Number(barraMin?.value)
+      const a = Number(barraMax?.value)
+      if (nome === 'notti_min') scelteDa = Math.min(da, a)
+      else scelteA = Math.max(a, da)
+      if (baseCaricata) rendi()
+      else {
+        // l'elenco iniziale e' solo parziale: carico prima i risultati completi
+        disegnaBarra()
+        programma()
+      }
+      return
     }
-    if (nome === 'notti_max') {
-      const mn = modulo.elements.namedItem('notti_min') as HTMLInputElement
-      if (Number(campo('notti_max')) < Number(mn.value)) (e.target as HTMLInputElement).value = mn.value
-    }
-    aggiornaBarra()
     programma()
   })
-  modulo?.addEventListener('reset', () => window.setTimeout(applica, 0))
+  modulo?.addEventListener('reset', () => {
+    scelteDa = null
+    scelteA = null
+    window.setTimeout(applica, 0)
+  })
   modulo?.addEventListener('submit', e => e.preventDefault())
   bottoneAltri?.addEventListener('click', () => disegna(mostrati))
-  aggiornaBarra()
+  disegnaBarra()
   // l'elenco iniziale e' gia' nella pagina (48 schede per i motori di ricerca): conta quanti ce ne sono
   mostrati = griglia?.querySelectorAll('li').length ?? 0
 </script>
