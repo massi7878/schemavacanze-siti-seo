@@ -27,137 +27,144 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
-  <CopertinaSezione slide={slide} titolo="Offerte" sottotitolo={offerte.length > 0 ? `${offerte.length} offerte attive, con prezzo e date reali.` : 'Nessuna offerta attiva al momento: torna a trovarci presto.'} compatta>
+  <CopertinaSezione slide={slide} titolo="Offerte" sottotitolo={offerte.length > 0 ? `${offerte.length} offerte attive, con prezzo e date reali.` : 'Nessuna offerta attiva al momento: torna a trovarci presto.'}>
     <nav slot="alto" class="briciole" aria-label="Percorso">
       <a href="/">Home</a>
       <span aria-hidden="true">/</span>
       <span aria-current="page">Offerte</span>
     </nav>
+      {offerte.length > 0 && (
+          <form class="filtri" id="filtri-offerte" aria-label="Filtra le offerte">
+            <div class="filtri__riga filtri__riga--principale">
+            {filtri.destinazioni.length > 0 && (
+              <label>
+                Destinazione
+                <select name="destinazione">
+                  <option value="">Tutte</option>
+                  {filtri.destinazioni.map(d => <option value={d.id}>{d.nome}</option>)}
+                </select>
+              </label>
+            )}
+            {tipiPresenti.length > 1 && (
+              <label>
+                Tipo
+                <select name="tipo">
+                  <option value="">Tutti</option>
+                  {tipiPresenti.map(t => <option value={t}>{NOME_TIPO_OFFERTA[t] ?? t}</option>)}
+                </select>
+              </label>
+            )}
+            <label>
+              Raggio
+              <select name="raggio">
+                <option value="">Tutti</option>
+                <option value="breve">Breve raggio</option>
+                <option value="medio">Medio raggio</option>
+                <option value="lungo">Lungo raggio</option>
+              </select>
+            </label>
+              <label class="filtri__ricerca">
+                Cerca per testo
+                <span class="filtri__ricercariga">
+                  <input type="search" name="testo" placeholder="Destinazione o nome dell'offerta..." autocomplete="off" />
+                  <button type="submit" class="filtri__cerca">Cerca</button>
+                </span>
+              </label>
+            </div>
+
+            <details class="filtri__altri">
+              <summary>Altri filtri: date, prezzo, notti, partenza da, caratteristiche</summary>
+              <div class="filtri__riga">
+            <label>
+              Dal
+              <input type="date" name="dal" />
+            </label>
+            <label>
+              Al
+              <input type="date" name="al" />
+            </label>
+            <label class="filtri__flex">
+              <input type="checkbox" name="flessibile" />
+              <span>Date flessibili <small>(anche un solo giorno in comune)</small></span>
+            </label>
+            {filtri.aree.length > 1 && (
+              <label>
+                Area
+                <select name="area">
+                  <option value="">Tutte</option>
+                  {filtri.aree.map(a => <option value={a}>{a}</option>)}
+                </select>
+              </label>
+            )}
+            <label>
+              Prezzo massimo (€)
+              <input type="number" name="prezzo" min="0" step="50" inputmode="numeric" />
+            </label>
+            <label>
+              Notti
+              <select name="notti">
+                <option value="">Qualsiasi</option>
+                <option value="0-4">Fino a 4</option>
+                <option value="5-8">5 – 8</option>
+                <option value="9-14">9 – 14</option>
+                <option value="15-99">Più di 14</option>
+              </select>
+            </label>
+            <label>
+              Ordina per
+              <select name="ordine">
+                <option value="data">Prima partenza</option>
+                <option value="prezzo">Prezzo</option>
+                <option value="recenti">Più recenti</option>
+              </select>
+            </label>
+              </div>
+          {filtri.punti.length > 0 && (
+            <fieldset class="filtri__gruppo">
+              <legend>Partenza da</legend>
+              <div class="filtri__scelte">
+                {filtri.punti.map(p => (
+                  <label class="scelta">
+                    <input type="checkbox" name="punti" value={p.id} />
+                    <span>{NOME_TIPO_PUNTO[p.tipo] ?? p.tipo} {p.nome}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          {filtri.tag.length > 0 && (
+            <fieldset class="filtri__gruppo">
+              <legend>Caratteristiche</legend>
+              <div class="filtri__scelte">
+                {filtri.tag.map(t => (
+                  <label class="scelta">
+                    <input type="checkbox" name="tag" value={t.id} />
+                    <span>{t.nome}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          <label class="scelta filtri__trasporto">
+            <input type="checkbox" name="trasporto" />
+            <span>Solo con trasporto incluso</span>
+          </label>
+            </details>
+
+          <div class="filtri__azioni">
+            <button type="reset" class="filtri__azzera" id="azzera-filtri">Azzera i filtri</button>
+            <span class="filtri__esito" id="esito-filtri" role="status" aria-live="polite"></span>
+          </div>
+          </form>
+        )}
   </CopertinaSezione>
 
   <main class="contenitore pagina-offerte" data-url-supabase={urlSupabase} data-chiave={chiaveAnon}>
-    {offerte.length > 0 && (
-      <form class="filtri" id="filtri-offerte" aria-label="Filtra le offerte">
-        <div class="filtri__riga">
-          <label>
-            Dal
-            <input type="date" name="dal" />
-          </label>
-          <label>
-            Al
-            <input type="date" name="al" />
-          </label>
-          <label class="filtri__flex">
-            <input type="checkbox" name="flessibile" />
-            <span>Date flessibili <small>(anche un solo giorno in comune)</small></span>
-          </label>
-        </div>
-
-        <div class="filtri__riga">
-          {tipiPresenti.length > 1 && (
-            <label>
-              Tipo
-              <select name="tipo">
-                <option value="">Tutti</option>
-                {tipiPresenti.map(t => <option value={t}>{NOME_TIPO_OFFERTA[t] ?? t}</option>)}
-              </select>
-            </label>
-          )}
-          {filtri.aree.length > 1 && (
-            <label>
-              Area
-              <select name="area">
-                <option value="">Tutte</option>
-                {filtri.aree.map(a => <option value={a}>{a}</option>)}
-              </select>
-            </label>
-          )}
-          <label>
-            Raggio
-            <select name="raggio">
-              <option value="">Tutti</option>
-              <option value="breve">Breve raggio</option>
-              <option value="medio">Medio raggio</option>
-              <option value="lungo">Lungo raggio</option>
-            </select>
-          </label>
-          {filtri.destinazioni.length > 0 && (
-            <label>
-              Destinazione
-              <select name="destinazione">
-                <option value="">Tutte</option>
-                {filtri.destinazioni.map(d => <option value={d.id}>{d.nome}</option>)}
-              </select>
-            </label>
-          )}
-          <label>
-            Prezzo massimo (€)
-            <input type="number" name="prezzo" min="0" step="50" inputmode="numeric" />
-          </label>
-          <label>
-            Notti
-            <select name="notti">
-              <option value="">Qualsiasi</option>
-              <option value="0-4">Fino a 4</option>
-              <option value="5-8">5 – 8</option>
-              <option value="9-14">9 – 14</option>
-              <option value="15-99">Più di 14</option>
-            </select>
-          </label>
-          <label>
-            Ordina per
-            <select name="ordine">
-              <option value="data">Prima partenza</option>
-              <option value="prezzo">Prezzo</option>
-              <option value="recenti">Più recenti</option>
-            </select>
-          </label>
-        </div>
-
-        {filtri.punti.length > 0 && (
-          <fieldset class="filtri__gruppo">
-            <legend>Partenza da</legend>
-            <div class="filtri__scelte">
-              {filtri.punti.map(p => (
-                <label class="scelta">
-                  <input type="checkbox" name="punti" value={p.id} />
-                  <span>{NOME_TIPO_PUNTO[p.tipo] ?? p.tipo} {p.nome}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
-
-        {filtri.tag.length > 0 && (
-          <fieldset class="filtri__gruppo">
-            <legend>Caratteristiche</legend>
-            <div class="filtri__scelte">
-              {filtri.tag.map(t => (
-                <label class="scelta">
-                  <input type="checkbox" name="tag" value={t.id} />
-                  <span>{t.nome}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
-
-        <label class="scelta filtri__trasporto">
-          <input type="checkbox" name="trasporto" />
-          <span>Solo con trasporto incluso</span>
-        </label>
-
-        <div class="filtri__azioni">
-          <button type="reset" class="filtri__azzera" id="azzera-filtri">Azzera i filtri</button>
-          <span class="filtri__esito" id="esito-filtri" role="status" aria-live="polite"></span>
-        </div>
-      </form>
-    )}
 
     {offerte.length > 0 ? (
       <ul class="griglia-offerte" id="griglia-offerte">
         {offerte.map(o => (
-          <li data-id={o.id}>
+          <li data-id={o.id} data-testo={`${o.titolo} ${o.destinazione_nome ?? ''} ${o.area ?? ''}`}>
             <CardOfferta offerta={o} />
           </li>
         ))}
@@ -181,6 +188,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   const nessuna = document.querySelector<HTMLElement>('#nessuna-offerta')
   const urlSupabase = principale?.dataset.urlSupabase
   const chiave = principale?.dataset.chiave
+
+  const normalizza = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const testoCercato = () => normalizza(valore('testo')).trim()
+  const passaTesto = (r: HTMLLIElement, testo: string) => !testo || normalizza(r.dataset.testo ?? '').includes(testo)
 
   let richiestaCorrente = 0
   let attesa: number | undefined
@@ -223,14 +234,17 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     if (!modulo || !urlSupabase || !chiave || !griglia) return
     const p = parametri()
     const numero = ++richiestaCorrente
+    const testo = testoCercato()
     if (nessunFiltro(p)) {
       // ordine originale della pagina (dopo un "ordina per prezzo" le schede vanno rimesse com'erano)
+      let visibili = 0
       righe.forEach(r => {
-        r.hidden = false
+        r.hidden = !passaTesto(r, testo)
+        if (!r.hidden) visibili++
         griglia.appendChild(r)
       })
-      if (nessuna) nessuna.hidden = true
-      if (esito) esito.textContent = ''
+      if (nessuna) nessuna.hidden = visibili > 0
+      if (esito) esito.textContent = testo ? (visibili === 1 ? '1 offerta trovata' : `${visibili} offerte trovate`) : ''
       return
     }
     if (esito) esito.textContent = 'Ricerca in corso…'
@@ -244,14 +258,15 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       const trovate: Array<{ id: string }> = await risposta.json()
       if (numero !== richiestaCorrente) return
       const ordine = new Map(trovate.map((o, i) => [o.id, i]))
-      righe.forEach(r => (r.hidden = !ordine.has(r.dataset.id ?? '')))
+      righe.forEach(r => (r.hidden = !ordine.has(r.dataset.id ?? '') || !passaTesto(r, testo)))
       // riordina le schede come il risultato della ricerca (data / prezzo / piu' recenti)
       righe
         .filter(r => !r.hidden)
         .sort((a, b) => (ordine.get(a.dataset.id ?? '') ?? 0) - (ordine.get(b.dataset.id ?? '') ?? 0))
         .forEach(r => griglia.appendChild(r))
-      if (nessuna) nessuna.hidden = trovate.length > 0
-      if (esito) esito.textContent = trovate.length === 1 ? '1 offerta trovata' : `${trovate.length} offerte trovate`
+      const visibiliOra = righe.filter(r => !r.hidden).length
+      if (nessuna) nessuna.hidden = visibiliOra > 0
+      if (esito) esito.textContent = visibiliOra === 1 ? '1 offerta trovata' : `${visibiliOra} offerte trovate`
     } catch {
       if (numero !== richiestaCorrente) return
       if (esito) esito.textContent = 'Non riesco a filtrare in questo momento: riprova tra poco.'
@@ -266,7 +281,11 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   modulo?.addEventListener('input', programma)
   modulo?.addEventListener('change', programma)
   modulo?.addEventListener('reset', () => window.setTimeout(applica, 0))
-  modulo?.addEventListener('submit', e => e.preventDefault())
+  modulo?.addEventListener('submit', e => {
+    e.preventDefault()
+    applica()
+    griglia?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
 </script>
 
 <style>
@@ -307,12 +326,64 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
   .filtri {
     display: grid;
-    gap: 0.9rem;
-    padding: 1.1rem 1.25rem;
-    margin-bottom: 2rem;
-    background: var(--superficie);
+    gap: 0.75rem;
+  }
+
+  .filtri .filtri__riga--principale {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem 0.6rem;
+  }
+
+  .filtri__ricerca {
+    grid-column: 1 / -1;
+  }
+
+  .filtri__ricercariga {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .filtri__ricercariga input {
+    flex: 1;
+  }
+
+  .filtri__cerca {
+    font: inherit;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--raggio-piccolo);
+    background: var(--accento);
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .filtri__cerca:hover {
+    background: var(--accento-scuro);
+  }
+
+  .filtri__altri summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--colore-primario-scuro);
+    margin-bottom: 0.6rem;
+  }
+
+  .filtri__altri[open] summary {
+    margin-bottom: 0.9rem;
+  }
+
+  .filtri__altri > * + * {
+    margin-top: 0.7rem;
+  }
+
+  .filtri input[type='search'] {
+    font: inherit;
+    padding: 0.55em 0.7em;
     border: 1px solid var(--bordo);
-    border-radius: var(--raggio);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    min-width: 0;
   }
 
   .filtri__riga {
