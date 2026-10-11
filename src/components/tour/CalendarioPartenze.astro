@@ -20,6 +20,8 @@ const datiCalendario = partenze.map(p => ({
   bb: p.riduzione_bambino != null ? Number(p.riduzione_bambino) : null,
 }))
 const haBambini = partenze.some(p => p.riduzione_bambino != null)
+// supplementi facoltativi che si possono aggiungere al preventivo
+const extraScelta = t.tappe.flatMap(tp => (tp.escursioni ?? []).map(x => ({ n: x.nome, e: Number(x.prezzo), p: x.a_persona, g: tp.giorno_da })))
 const primaData = partenze[0]?.data_partenza ?? null
 ---
 
@@ -54,6 +56,7 @@ const primaData = partenze[0]?.data_partenza ?? null
     data-notti={t.notti}
     data-wa={numeroWa}
     data-tour={t.nome}
+    data-extra={JSON.stringify(extraScelta)}
   >
     <fieldset class="cal__ospiti">
       <legend>Viaggiatori e camere</legend>
@@ -66,6 +69,22 @@ const primaData = partenze[0]?.data_partenza ?? null
         <label>Quadruple<input type="number" name="quadruple" min="0" max="4" value="0" inputmode="numeric" /></label>
       </div>
       <p class="cal__ospiti-esito" data-ospiti-esito role="status"></p>
+      {extraScelta.length > 0 && (
+        <details class="cal__extra">
+          <summary>Aggiungi supplementi facoltativi ({extraScelta.length})</summary>
+          <ul>
+            {extraScelta.map((x, i) => (
+              <li>
+                <label>
+                  <input type="checkbox" name="extra" value={i} />
+                  <span>Giorno {x.g} · {x.n}</span>
+                  <b>{euro(x.e)} <small>{x.p ? 'a persona' : 'a gruppo'}</small></b>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </fieldset>
     <div class="cal__testata">
       <button type="button" class="cal__nav" data-prec aria-label="Mese precedente">‹</button>
@@ -163,6 +182,8 @@ const primaData = partenze[0]?.data_partenza ?? null
     }
 
     // totale: viaggiatori x prezzo a persona + singole x supplemento - riduzioni delle triple
+    const extraLista: Array<{ n: string; e: number; p: boolean; g: number }> = JSON.parse(box.dataset.extra ?? '[]')
+    const extraScelti = () => [...box!.querySelectorAll<HTMLInputElement>('input[name="extra"]:checked')].map(i => extraLista[Number(i.value)]).filter(Boolean)
     function calcolo(x: Partenza) {
       const o = ospiti()
       const n = viaggiatori()
@@ -177,6 +198,10 @@ const primaData = partenze[0]?.data_partenza ?? null
         else if (x.tr != null) riduzione += conBambino * 3 * x.tr
         if (x.tr != null) riduzione += (triple - conBambino) * 3 * x.tr
         if (riduzione > 0) righe.push([`${triple} ${triple === 1 ? 'camera tripla' : 'camere triple'} (riduzione)`, -riduzione])
+      }
+      for (const xs of extraScelti()) {
+        const quanti = xs.p ? n : 1
+        righe.push([`${xs.n}${xs.p ? ` (${quanti} × ${euro(xs.e)})` : ' (a gruppo)'}`, xs.e * quanti])
       }
       return { righe, totale: righe.reduce((s, r) => s + r[1], 0) }
     }
@@ -227,6 +252,9 @@ const primaData = partenze[0]?.data_partenza ?? null
     }
 
     // cambiando i viaggiatori si propongono di nuovo le camere; cambiando le camere si ricalcola il totale
+    box.querySelector('.cal__ospiti')?.addEventListener('change', e => {
+      if ((e.target as HTMLInputElement).name === 'extra' && selezionata) mostra(selezionata)
+    })
     box.querySelector('.cal__ospiti')?.addEventListener('input', e => {
       const nome = (e.target as HTMLInputElement).name
       if (nome === 'adulti' || nome === 'bambini') proponiCamere()
@@ -605,5 +633,44 @@ const primaData = partenze[0]?.data_partenza ?? null
     font-size: 0.82rem;
     font-weight: 600;
     color: #b0413e;
+  }
+</style>
+
+<style is:global>
+  .cal__extra {
+    margin-top: 0.6rem;
+    border-top: 1px solid var(--bordo-tenue);
+    padding-top: 0.5rem;
+  }
+
+  .cal__extra summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--colore-primario-scuro);
+  }
+
+  .cal__extra ul {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .cal__extra label {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.5rem;
+    align-items: baseline;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--testo);
+  }
+
+  .cal__extra b small {
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--testo-tenue);
   }
 </style>

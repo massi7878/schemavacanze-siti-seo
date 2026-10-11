@@ -17,14 +17,14 @@ const extra = d.t.tappe.flatMap(tp =>
   <section class="extra-tour" id="extra">
     <h2>Supplementi facoltativi</h2>
     <p class="extra-tour__nota">
-      Servizi e visite che puoi aggiungere al viaggio. Il prezzo è indicativo (a persona o a gruppo secondo il servizio): lo confermiamo nel preventivo.
+      Servizi e visite che puoi aggiungere al viaggio. Il prezzo è indicativo e lo confermiamo nel preventivo. Puoi aggiungerli al totale dal calendario delle partenze.
     </p>
     <ul class="extra-tour__lista">
       {extra.map(e => (
         <li>
           <div class="extra-tour__testa">
             <strong>{e.nome}</strong>
-            <span class="extra-tour__prezzo">{euro(Number(e.prezzo))}</span>
+            <span class="extra-tour__prezzo">{euro(Number(e.prezzo))} <small>{e.a_persona ? 'a persona' : 'a gruppo'}</small></span>
           </div>
           <span class="extra-tour__quando">{e.quando} · {e.luogo}{e.durata ? ` · ${e.durata}` : ''}</span>
           {e.descrizione && <p>{e.descrizione}</p>}
@@ -81,6 +81,12 @@ const extra = d.t.tappe.flatMap(tp =>
     flex: 0 0 auto;
     font-weight: 800;
     color: var(--colore-primario-scuro);
+  }
+
+  .extra-tour__prezzo small {
+    font-weight: 600;
+    font-size: 0.72rem;
+    color: var(--testo-tenue);
   }
 
   .extra-tour__quando {
