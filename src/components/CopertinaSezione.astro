@@ -87,8 +87,19 @@ const conFiltri = Astro.slots.has('default')
     z-index: 1;
   }
 
+  /* percorso, titolo e sottotitolo centrati in tutte le sezioni */
   .copertina__testo {
     padding-block: 1.1rem 0.6rem;
+    text-align: center;
+  }
+
+  .copertina .copertina__testo nav,
+  .copertina .copertina__testo .briciole {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
   }
 
   .copertina__testo h1 {
@@ -102,7 +113,7 @@ const conFiltri = Astro.slots.has('default')
     color: rgba(255, 255, 255, 0.95);
     font-size: 1rem;
     max-width: 36rem;
-    margin: 0;
+    margin: 0 auto;
     text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
   }
 
