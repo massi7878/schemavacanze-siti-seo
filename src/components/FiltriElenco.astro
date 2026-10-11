@@ -49,19 +49,54 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
     const esito = modulo.querySelector<HTMLElement>('[data-esito-elenco]')
     if (!griglia) return
     const righe = [...griglia.querySelectorAll<HTMLLIElement>('li')]
-    const normalizza = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const normalizza = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
-    function applica() {
+    // selezioni che filtrano le strutture sul posto: <select data-filtra="sezione"> legge data-sezione di ogni scheda
+    const selezioni = [...modulo.querySelectorAll<HTMLSelectElement>('select[data-filtra]')]
+    const elencoOpzioni = new Map(selezioni.map(sel => [sel, [...sel.options].map(o => ({ valore: o.value, testo: o.textContent ?? '' }))]))
+    const valoriDi = (riga: HTMLElement, campo: string) => (riga.dataset[campo] ?? '').split(' ').filter(Boolean)
+
+    function passa(riga: HTMLLIElement, salta?: HTMLSelectElement) {
       const testo = normalizza(String((modulo.elements.namedItem('testo') as HTMLInputElement)?.value ?? '')).trim()
       const stelle = String((modulo.elements.namedItem('stelle') as HTMLSelectElement | null)?.value ?? '')
+      if (stelle && riga.dataset.stelle !== stelle) return false
+      if (testo && !normalizza(riga.dataset.testo ?? '').includes(testo)) return false
+      for (const sel of selezioni) {
+        if (sel === salta || !sel.value) continue
+        if (!valoriDi(riga, sel.dataset.filtra ?? '').includes(sel.value)) return false
+      }
+      return true
+    }
+
+    // a cascata: ogni selezione offre solo i valori che hanno ancora strutture con le altre scelte
+    function aggiornaOpzioni() {
+      for (const sel of selezioni) {
+        const campo = sel.dataset.filtra ?? ''
+        const ammessi = new Set(righe.filter(r => passa(r, sel)).flatMap(r => valoriDi(r, campo)))
+        const scelto = sel.value
+        sel.innerHTML = ''
+        for (const o of elencoOpzioni.get(sel) ?? []) {
+          if (o.valore !== '' && !ammessi.has(o.valore) && o.valore !== scelto) continue
+          const opzione = document.createElement('option')
+          opzione.value = o.valore
+          opzione.textContent = o.testo
+          sel.appendChild(opzione)
+        }
+        sel.value = scelto
+      }
+    }
+
+    function applica() {
       let visibili = 0
       for (const riga of righe) {
-        const ok = (!stelle || riga.dataset.stelle === stelle) && (!testo || normalizza(riga.dataset.testo ?? '').includes(testo))
+        const ok = passa(riga)
         riga.hidden = !ok
         if (ok) visibili++
       }
+      aggiornaOpzioni()
+      const filtrato = righe.some(r => r.hidden)
       if (vuoto) vuoto.hidden = visibili > 0
-      if (esito) esito.textContent = testo || stelle ? `${visibili} ${visibili === 1 ? 'struttura trovata' : 'strutture trovate'}` : ''
+      if (esito) esito.textContent = filtrato ? `${visibili} ${visibili === 1 ? 'struttura trovata' : 'strutture trovate'}` : ''
     }
 
     modulo.addEventListener('submit', e => {

@@ -111,6 +111,30 @@ export async function getStruttureSitemap() {
   return data ?? []
 }
 
+// Come getStruttureElenco, con in piu' sezione (es. estero), tipologia (es. hotel) e destinazione (la sua e quella della regione
+// che la contiene): servono ai filtri a cascata delle pagine /strutture/ e /destinazioni/, che mostrano subito le strutture.
+export async function getStruttureConFiltri() {
+  const { data } = await supabase
+    .from('strutture')
+    .select('id, slug, nome, localita, regione, stelle, formula, tipologia_id, destinazione_id')
+    .eq('attiva', true)
+    .not('slug', 'is', null)
+  const [destinazioni, tipologie] = await Promise.all([destinazioniPubbliche(), getTipologieStruttura()])
+  const perId = new Map(destinazioni.map(d => [d.id, d]))
+  const tipologiaPerId = new Map(tipologie.map(t => [t.id, t.slug]))
+  const strutture = await conCopertine(data ?? [])
+  return strutture.map(st => {
+    const d = st.destinazione_id ? perId.get(st.destinazione_id) : undefined
+    const padre = d?.parent_id ? perId.get(d.parent_id) : undefined
+    return {
+      ...st,
+      sezione: d ? slugifica(d.categoria_nome) : '',
+      tipologia: (st.tipologia_id && tipologiaPerId.get(st.tipologia_id)) || '',
+      dest: [d?.slug, padre?.slug].filter(Boolean).join(' '),
+    }
+  })
+}
+
 export async function getStruttureElenco() {
   const { data } = await supabase
     .from('strutture')

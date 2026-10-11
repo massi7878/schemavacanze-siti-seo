@@ -1,11 +1,12 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import CopertinaSezione from '../../components/CopertinaSezione.astro'
-import { getSlideshow, getDestinazioniPerCategoria, getCopertineDestinazioni } from '../../lib/queries'
+import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
+import { getSlideshow, getDestinazioniPerCategoria, getCopertineDestinazioni, getStruttureConFiltri } from '../../lib/queries'
 
 // Tutte le destinazioni, per sezione (Mare Italia, Estero...): copertina con i filtri al centro in basso.
 // Scegliendo una destinazione si passa alla sua pagina, dove i filtri stanno nella colonna a sinistra.
-const [categorie, slide, dettagli] = await Promise.all([getDestinazioniPerCategoria(), getSlideshow('destinazioni'), getCopertineDestinazioni()])
+const [categorie, slide, dettagli, strutture] = await Promise.all([getDestinazioniPerCategoria(), getSlideshow('destinazioni'), getCopertineDestinazioni(), getStruttureConFiltri()])
 const totale = categorie.reduce((n, c) => n + c.destinazioni.length, 0)
 
 const urlCanonica = new URL('/destinazioni/', Astro.site).toString()
@@ -81,6 +82,11 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
       </section>
     ))}
     <p class="vuoto" data-dest-vuoto hidden>Nessuna destinazione corrisponde ai filtri scelti.</p>
+
+    <section class="strutture-scelte" data-box-strutture hidden>
+      <h2 data-titolo-strutture>Strutture</h2>
+      <GrigliaStrutture strutture={strutture} />
+    </section>
   </main>
 </BaseLayout>
 
@@ -91,42 +97,72 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
   const esito = document.querySelector<HTMLElement>('[data-esito-dest]')
   const normalizza = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
+  const boxStrutture = document.querySelector<HTMLElement>('[data-box-strutture]')
+  const titoloStrutture = document.querySelector<HTMLElement>('[data-titolo-strutture]')
+  const righeStrutture = [...document.querySelectorAll<HTMLLIElement>('[data-box-strutture] [data-griglia-strutture] > li')]
+  const vuotoStrutture = document.querySelector<HTMLElement>('[data-box-strutture] [data-griglia-vuoto]')
+
   function applica() {
     if (!modulo) return
     const testo = normalizza(String((modulo.elements.namedItem('testo') as HTMLInputElement).value)).trim()
-    const sezione = String((modulo.elements.namedItem('sezione') as HTMLSelectElement).value)
-    const regione = String((modulo.elements.namedItem('regione') as HTMLSelectElement).value)
+    const selSezione = modulo.elements.namedItem('sezione') as HTMLSelectElement
+    const selRegione = modulo.elements.namedItem('regione') as HTMLSelectElement
+    const sezione = String(selSezione.value)
+    const regione = String(selRegione.value)
+    const sceltaFatta = Boolean(sezione || regione || testo)
+
+    // 1) con una scelta: subito sotto le strutture (della destinazione, della sezione o che contengono il testo)
+    let nStrutture = 0
+    for (const riga of righeStrutture) {
+      const ok =
+        (!sezione || riga.dataset.sezione === sezione) &&
+        (!regione || (riga.dataset.dest ?? '').split(' ').includes(regione)) &&
+        (!testo || normalizza(riga.dataset.testo ?? '').includes(testo))
+      riga.hidden = !ok
+      if (ok) nStrutture++
+    }
+    if (boxStrutture) boxStrutture.hidden = !sceltaFatta
+    if (vuotoStrutture) vuotoStrutture.hidden = nStrutture > 0
+    if (titoloStrutture) {
+      const nomeRegione = regione ? (selRegione.selectedOptions[0]?.textContent ?? '').trim() : ''
+      const nomeSezione = sezione ? (selSezione.selectedOptions[0]?.textContent ?? '').trim() : ''
+      const dove = nomeRegione || nomeSezione
+      titoloStrutture.textContent = `${nStrutture} ${nStrutture === 1 ? 'struttura' : 'strutture'}${dove ? ` · ${dove}` : ''}`
+    }
+
+    // 2) senza scelte: le schede delle destinazioni
     let totale = 0
     for (const gruppo of gruppi) {
       let visibili = 0
       gruppo.querySelectorAll<HTMLLIElement>('li').forEach(li => {
-        const ok = (!sezione || gruppo.dataset.gruppo === sezione) && (!regione || li.dataset.slug === regione) && (!testo || normalizza(li.dataset.testo ?? '').includes(testo))
+        const ok = !sceltaFatta
         li.hidden = !ok
         if (ok) visibili++
       })
       gruppo.hidden = visibili === 0
       totale += visibili
     }
-    if (vuoto) vuoto.hidden = totale > 0
-    if (esito) esito.textContent = testo || sezione || regione ? `${totale} ${totale === 1 ? 'destinazione trovata' : 'destinazioni trovate'}` : ''
+    if (vuoto) vuoto.hidden = true
+    if (esito) esito.textContent = sceltaFatta ? `${nStrutture} ${nStrutture === 1 ? 'struttura trovata' : 'strutture trovate'}` : ''
+    void totale
   }
 
   // la scelta della regione segue la sezione: restano solo le regioni di quella sezione
   type Regione = { slug: string; nome: string; sezione: string }
-  const selRegione = modulo?.elements.namedItem('regione') as HTMLSelectElement | null
-  const regioni: Regione[] = JSON.parse(selRegione?.dataset.regioni ?? '[]')
+  const selRegioneCampo = modulo?.elements.namedItem('regione') as HTMLSelectElement | null
+  const regioni: Regione[] = JSON.parse(selRegioneCampo?.dataset.regioni ?? '[]')
   function aggiornaRegioni() {
-    if (!modulo || !selRegione) return
+    if (!modulo || !selRegioneCampo) return
     const sezione = String((modulo.elements.namedItem('sezione') as HTMLSelectElement).value)
-    const scelta = selRegione.value
-    selRegione.innerHTML = '<option value="">Tutte</option>'
+    const scelta = selRegioneCampo.value
+    selRegioneCampo.innerHTML = '<option value="">Tutte</option>'
     for (const r of regioni.filter(x => !sezione || x.sezione === sezione)) {
       const o = document.createElement('option')
       o.value = r.slug
       o.textContent = r.nome
-      selRegione.appendChild(o)
+      selRegioneCampo.appendChild(o)
     }
-    selRegione.value = [...selRegione.options].some(o => o.value === scelta) ? scelta : ''
+    selRegioneCampo.value = [...selRegioneCampo.options].some(o => o.value === scelta) ? scelta : ''
   }
   modulo?.addEventListener('change', e => {
     if ((e.target as HTMLElement).getAttribute('name') === 'sezione') aggiornaRegioni()

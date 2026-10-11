@@ -9,6 +9,9 @@ interface Struttura {
   stelle: number | null
   formula: string | null
   copertina: string | null
+  sezione?: string
+  tipologia?: string
+  dest?: string
 }
 
 interface Props {
@@ -20,7 +23,7 @@ const { strutture } = Astro.props
 
 <ul class="griglia-strutture" data-griglia-strutture>
   {strutture.map(s => (
-    <li data-stelle={s.stelle ?? ''} data-testo={`${s.nome} ${s.localita ?? ''} ${s.regione ?? ''}`}>
+    <li data-sezione={s.sezione} data-tipologia={s.tipologia} data-dest={s.dest} data-stelle={s.stelle ?? ''} data-testo={`${s.nome} ${s.localita ?? ''} ${s.regione ?? ''}`}>
       <a class="scheda-struttura" href={`/struttura/${s.slug}/`}>
         <div class="scheda-struttura__immagine">
           {s.copertina

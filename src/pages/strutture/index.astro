@@ -3,12 +3,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import CopertinaSezione from '../../components/CopertinaSezione.astro'
 import FiltriElenco from '../../components/FiltriElenco.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
-import { getSlideshow, getStruttureElenco, getTipologieStruttura, getDestinazioniPerCategoria } from '../../lib/queries'
+import { getSlideshow, getStruttureConFiltri, getTipologieStruttura, getDestinazioniPerCategoria } from '../../lib/queries'
 
-// Tutte le strutture: copertina con i filtri al centro in basso. Scegliendo una tipologia o una sezione si passa
-// alla sua pagina, dove i filtri stanno nella colonna a sinistra.
+// Tutte le strutture: copertina con i filtri al centro in basso. Sezione, tipologia, stelle e testo filtrano sul posto,
+// a cascata: le strutture scelte compaiono subito sotto, senza cambiare pagina.
 const [strutture, tipologie, categorie, slide] = await Promise.all([
-  getStruttureElenco(),
+  getStruttureConFiltri(),
   getTipologieStruttura(),
   getDestinazioniPerCategoria(),
   getSlideshow('strutture'),
@@ -30,18 +30,18 @@ const descrizione = `${strutture.length} strutture selezionate da Hotellando, co
       {categorie.length > 0 && (
         <label class="filtri-elenco__campo">
           <span>Sezione</span>
-          <select data-vai>
+          <select name="sezione" data-filtra="sezione">
             <option value="">Tutte</option>
-            {categorie.map(c => <option value={`/categoria/${c.slug}/`}>{c.nome}</option>)}
+            {categorie.map(c => <option value={c.slug}>{c.nome}</option>)}
           </select>
         </label>
       )}
       {tipologie.length > 0 && (
         <label class="filtri-elenco__campo">
           <span>Tipologia</span>
-          <select data-vai>
+          <select name="tipologia" data-filtra="tipologia">
             <option value="">Tutte</option>
-            {tipologie.map(t => <option value={`/strutture/${t.slug}/`}>{t.nome}</option>)}
+            {tipologie.map(t => <option value={t.slug}>{t.nome}</option>)}
           </select>
         </label>
       )}
@@ -53,14 +53,6 @@ const descrizione = `${strutture.length} strutture selezionate da Hotellando, co
   </main>
 </BaseLayout>
 
-<script>
-  // la tipologia e la sezione portano alla loro pagina
-  document.querySelectorAll<HTMLSelectElement>('select[data-vai]').forEach(sel => {
-    sel.addEventListener('change', () => {
-      if (sel.value) window.location.href = sel.value
-    })
-  })
-</script>
 
 <style>
   .pagina-elenco-semplice {
