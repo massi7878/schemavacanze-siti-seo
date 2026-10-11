@@ -1,5 +1,6 @@
 ---
-import { dataBreve, euro } from '../lib/offerte'
+import { euro } from '../lib/offerte'
+import { intervalloDate } from '../lib/dateTour'
 import { etichettaGuida, etichettaTipo, urlTour, type TourElenco } from '../lib/tour'
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 
 const { tour } = Astro.props
 const guida = etichettaGuida(tour.guida_italiano)
+const quando = intervalloDate(tour.prossima, tour.notti)
 ---
 
 <a class="card-tour" href={urlTour(tour.slug)}>
@@ -17,19 +19,25 @@ const guida = etichettaGuida(tour.guida_italiano)
       : <span class="card-tour__segnaposto" aria-hidden="true">{tour.nome.charAt(0)}</span>}
     <span class="card-tour__tipo">{tour.notti} {tour.notti === 1 ? 'notte' : 'notti'}</span>
     {guida && <span class="card-tour__guida">{guida}</span>}
+    <div class="card-tour__sopra">
+      <span class="card-tour__luogo">{tour.paese ? `${tour.paese} · ` : ''}{etichettaTipo(tour.tipo_viaggio)}</span>
+      <span class="card-tour__titolo">{tour.nome}</span>
+    </div>
   </div>
   <div class="card-tour__corpo">
-    <span class="card-tour__luogo">{tour.paese ? `${tour.paese} · ` : ''}{etichettaTipo(tour.tipo_viaggio)}</span>
-    <span class="card-tour__titolo">{tour.nome}</span>
-    {tour.sottotitolo && <span class="card-tour__sottotitolo">{tour.sottotitolo}</span>}
-    <div class="card-tour__dettagli">
-      {tour.prossima && <span>Dal {dataBreve(tour.prossima)}{tour.n_partenze > 1 ? ` · ${tour.n_partenze} date` : ''}</span>}
+    <div class="card-tour__riga">
+      <div class="card-tour__sinistra">
+        {tour.sottotitolo && <span class="card-tour__sottotitolo">{tour.sottotitolo}</span>}
+        {tour.prezzo_min != null && (
+          <span class="card-tour__prezzo">
+            da <strong>{euro(Number(tour.prezzo_min))}</strong> <small>a persona</small>
+          </span>
+        )}
+      </div>
+      {quando && (
+        <span class="card-tour__quando">{quando}{tour.n_partenze > 1 && <small>{tour.n_partenze} date</small>}</span>
+      )}
     </div>
-    {tour.prezzo_min != null && (
-      <p class="card-tour__prezzo">
-        da <strong>{euro(Number(tour.prezzo_min))}</strong> <span>a persona</span>
-      </p>
-    )}
   </div>
 </a>
 
@@ -100,53 +108,108 @@ const guida = etichettaGuida(tour.guida_italiano)
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
-  .card-tour__corpo {
+  /* titolo e nazione in bianco sopra la foto, su una sfumatura scura in basso */
+  .card-tour__immagine::after {
+    content: '';
+    position: absolute;
+    inset: 40% 0 0;
+    background: linear-gradient(to top, rgba(10, 18, 28, 0.82), rgba(10, 18, 28, 0));
+    pointer-events: none;
+  }
+
+  .card-tour__sopra {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    padding: 1.1rem 1.25rem 1.35rem;
-    flex: 1;
+    gap: 0.2rem;
+    padding: 0 1.1rem 0.9rem;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+
+  .card-tour__tipo,
+  .card-tour__guida {
+    z-index: 1;
   }
 
   .card-tour__luogo {
     font-size: 0.82rem;
-    color: var(--testo-tenue);
+    font-weight: 600;
+    color: #fff;
+    opacity: 0.95;
   }
 
   .card-tour__titolo {
     font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 500;
-    line-height: 1.25;
-    color: var(--inchiostro);
+    line-height: 1.2;
+    color: #fff;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
+  .card-tour__corpo {
+    padding: 0.85rem 1.1rem 1rem;
+    flex: 1;
+  }
+
+  /* sotto la foto: "Delhi to Delhi" e il prezzo sulla stessa riga, le date a destra */
+  .card-tour__riga {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 0.9rem;
+  }
+
+  .card-tour__sinistra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.75rem;
+    min-width: 0;
+  }
+
   .card-tour__sottotitolo {
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     color: var(--testo-tenue);
   }
 
-  .card-tour__dettagli {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem 0.75rem;
-    font-size: 0.85rem;
-    color: var(--testo);
-  }
-
   .card-tour__prezzo {
-    margin: auto 0 0;
-    padding-top: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     color: var(--testo);
+    white-space: nowrap;
   }
 
   .card-tour__prezzo strong {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     color: var(--colore-primario-scuro);
+  }
+
+  .card-tour__prezzo small {
+    font-size: 0.8rem;
+  }
+
+  .card-tour__quando {
+    margin-left: auto;
+    text-align: right;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--testo);
+    white-space: nowrap;
+  }
+
+  .card-tour__quando small {
+    display: block;
+    font-weight: 400;
+    font-size: 0.72rem;
+    color: var(--testo-tenue);
   }
 </style>

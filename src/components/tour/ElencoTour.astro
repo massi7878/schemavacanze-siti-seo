@@ -145,6 +145,8 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
 
 <script>
+  import { intervalloDate } from '../../lib/dateTour'
+
   // I filtri usano la stessa funzione del database (tour_ricerca_pubblica) che alimenta l'elenco.
   // La barra della durata NON viene mandata al database: i risultati degli altri filtri si tengono qui
   // e la barra si restringe (a cascata) al minimo e massimo di notti dei tour rimasti; la durata scelta
@@ -211,19 +213,26 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
   function scheda(t: Tour) {
     const guida = t.guida_italiano === 'si' ? 'Guida in italiano' : t.guida_italiano === 'su_richiesta' ? 'Italiano su richiesta' : ''
-    const quando = t.prossima ? `Dal ${dataBreve(t.prossima)}${t.n_partenze > 1 ? ` · ${t.n_partenze} date` : ''}` : ''
+    const quando = intervalloDate(t.prossima, t.notti)
     return `<li><a class="card-tour" href="/tour/${esc(t.slug)}/">
       <div class="card-tour__immagine">${
         t.immagine_url
           ? `<img src="${esc(t.immagine_url)}" alt="${esc(t.nome)}" loading="lazy" />`
           : `<span class="card-tour__segnaposto" aria-hidden="true">${esc(t.nome.charAt(0))}</span>`
-      }<span class="card-tour__tipo">${t.notti} ${t.notti === 1 ? 'notte' : 'notti'}</span>${guida ? `<span class="card-tour__guida">${guida}</span>` : ''}</div>
+      }<span class="card-tour__tipo">${t.notti} ${t.notti === 1 ? 'notte' : 'notti'}</span>${guida ? `<span class="card-tour__guida">${guida}</span>` : ''}
+        <div class="card-tour__sopra">
+          <span class="card-tour__luogo">${t.paese ? `${esc(t.paese)} · ` : ''}${t.tipo_viaggio === 'self' ? 'Self made' : 'Guidato'}</span>
+          <span class="card-tour__titolo">${esc(t.nome)}</span>
+        </div>
+      </div>
       <div class="card-tour__corpo">
-        <span class="card-tour__luogo">${t.paese ? `${esc(t.paese)} · ` : ''}${t.tipo_viaggio === 'self' ? 'Self made' : 'Guidato'}</span>
-        <span class="card-tour__titolo">${esc(t.nome)}</span>
-        ${t.sottotitolo ? `<span class="card-tour__sottotitolo">${esc(t.sottotitolo)}</span>` : ''}
-        <div class="card-tour__dettagli">${quando ? `<span>${esc(quando)}</span>` : ''}</div>
-        ${t.prezzo_min != null ? `<p class="card-tour__prezzo">da <strong>${euro(Number(t.prezzo_min))}</strong> <span>a persona</span></p>` : ''}
+        <div class="card-tour__riga">
+          <div class="card-tour__sinistra">
+            ${t.sottotitolo ? `<span class="card-tour__sottotitolo">${esc(t.sottotitolo)}</span>` : ''}
+            ${t.prezzo_min != null ? `<span class="card-tour__prezzo">da <strong>${euro(Number(t.prezzo_min))}</strong> <small>a persona</small></span>` : ''}
+          </div>
+          ${quando ? `<span class="card-tour__quando">${esc(quando)}${t.n_partenze > 1 ? `<small>${t.n_partenze} date</small>` : ''}</span>` : ''}
+        </div>
       </div></a></li>`
   }
 
