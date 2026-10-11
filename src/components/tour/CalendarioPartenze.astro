@@ -1,5 +1,6 @@
 ---
 import { euro } from '../../lib/offerte'
+import ModuloRichiestaOfferta from '../ModuloRichiestaOfferta.astro'
 import type { DatiPaginaTour } from '../../lib/tourPagina'
 
 interface Props {
@@ -96,6 +97,8 @@ const primaData = partenze[0]?.data_partenza ?? null
   </div>
 </section>
 
+<ModuloRichiestaOfferta tourId={t.id} titolo={t.nome} numeroWa={numeroWa || null} urlPagina={d.urlCanonica} />
+
 <script>
   const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
   const GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
@@ -118,6 +121,7 @@ const primaData = partenze[0]?.data_partenza ?? null
     const primo = partenze[0]?.p ?? iniziale
     const ultimo = partenze[partenze.length - 1]?.p ?? iniziale
     let selezionata: string | null = null
+    let ultimaRichiesta: { dal: string; al: string; adulti: number; bambini: number; riepilogo: string } | null = null
 
     function disegna() {
       titoloMese.textContent = `${MESI[mese - 1]} ${anno}`
@@ -231,9 +235,15 @@ const primaData = partenze[0]?.data_partenza ?? null
       const nottiN = Math.round((Date.parse(x.r) - Date.parse(x.p)) / 86400000)
       const valide = verificaCamere()
       const c = calcolo(x)
-      const numero = box!.dataset.wa
-      const testo = `Buongiorno, vorrei un preventivo per il tour "${box!.dataset.tour}" in partenza il ${lunga(iso)}: ${descriviOspiti()}. Totale indicativo ${euro(c.totale)}.`
-      const link = numero ? `https://wa.me/39${numero}?text=${encodeURIComponent(testo)}` : null
+      // dati per il modulo di richiesta: date, persone e totale indicativo
+      const o = ospiti()
+      ultimaRichiesta = {
+        dal: x.p,
+        al: x.r,
+        adulti: Math.max(o.adulti, 1),
+        bambini: o.bambini,
+        riepilogo: `Partenza: ${lunga(x.p)}\nRientro: ${lunga(x.r)} (${nottiN} ${nottiN === 1 ? 'notte' : 'notti'})\nCamere: ${descriviOspiti()}\nTotale indicativo: ${euro(c.totale)}`,
+      }
       const stato = x.s === 'ultimi_posti' ? '<span class="cal__badge">Ultimi posti</span>' : ''
       const dettaglio = c.righe.map(r => `<li><span>${r[0]}</span><b>${r[1] < 0 ? '−' + euro(-r[1]) : euro(r[1])}</b></li>`).join('')
       scelta.innerHTML = `<div class="cal__riepilogo">
@@ -246,10 +256,16 @@ const primaData = partenze[0]?.data_partenza ?? null
           <p class="cal__totale">Totale <strong>${euro(c.totale)}</strong></p>
           ${valide ? '' : '<p class="cal__avviso">Completa le camere per avere il totale corretto.</p>'}
         </div>
-        ${link ? `<a class="cal__richiedi" href="${link}" target="_blank" rel="noopener">Richiedi questo preventivo</a>` : ''}
+        <button type="button" class="cal__richiedi" data-richiedi-tour>Richiedi questo preventivo</button>
       </div>`
       disegna()
     }
+
+    scelta.addEventListener('click', e => {
+      if ((e.target as HTMLElement).closest('[data-richiedi-tour]') && ultimaRichiesta) {
+        document.dispatchEvent(new CustomEvent('apri-richiesta-tour', { detail: ultimaRichiesta }))
+      }
+    })
 
     // cambiando i viaggiatori si propongono di nuovo le camere; cambiando le camere si ricalcola il totale
     box.querySelector('.cal__ospiti')?.addEventListener('change', e => {

@@ -129,7 +129,7 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
         <p class="riquadro__nota">Il prezzo cambia con la data di partenza. Scrivici: ti confermiamo disponibilità e quota esatta, senza impegno.</p>
         <div class="riquadro__azioni">
           {partenze.length > 0 && <a class="pulsante" href="#partenze">Scegli la data</a>}
-          {d.linkWa() && <a class="pulsante pulsante--secondario" href={d.linkWa()!} target="_blank" rel="noopener">Scrivici su WhatsApp</a>}
+          {d.numeroWa && <button type="button" class="pulsante pulsante--secondario" data-apri-richiesta-tour>Scrivici su WhatsApp</button>}
           {linkTel && <a class="pulsante pulsante--secondario" href={linkTel}>Chiama {telefono}</a>}
         </div>
       </div>

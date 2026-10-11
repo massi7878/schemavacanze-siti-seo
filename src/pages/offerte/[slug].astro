@@ -28,6 +28,8 @@ Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-re
 const azienda = await getAzienda()
 const canali = o.canali_richiesta ?? []
 const numeroWa = soloNumeri(azienda?.numero_whatsapp)
+// la richiesta passa dal modulo (nome, e-mail, persone...): si invia su WhatsApp o per e-mail
+const richiedibile = canali.includes('email') || (canali.includes('whatsapp') && Boolean(numeroWa))
 const telefono = azienda?.telefono || azienda?.cellulare
 const tour = o.tour
 
@@ -231,7 +233,7 @@ function giorniTappa(da: number, a: number | null) {
                         ))}
                       </div>
                     )}
-                    {canali.includes('email') && p.stato !== 'esaurita' && (
+                    {richiedibile && p.stato !== 'esaurita' && (
                       <button type="button" class="partenze__richiedi" data-apri-richiesta data-partenza={p.id}>Richiedi questa data</button>
                     )}
                   </li>
@@ -331,11 +333,8 @@ function giorniTappa(da: number, a: number | null) {
           {o.durata_notti != null && <p class="scheda-richiesta__dettaglio">{o.durata_notti} notti{o.trasporto_incluso ? ' · trasporto incluso' : ''}</p>}
 
           <div class="scheda-richiesta__azioni">
-            {canali.includes('email') && (
+            {richiedibile && (
               <button type="button" class="pulsante" data-apri-richiesta>Richiedi disponibilità</button>
-            )}
-            {canali.includes('whatsapp') && linkWa && (
-              <a class="pulsante pulsante--wa" href={linkWa} target="_blank" rel="noopener">Scrivici su WhatsApp</a>
             )}
             {canali.includes('telefono') && telefono && (
               <a class="pulsante pulsante--chiaro" href={`tel:${telefono.replace(/\s+/g, '')}`}>Chiama {telefono}</a>
@@ -356,9 +355,13 @@ function giorniTappa(da: number, a: number | null) {
     </div>
   </main>
 
-  {canali.includes('email') && (
+  {richiedibile && (
     <ModuloRichiestaOfferta
       offertaId={o.id}
+      numeroWa={numeroWa}
+      urlPagina={urlCanonica}
+      canaleEmail={canali.includes('email')}
+      canaleWhatsapp={canali.includes('whatsapp')}
       codice={o.codice}
       titolo={o.titolo}
       partenze={partenze}

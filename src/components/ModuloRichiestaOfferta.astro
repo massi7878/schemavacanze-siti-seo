@@ -2,10 +2,16 @@
 import { NOME_TIPO_PUNTO, descriviPartenza, euro } from '../lib/offerte'
 
 interface Props {
-  offertaId: string
-  codice: number
+  // offerta (con le sue partenze) oppure tour (la partenza arriva dal calendario della pagina)
+  offertaId?: string
+  tourId?: string
+  codice?: number
   titolo: string
-  partenze: Array<{
+  numeroWa?: string | null
+  urlPagina: string
+  canaleEmail?: boolean
+  canaleWhatsapp?: boolean
+  partenze?: Array<{
     id: string
     data_partenza: string
     data_rientro: string
@@ -14,11 +20,12 @@ interface Props {
     prezzi?: Array<{ prezzo_da: number; punto: { id: string; tipo: string; nome: string } | null }>
   }>
   punti?: Array<{ id: string; tipo: string; nome: string }>
-  validaDal: string | null
-  validaAl: string | null
+  validaDal?: string | null
+  validaAl?: string | null
 }
 
-const { offertaId, codice, titolo, partenze, punti = [], validaDal, validaAl } = Astro.props
+const { offertaId, tourId, codice, titolo, numeroWa = null, urlPagina, canaleEmail = true, canaleWhatsapp = true, partenze = [], punti = [], validaDal = null, validaAl = null } = Astro.props
+const eTour = Boolean(tourId)
 
 function nomePunto(p: { tipo: string; nome: string }) {
   return `${NOME_TIPO_PUNTO[p.tipo] ?? ''} ${p.nome}`.trim()
@@ -51,18 +58,19 @@ const urlSupabase = import.meta.env.PUBLIC_SUPABASE_URL
 const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
 
-<dialog id="dialog-richiesta" class="richiesta" data-offerta={offertaId} data-url={urlSupabase} data-chiave={chiaveAnon} data-punti-offerta={JSON.stringify(puntiOfferta)}>
+<dialog id="dialog-richiesta" class="richiesta" data-offerta={offertaId} data-tour={tourId} data-titolo={titolo} data-codice={codice} data-wa={numeroWa} data-pagina={urlPagina} data-url={urlSupabase} data-chiave={chiaveAnon} data-punti-offerta={JSON.stringify(puntiOfferta)}>
   <form method="dialog" class="richiesta__modulo" id="modulo-richiesta" novalidate>
     <header class="richiesta__testata">
       <div>
         <h2>Richiedi disponibilità</h2>
-        <p class="richiesta__rif">{titolo} · Rif. OFF-{codice}</p>
+        <p class="richiesta__rif">{eTour ? titolo : `${titolo} · Rif. OFF-${codice}`}</p>
       </div>
       <button type="button" class="richiesta__chiudi" data-chiudi aria-label="Chiudi">×</button>
     </header>
 
     <div class="richiesta__corpo" id="richiesta-campi">
-      {prenotabili.length > 0 ? (
+      {eTour && <div class="richiesta__riepilogo" id="richiesta-riepilogo" hidden></div>}
+      {!eTour && (prenotabili.length > 0 ? (
         <label class="campo">
           Partenza
           <select name="partenza" required>
@@ -86,7 +94,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
             <input type="date" name="al" min={validaDal ?? undefined} max={validaAl ?? undefined} />
           </label>
         </div>
-      )}
+      ))}
 
       <label class="campo" id="campo-punto" hidden>
         Partenza da
@@ -121,12 +129,12 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
           <input type="email" name="email" required autocomplete="email" />
         </label>
         <label class="campo">
-          Telefono
-          <input type="tel" name="telefono" required autocomplete="tel" inputmode="tel" pattern="[0-9+()s.-]{8,}" title="Almeno 8 cifre, ad esempio 333 1234567" />
+          <span>Telefono <small>(serve solo per l'invio via e-mail)</small></span>
+          <input type="tel" name="telefono" autocomplete="tel" inputmode="tel" pattern="[0-9+()\s.\-]{8,}" title="Almeno 8 cifre, ad esempio 333 1234567" />
         </label>
       </div>
       <label class="campo">
-        Note (facoltative)
+        Scrivi qui la tua richiesta o altre esigenze (facoltativo)
         <textarea name="note" rows="3" maxlength="1500" placeholder="Esigenze particolari, altra data, aeroporto di partenza preferito…"></textarea>
       </label>
 
@@ -146,7 +154,21 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
       <p class="richiesta__errore" id="richiesta-errore" role="alert" hidden></p>
       <p class="richiesta__nota">Nessun pagamento online: ti rispondiamo con la disponibilità e il prezzo definitivo.</p>
-      <button type="submit" class="pulsante richiesta__invia" id="richiesta-invia">Invia la richiesta</button>
+      <p class="richiesta__scelta">Come vuoi inviarla?</p>
+      <div class="richiesta__invii">
+        {canaleWhatsapp && numeroWa && (
+          <button type="button" class="pulsante richiesta__whatsapp" id="richiesta-whatsapp">Invia su WhatsApp</button>
+        )}
+        {canaleEmail && (
+          <button type="submit" class="pulsante richiesta__invia" id="richiesta-invia">Invia via e-mail</button>
+        )}
+      </div>
+    </div>
+
+    <div class="richiesta__esito" id="richiesta-esito-wa" hidden>
+      <h3>Ultimo passo su WhatsApp</h3>
+      <p>Si è aperta la chat con il messaggio già scritto e il link a «{titolo}»: premi <strong>Invia</strong> su WhatsApp per completare la richiesta.</p>
+      <button type="button" class="pulsante" data-chiudi>Chiudi</button>
     </div>
 
     <div class="richiesta__esito" id="richiesta-esito" hidden>
@@ -165,6 +187,12 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   const errore = document.querySelector<HTMLElement>('#richiesta-errore')
   const invia = document.querySelector<HTMLButtonElement>('#richiesta-invia')
   const etaBox = document.querySelector<HTMLElement>('#eta-bambini')
+  const esitoWa = document.querySelector<HTMLElement>('#richiesta-esito-wa')
+  const bottoneWa = document.querySelector<HTMLButtonElement>('#richiesta-whatsapp')
+  const riepilogoBox = document.querySelector<HTMLElement>('#richiesta-riepilogo')
+  const eTour = Boolean(dialog?.dataset.tour)
+  // dati della partenza scelta nel calendario del tour (testo del riepilogo, date, persone)
+  let infoTour: { dal?: string; al?: string; adulti?: number; bambini?: number; riepilogo?: string } = {}
 
   // Provenienza del visitatore (UTM): si ricorda per la sessione, cosi' resta anche dopo aver cambiato pagina
   const utm: Record<string, string> = {}
@@ -221,13 +249,28 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     campoPunto.hidden = false
   }
 
-  function apri(partenzaId?: string) {
+  function apri(partenzaId?: string, tour?: typeof infoTour) {
     if (!dialog || !modulo) return
     if (esito) esito.hidden = true
+    if (esitoWa) esitoWa.hidden = true
     if (campi) campi.hidden = false
     if (errore) errore.hidden = true
     const sel = modulo.elements.namedItem('partenza') as HTMLSelectElement | null
     if (sel && partenzaId) sel.value = partenzaId
+    if (eTour) {
+      infoTour = tour ?? {}
+      if (riepilogoBox) {
+        riepilogoBox.textContent = infoTour.riepilogo ?? ''
+        riepilogoBox.hidden = !infoTour.riepilogo
+      }
+      const ad = modulo.elements.namedItem('adulti') as HTMLInputElement | null
+      const bb = modulo.elements.namedItem('bambini') as HTMLInputElement | null
+      if (ad && infoTour.adulti) ad.value = String(infoTour.adulti)
+      if (bb && infoTour.bambini != null) {
+        bb.value = String(infoTour.bambini)
+        bb.dispatchEvent(new Event('input'))
+      }
+    }
     aggiornaPunti()
     dialog.showModal()
   }
@@ -235,6 +278,9 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   document.querySelectorAll<HTMLElement>('[data-apri-richiesta]').forEach(el =>
     el.addEventListener('click', () => apri(el.dataset.partenza))
   )
+  // tour: il calendario manda i dati della partenza scelta; i tasti "WhatsApp" della pagina aprono lo stesso modulo senza data
+  document.addEventListener('apri-richiesta-tour', e => apri(undefined, (e as CustomEvent).detail))
+  document.querySelectorAll<HTMLElement>('[data-apri-richiesta-tour]').forEach(el => el.addEventListener('click', () => apri(undefined, {})))
   document.querySelectorAll<HTMLElement>('[data-chiudi]').forEach(el => el.addEventListener('click', () => dialog?.close()))
   dialog?.addEventListener('click', e => {
     if (e.target === dialog) dialog.close()
@@ -269,70 +315,135 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     errore.hidden = false
   }
 
-  modulo?.addEventListener('submit', async e => {
-    e.preventDefault()
-    if (!modulo || !dialog || !invia) return
+  // dati comuni a WhatsApp ed e-mail
+  function leggiDati() {
+    if (!modulo || !dialog) return null
+    const dati = new FormData(modulo)
+    const sel = modulo.elements.namedItem('partenza') as HTMLSelectElement | null
+    const opzione = sel?.selectedOptions[0]
+    const partenzaId = sel && sel.value && sel.value !== 'altra' ? sel.value : null
+    const dal = (dati.get('dal') as string) || opzione?.dataset.dal || infoTour.dal || null
+    const al = (dati.get('al') as string) || opzione?.dataset.al || infoTour.al || null
+    const eta = Array.from(etaBox?.querySelectorAll('input') ?? []).map(i => Number(i.value) || 0)
+    return { dati, partenzaId, dal, al, eta, partenzaTesto: opzione && partenzaId ? opzione.textContent?.trim() ?? '' : '' }
+  }
+
+  const dataIt = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : '')
+
+  // la richiesta viene registrata nel gestionale (cliente + richiesta) con il canale scelto
+  function creaRichiesta(d: NonNullable<ReturnType<typeof leggiDati>>, canale: 'email' | 'whatsapp', riepilogo: string) {
+    const url = dialog!.dataset.url
+    const chiave = dialog!.dataset.chiave
+    const intestazioni = { apikey: chiave ?? '', Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' }
+    const comuni = {
+      p_nome: d.dati.get('nome'),
+      p_cognome: d.dati.get('cognome'),
+      p_email: d.dati.get('email'),
+      p_telefono: canale === 'email' ? d.dati.get('telefono') : null,
+      p_data_dal: d.dal || null,
+      p_data_al: d.al || null,
+      p_adulti: Number(d.dati.get('adulti')) || 1,
+      p_bambini: Number(d.dati.get('bambini')) || 0,
+      p_eta_bambini: d.eta,
+      p_note: (d.dati.get('note') as string) || null,
+      p_canale: canale,
+      p_utm_source: utm.utm_source ?? null,
+      p_utm_medium: utm.utm_medium ?? null,
+      p_utm_campaign: utm.utm_campaign ?? null,
+      p_consenso_marketing: d.dati.get('marketing') === 'on',
+    }
+    const corpo = eTour
+      ? { p_tour_id: dialog!.dataset.tour, p_riepilogo: riepilogo, p_link: dialog!.dataset.pagina, ...comuni }
+      : { p_offerta_id: dialog!.dataset.offerta, p_partenza_id: d.partenzaId, p_punto_id: (d.dati.get('punto') as string) || null, ...comuni }
+    return { url, intestazioni, corpo, funzione: eTour ? 'crea_richiesta_tour' : 'crea_richiesta_offerta' }
+  }
+
+  function personeTesto(d: NonNullable<ReturnType<typeof leggiDati>>) {
+    const ad = Number(d.dati.get('adulti')) || 1
+    const bb = Number(d.dati.get('bambini')) || 0
+    return `${ad} ${ad === 1 ? 'adulto' : 'adulti'}${bb > 0 ? `, ${bb} ${bb === 1 ? 'bambino' : 'bambini'} (età: ${d.eta.join(', ')})` : ''}`
+  }
+
+  // messaggio WhatsApp: richiesta, dettagli, dati del cliente e link alla pagina dell'offerta o del tour
+  function testoWhatsApp(d: NonNullable<ReturnType<typeof leggiDati>>) {
+    const titolo = dialog!.dataset.titolo ?? ''
+    const righe: string[] = [
+      eTour ? `Buongiorno, vorrei un preventivo per il tour "${titolo}".` : `Buongiorno, vorrei informazioni sull'offerta "${titolo}" (Rif. OFF-${dialog!.dataset.codice}).`,
+      '',
+    ]
+    if (eTour && infoTour.riepilogo) righe.push(infoTour.riepilogo)
+    else if (d.partenzaTesto) righe.push(`Partenza: ${d.partenzaTesto}`)
+    else if (d.dal || d.al) righe.push(`Periodo: ${[dataIt(d.dal), dataIt(d.al)].filter(Boolean).join(' - ')}`)
+    righe.push(`Persone: ${personeTesto(d)}`)
+    const note = (d.dati.get('note') as string) || ''
+    if (note.trim()) righe.push(`Richiesta: ${note.trim()}`)
+    righe.push('', `Nome: ${d.dati.get('nome')} ${d.dati.get('cognome')}`, `E-mail: ${d.dati.get('email')}`, '', `Pagina: ${dialog!.dataset.pagina}`)
+    return righe.join('\n')
+  }
+
+  bottoneWa?.addEventListener('click', () => {
+    if (!modulo || !dialog) return
     errore && (errore.hidden = true)
+    // su WhatsApp il telefono non serve
+    const tel = modulo.elements.namedItem('telefono') as HTMLInputElement | null
+    if (tel) tel.required = false
     if (!modulo.checkValidity()) {
       modulo.reportValidity()
       return
     }
-    const dati = new FormData(modulo)
+    const d = leggiDati()
+    if (!d) return
+    if (d.dati.get('sito')) {
+      if (campi) campi.hidden = true
+      if (esitoWa) esitoWa.hidden = false
+      return
+    }
+    const numero = dialog.dataset.wa
+    if (!numero) return
+    const link = `https://wa.me/39${numero}?text=${encodeURIComponent(testoWhatsApp(d))}`
+    // si registra la richiesta senza aspettarla: la chat si apre subito
+    const r = creaRichiesta(d, 'whatsapp', infoTour.riepilogo ?? '')
+    fetch(`${r.url}/rest/v1/rpc/${r.funzione}`, { method: 'POST', headers: r.intestazioni, body: JSON.stringify(r.corpo), keepalive: true }).catch(() => {})
+    window.open(link, '_blank', 'noopener')
+    if (campi) campi.hidden = true
+    if (esitoWa) esitoWa.hidden = false
+  })
+
+  modulo?.addEventListener('submit', async e => {
+    e.preventDefault()
+    if (!modulo || !dialog || !invia) return
+    errore && (errore.hidden = true)
+    // via e-mail il telefono e' obbligatorio
+    const tel = modulo.elements.namedItem('telefono') as HTMLInputElement | null
+    if (tel) tel.required = true
+    if (!modulo.checkValidity()) {
+      modulo.reportValidity()
+      return
+    }
+    const d = leggiDati()
+    if (!d) return
     // bot: finge di aver inviato senza fare nulla
-    if (dati.get('sito')) {
+    if (d.dati.get('sito')) {
       if (campi) campi.hidden = true
       if (esito) esito.hidden = false
       return
     }
 
-    const sel = modulo.elements.namedItem('partenza') as HTMLSelectElement | null
-    const opzione = sel?.selectedOptions[0]
-    const partenzaId = sel && sel.value && sel.value !== 'altra' ? sel.value : null
-    const dal = (dati.get('dal') as string) || opzione?.dataset.dal || null
-    const al = (dati.get('al') as string) || opzione?.dataset.al || null
-    const eta = Array.from(etaBox?.querySelectorAll('input') ?? []).map(i => Number(i.value) || 0)
-
-    const url = dialog.dataset.url
-    const chiave = dialog.dataset.chiave
-    const intestazioni = { apikey: chiave ?? '', Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' }
-
+    const r = creaRichiesta(d, 'email', infoTour.riepilogo ?? '')
     invia.disabled = true
     invia.textContent = 'Invio in corso…'
     try {
-      const r = await fetch(`${url}/rest/v1/rpc/crea_richiesta_offerta`, {
-        method: 'POST',
-        headers: intestazioni,
-        body: JSON.stringify({
-          p_offerta_id: dialog.dataset.offerta,
-          p_partenza_id: partenzaId,
-          p_nome: dati.get('nome'),
-          p_cognome: dati.get('cognome'),
-          p_email: dati.get('email'),
-          p_telefono: dati.get('telefono'),
-          p_data_dal: dal || null,
-          p_data_al: al || null,
-          p_adulti: Number(dati.get('adulti')) || 1,
-          p_bambini: Number(dati.get('bambini')) || 0,
-          p_eta_bambini: eta,
-          p_note: (dati.get('note') as string) || null,
-          p_canale: 'email',
-          p_utm_source: utm.utm_source ?? null,
-          p_utm_medium: utm.utm_medium ?? null,
-          p_utm_campaign: utm.utm_campaign ?? null,
-          p_consenso_marketing: dati.get('marketing') === 'on',
-          p_punto_id: (dati.get('punto') as string) || null,
-        }),
-      })
-      if (!r.ok) {
-        const corpo = await r.json().catch(() => null)
-        throw new Error(corpo?.message ?? `Errore ${r.status}`)
+      const risposta = await fetch(`${r.url}/rest/v1/rpc/${r.funzione}`, { method: 'POST', headers: r.intestazioni, body: JSON.stringify(r.corpo) })
+      if (!risposta.ok) {
+        const corpo = await risposta.json().catch(() => null)
+        throw new Error(corpo?.message ?? `Errore ${risposta.status}`)
       }
-      const leadId = await r.json()
+      const leadId = await risposta.json()
       // la richiesta e' gia' salvata: se l'invio delle e-mail dovesse fallire non lo mostriamo
       // al cliente (lo staff la vede comunque nel gestionale)
-      fetch(`${url}/functions/v1/invia-richiesta-offerta`, {
+      fetch(`${r.url}/functions/v1/invia-richiesta-offerta`, {
         method: 'POST',
-        headers: intestazioni,
+        headers: r.intestazioni,
         body: JSON.stringify({ leadId }),
       }).catch(() => {})
       modulo.reset()
@@ -352,7 +463,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       )
     } finally {
       invia.disabled = false
-      invia.textContent = 'Invia la richiesta'
+      invia.textContent = 'Invia via e-mail'
     }
   })
 </script>
@@ -482,8 +593,44 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     color: var(--testo-tenue);
   }
 
-  .richiesta__invia {
-    width: 100%;
+  .richiesta__riepilogo {
+    white-space: pre-line;
+    background: var(--superficie-tenue);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .richiesta__scelta {
+    margin: 0.2rem 0 0;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .richiesta__invii {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .richiesta__whatsapp {
+    background: #1faa59;
+  }
+
+  .richiesta__whatsapp:hover {
+    background: #178a47;
+  }
+
+  .campo small {
+    font-weight: 400;
+    color: var(--testo-tenue);
+  }
+
+  .richiesta__invia,
+  .richiesta__whatsapp {
+    flex: 1 1 12rem;
   }
 
   .richiesta__esito {
