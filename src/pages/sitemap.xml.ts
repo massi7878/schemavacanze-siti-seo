@@ -25,6 +25,7 @@ export const GET: APIRoute = async ({ site }) => {
     ...(offerte.length > 0 ? [{ loc: `${base}/offerte/`, lastmod: null }] : []),
     ...offerte.map(o => ({ loc: `${base}/offerte/${o.slug}/`, lastmod: null })),
     ...(tour.length > 0 ? [{ loc: `${base}/tour/`, lastmod: null }] : []),
+    ...(tour.some(t => t.guida_italiano && t.guida_italiano !== 'no') ? [{ loc: `${base}/tour/guida-in-italiano/`, lastmod: null }] : []),
     ...tour.map(t => ({ loc: `${base}/tour/${t.slug}/`, lastmod: null })),
     ...categorie.map(c => ({ loc: `${base}/categoria/${c.slug}/`, lastmod: null })),
     ...categorie.flatMap(c => c.destinazioni.map(d => ({ loc: `${base}/destinazioni/${d.slug}/`, lastmod: null }))),

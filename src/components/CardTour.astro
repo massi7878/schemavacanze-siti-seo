@@ -1,12 +1,13 @@
 ---
 import { dataBreve, euro } from '../lib/offerte'
-import { urlTour, type TourElenco } from '../lib/tour'
+import { etichettaGuida, urlTour, type TourElenco } from '../lib/tour'
 
 interface Props {
   tour: TourElenco
 }
 
 const { tour } = Astro.props
+const guida = etichettaGuida(tour.guida_italiano)
 ---
 
 <a class="card-tour" href={urlTour(tour.slug)}>
@@ -15,6 +16,7 @@ const { tour } = Astro.props
       ? <img src={tour.immagine_url} alt={tour.nome} loading="lazy" />
       : <span class="card-tour__segnaposto" aria-hidden="true">{tour.nome.charAt(0)}</span>}
     <span class="card-tour__tipo">{tour.notti} {tour.notti === 1 ? 'notte' : 'notti'}</span>
+    {guida && <span class="card-tour__guida">{guida}</span>}
   </div>
   <div class="card-tour__corpo">
     {tour.paese && <span class="card-tour__luogo">{tour.paese}</span>}
@@ -83,6 +85,19 @@ const { tour } = Astro.props
     font-weight: 700;
     padding: 0.3em 0.7em;
     border-radius: 999px;
+  }
+
+  .card-tour__guida {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: #fff;
+    color: var(--colore-primario-scuro);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.3em 0.7em;
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
   .card-tour__corpo {

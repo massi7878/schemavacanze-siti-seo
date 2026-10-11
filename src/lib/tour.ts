@@ -17,9 +17,11 @@ export interface TourElenco {
   prezzo_min: number | null
   prossima: string | null
   n_partenze: number
+  guida_italiano: 'si' | 'su_richiesta' | 'no'
 }
 
 export interface TourDettaglio {
+  guida_italiano?: 'si' | 'su_richiesta' | 'no'
   id: string
   slug: string
   nome: string
@@ -63,22 +65,32 @@ export interface TourDettaglio {
   }>
 }
 
-let cacheElenco: { quando: number; promessa: Promise<TourElenco[]> } | null = null
+const cacheElenco = new Map<string, { quando: number; promessa: Promise<TourElenco[]> }>()
 
 // Tutti i tour con almeno una partenza futura (nessun filtro): serve per l'elenco iniziale e per
 // costruire i valori dei filtri. Riusato per pochi secondi dalla stessa istanza del server.
-export function getToursPubblici(): Promise<TourElenco[]> {
-  if (cacheElenco && Date.now() - cacheElenco.quando < 20_000) return cacheElenco.promessa
+// soloGuida = solo i tour con guida in italiano (anche su richiesta), quelli con guida garantita per primi.
+export function getToursPubblici(soloGuida = false): Promise<TourElenco[]> {
+  const chiave = soloGuida ? 'guida' : 'tutti'
+  const nota = cacheElenco.get(chiave)
+  if (nota && Date.now() - nota.quando < 20_000) return nota.promessa
   const promessa = (async () => {
-    const { data, error } = await supabase.rpc('tour_ricerca_pubblica', { p_limit: 1000 })
+    const { data, error } = await supabase.rpc('tour_ricerca_pubblica', soloGuida ? { p_limit: 1000, p_guida: true } : { p_limit: 1000 })
     if (error) throw new Error(`tour_ricerca_pubblica: ${error.message}`)
     return (data ?? []) as TourElenco[]
   })()
-  cacheElenco = { quando: Date.now(), promessa }
+  cacheElenco.set(chiave, { quando: Date.now(), promessa })
   promessa.catch(() => {
-    cacheElenco = null
+    cacheElenco.delete(chiave)
   })
   return promessa
+}
+
+// Testo della guida in italiano per le schede e la pagina del tour (null = niente da mostrare nelle schede)
+export function etichettaGuida(valore: string | null | undefined): string | null {
+  if (valore === 'si') return 'Guida in italiano'
+  if (valore === 'su_richiesta') return 'Italiano su richiesta'
+  return null
 }
 
 export async function getTourPubblico(slug: string): Promise<TourDettaglio | null> {

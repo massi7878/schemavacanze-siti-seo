@@ -34,7 +34,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
           <ul class="hero__chip">
             {paesi.map(p => <li>{p}</li>)}
             <li>{t.durata_giorni} giorni / {t.notti} notti</li>
-            {t.lingue?.length > 0 && <li>{t.lingue.join(', ')}</li>}
+            {t.guida_italiano === 'si' ? <li>Guida in italiano</li> : t.guida_italiano === 'su_richiesta' ? <li>Guida in italiano su richiesta</li> : t.lingue?.length > 0 && <li>Assistenza in italiano</li>}
             {t.gruppo_max && <li>Max {t.gruppo_max} persone</li>}
           </ul>
         </div>
@@ -163,7 +163,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
           <div><dt>Durata</dt><dd>{t.durata_giorni} giorni / {t.notti} notti</dd></div>
           {t.partenza_da && <div><dt>Partenza da</dt><dd>{t.partenza_da}</dd></div>}
           {t.arrivo_a && <div><dt>Arrivo a</dt><dd>{t.arrivo_a}</dd></div>}
-          {t.lingue?.length > 0 && <div><dt>Guida</dt><dd>{t.lingue.join(', ')}</dd></div>}
+          {t.lingue?.length > 0 && <div><dt>Guida e assistenza</dt><dd>{t.guida_italiano === 'si' ? 'Guida in italiano' : t.guida_italiano === 'su_richiesta' ? 'Guida in italiano su richiesta (o in altre lingue); assistenza in italiano' : 'Assistenza in italiano'}</dd></div>}
         </dl>
         {partenze.length > 0 && <a class="prenota__btn" href="#partenze">Scegli la partenza</a>}
         {d.linkWa() && <a class="prenota__btn prenota__btn--secondario" href={d.linkWa()!} target="_blank" rel="noopener">Scrivici su WhatsApp</a>}

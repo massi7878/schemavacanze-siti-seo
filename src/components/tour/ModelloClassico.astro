@@ -28,7 +28,7 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
     <ul class="pillole">
       {paesi.map(p => <li>{p}</li>)}
       <li>{t.notti} {t.notti === 1 ? 'notte' : 'notti'} · {t.durata_giorni} giorni</li>
-      {t.lingue?.length > 0 && <li>Guida: {t.lingue.join(', ')}</li>}
+      {t.guida_italiano === 'si' ? <li>Guida in italiano</li> : t.guida_italiano === 'su_richiesta' ? <li>Guida in italiano su richiesta (o in altre lingue)</li> : t.lingue?.length > 0 && <li>Assistenza in italiano</li>}
       {t.partenza_da && t.arrivo_a && <li>{t.partenza_da} → {t.arrivo_a}</li>}
       {t.gruppo_max && <li>Max {t.gruppo_max} persone</li>}
     </ul>

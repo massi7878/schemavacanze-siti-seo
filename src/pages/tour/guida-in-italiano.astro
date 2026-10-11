@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import ElencoTour from '../../components/tour/ElencoTour.astro'
+import { getToursPubblici } from '../../lib/tour'
+
+// Generata al momento della richiesta (cache breve su Vercel): tour e partenze salvati nel
+// gestionale compaiono senza ripubblicare il sito.
+export const prerender = false
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600')
+
+const tour = await getToursPubblici(true)
+const urlCanonica = new URL('/tour/guida-in-italiano/', Astro.site).toString()
+const titolo = 'Tour con guida in italiano | Hotellando'
+const descrizione =
+  tour.length > 0
+    ? `${tour.length} tour con guida o assistenza in lingua italiana, date di partenza e prezzi reali. Scegli la nazione, il periodo e il numero di notti.`
+    : 'I tour di Hotellando sono in arrivo.'
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <ElencoTour soloGuida />
+</BaseLayout>

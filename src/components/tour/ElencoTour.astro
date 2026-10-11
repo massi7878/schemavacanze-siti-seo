@@ -1,0 +1,657 @@
+---
+import CardTour from '../CardTour.astro'
+import { getToursPubblici, paesiDi, periodiProposti } from '../../lib/tour'
+
+// Elenco dei tour con i filtri. soloGuida = sezione "Tour con guida in italiano" (la guida e' sempre attiva).
+interface Props {
+  soloGuida?: boolean
+}
+const { soloGuida = false } = Astro.props
+
+const tour = await getToursPubblici(soloGuida)
+const paesi = [...new Set(tour.flatMap(t => paesiDi(t.paese)))].sort((a, b) => a.localeCompare(b, 'it'))
+const nottiMax = tour.length ? Math.max(...tour.map(t => t.notti)) : 0
+const nottiMin = tour.length ? Math.min(...tour.map(t => t.notti)) : 0
+const prezzoMax = Math.ceil(Math.max(0, ...tour.map(t => Number(t.prezzo_min ?? 0))) / 100) * 100
+const periodi = periodiProposti()
+const INIZIALI = 48
+
+const urlSupabase = import.meta.env.PUBLIC_SUPABASE_URL
+const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+---
+  <section class="apertura">
+    <div class="contenitore apertura__interno">
+      <nav class="briciole" aria-label="Percorso">
+        <a href="/">Home</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">Tour</span>
+      </nav>
+      <h1>{soloGuida ? 'Tour con guida in italiano' : 'Tour nel mondo'}</h1>
+      {soloGuida ? (
+        <p>
+          {tour.length > 0
+            ? `${tour.length} tour con guida o assistenza in lingua italiana, date di partenza e prezzi reali. Dove la guida in italiano è su richiesta o insieme ad altre lingue lo trovi scritto sulla scheda.`
+            : 'Nessun tour con guida in italiano disponibile al momento: torna a trovarci presto.'}
+          {' '}<a href="/tour/">Vedi tutti i tour</a>
+        </p>
+      ) : (
+        <p>
+          {tour.length > 0 ? `${tour.length} tour con assistenza in italiano, date di partenza e prezzi reali.` : 'Nessun tour disponibile al momento: torna a trovarci presto.'}
+          {tour.length > 0 && <>{' '}<a href="/tour/guida-in-italiano/">Solo i tour con guida in italiano</a></>}
+        </p>
+      )}
+    </div>
+  </section>
+
+  <main
+    class="contenitore pagina-tour"
+    data-url-supabase={urlSupabase}
+    data-chiave={chiaveAnon}
+    data-iniziali={INIZIALI}
+    data-notti-max={nottiMax}
+    data-notti-min={nottiMin}
+    data-guida={soloGuida ? '1' : '0'}
+  >
+    {tour.length > 0 && (
+      <form class="filtri" id="filtri-tour" aria-label="Filtra i tour">
+        <div class="filtri__riga">
+          <label>
+            Nazione
+            <select name="paese">
+              <option value="">Tutte</option>
+              {paesi.map(p => <option value={p}>{p}</option>)}
+            </select>
+          </label>
+          <label>
+            Periodo di partenza
+            <select name="periodo">
+              <option value="">Qualsiasi</option>
+              {periodi.map(p => <option value={p.valore} data-dal={p.dal} data-al={p.al}>{p.etichetta}</option>)}
+            </select>
+          </label>
+          <label>
+            Partenza dal
+            <input type="date" name="dal" />
+          </label>
+          <label>
+            al
+            <input type="date" name="al" />
+          </label>
+          {!soloGuida && (
+            <label class="filtri__spunta">
+              <input type="checkbox" name="guida" value="1" />
+              Solo con guida in italiano
+            </label>
+          )}
+          <label>
+            Prezzo massimo (€)
+            <input type="number" name="prezzo" min="0" step="50" inputmode="numeric" placeholder={prezzoMax ? `fino a ${prezzoMax}` : ''} />
+          </label>
+          <label>
+            Ordina per
+            <select name="ordine">
+              <option value="data">Prima partenza</option>
+              <option value="prezzo">Prezzo</option>
+              <option value="durata">Durata</option>
+              <option value="recenti">Più recenti</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="durata">
+          <strong id="durata-testo" class="durata__testo">Durata: qualsiasi</strong>
+          <div class="range-doppio">
+            <div class="range-doppio__traccia"></div>
+            <div class="range-doppio__selezione" id="durata-selezione"></div>
+            <input type="range" name="notti_min" min={nottiMin} max={nottiMax} step="1" value={nottiMin} aria-label="Numero minimo di notti" />
+            <input type="range" name="notti_max" min={nottiMin} max={nottiMax} step="1" value={nottiMax} aria-label="Numero massimo di notti" />
+          </div>
+          <div class="range-doppio__estremi"><span id="durata-estremo-min">{nottiMin} notti</span><span id="durata-estremo-max">{nottiMax} notti</span></div>
+        </div>
+
+        <div class="filtri__azioni">
+          <button type="reset" class="filtri__azzera" id="azzera-filtri">Azzera i filtri</button>
+          <span class="filtri__esito" id="esito-filtri" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+    )}
+
+    {tour.length > 0 ? (
+      <>
+        <ul class="griglia-tour" id="griglia-tour">
+          {tour.slice(0, INIZIALI).map(t => (
+            <li>
+              <CardTour tour={t} />
+            </li>
+          ))}
+        </ul>
+        <p class="altri" id="altri" hidden={tour.length <= INIZIALI}>
+          <button type="button" class="pulsante-altri" id="mostra-altri">Mostra altri tour</button>
+        </p>
+      </>
+    ) : (
+      <p class="vuoto">Non ci sono ancora tour pubblicati. <a href="/">Vedi tutti i villaggi</a>.</p>
+    )}
+    <p class="vuoto" id="nessun-tour" hidden>Nessun tour corrisponde ai filtri scelti. Prova ad allargare il periodo o il numero di notti.</p>
+  </main>
+
+
+<script>
+  // I filtri usano la stessa funzione del database (tour_ricerca_pubblica) che alimenta l'elenco.
+  // La barra della durata NON viene mandata al database: i risultati degli altri filtri si tengono qui
+  // e la barra si restringe (a cascata) al minimo e massimo di notti dei tour rimasti; la durata scelta
+  // filtra poi questi risultati senza altre richieste.
+  const principale = document.querySelector<HTMLElement>('.pagina-tour')
+  const modulo = document.querySelector<HTMLFormElement>('#filtri-tour')
+  const griglia = document.querySelector<HTMLElement>('#griglia-tour')
+  const esito = document.querySelector<HTMLElement>('#esito-filtri')
+  const nessuno = document.querySelector<HTMLElement>('#nessun-tour')
+  const altri = document.querySelector<HTMLElement>('#altri')
+  const bottoneAltri = document.querySelector<HTMLButtonElement>('#mostra-altri')
+  const testoDurata = document.querySelector<HTMLElement>('#durata-testo')
+  const selezione = document.querySelector<HTMLElement>('#durata-selezione')
+  const estremoMin = document.querySelector<HTMLElement>('#durata-estremo-min')
+  const estremoMax = document.querySelector<HTMLElement>('#durata-estremo-max')
+  const barraMin = modulo?.elements.namedItem('notti_min') as HTMLInputElement | null
+  const barraMax = modulo?.elements.namedItem('notti_max') as HTMLInputElement | null
+  const urlSupabase = principale?.dataset.urlSupabase
+  const chiave = principale?.dataset.chiave
+  const PER_VOLTA = Number(principale?.dataset.iniziali ?? 48)
+  const SOLO_GUIDA = principale?.dataset.guida === '1'
+  const guidaAttiva = () => SOLO_GUIDA || (modulo?.elements.namedItem('guida') as HTMLInputElement | null)?.checked === true
+
+  type Tour = {
+    slug: string
+    nome: string
+    sottotitolo: string | null
+    immagine_url: string | null
+    paese: string | null
+    notti: number
+    prezzo_min: number | null
+    prossima: string | null
+    n_partenze: number
+    guida_italiano?: string
+  }
+
+  let base: Tour[] = [] // risultati degli altri filtri (senza la durata)
+  let baseCaricata = false
+  let risultati: Tour[] = []
+  let mostrati = 0
+  let numeroRichiesta = 0
+  let attesa: number | undefined
+  let nMin = Number(principale?.dataset.nottiMin ?? 0)
+  let nMax = Number(principale?.dataset.nottiMax ?? 30)
+  let scelteDa: number | null = null // durata scelta dall'utente (null = tutto l'intervallo)
+  let scelteA: number | null = null
+
+  // Nazione e Periodo si restringono a cascata: restano solo le scelte che hanno tour con gli altri filtri applicati.
+  const selPaese = modulo?.elements.namedItem('paese') as HTMLSelectElement | null
+  const selPeriodo = modulo?.elements.namedItem('periodo') as HTMLSelectElement | null
+  const opzioniPaese = Array.from(selPaese?.options ?? []).map(o => ({ valore: o.value, testo: o.textContent ?? '' }))
+  const opzioniPeriodo = Array.from(selPeriodo?.options ?? []).map(o => ({ valore: o.value, testo: o.textContent ?? '', dal: o.dataset.dal ?? '', al: o.dataset.al ?? '' }))
+  let numeroFiltri = 0
+  let attesaFiltri: number | undefined
+
+  const esc = (s: string | null | undefined) =>
+    String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
+  const euro = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
+  const dataBreve = (iso: string) => {
+    const [a, m, g] = iso.split('-').map(Number)
+    return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
+  }
+
+  function scheda(t: Tour) {
+    const guida = t.guida_italiano === 'si' ? 'Guida in italiano' : t.guida_italiano === 'su_richiesta' ? 'Italiano su richiesta' : ''
+    const quando = t.prossima ? `Dal ${dataBreve(t.prossima)}${t.n_partenze > 1 ? ` · ${t.n_partenze} date` : ''}` : ''
+    return `<li><a class="card-tour" href="/tour/${esc(t.slug)}/">
+      <div class="card-tour__immagine">${
+        t.immagine_url
+          ? `<img src="${esc(t.immagine_url)}" alt="${esc(t.nome)}" loading="lazy" />`
+          : `<span class="card-tour__segnaposto" aria-hidden="true">${esc(t.nome.charAt(0))}</span>`
+      }<span class="card-tour__tipo">${t.notti} ${t.notti === 1 ? 'notte' : 'notti'}</span>${guida ? `<span class="card-tour__guida">${guida}</span>` : ''}</div>
+      <div class="card-tour__corpo">
+        ${t.paese ? `<span class="card-tour__luogo">${esc(t.paese)}</span>` : ''}
+        <span class="card-tour__titolo">${esc(t.nome)}</span>
+        ${t.sottotitolo ? `<span class="card-tour__sottotitolo">${esc(t.sottotitolo)}</span>` : ''}
+        <div class="card-tour__dettagli">${quando ? `<span>${esc(quando)}</span>` : ''}</div>
+        ${t.prezzo_min != null ? `<p class="card-tour__prezzo">da <strong>${euro(Number(t.prezzo_min))}</strong> <span>a persona</span></p>` : ''}
+      </div></a></li>`
+  }
+
+  function campo(nome: string) {
+    return (modulo?.elements.namedItem(nome) as HTMLInputElement | HTMLSelectElement | null)?.value ?? ''
+  }
+
+  // durata effettiva scelta, dentro l'intervallo attuale della barra
+  function durataScelta() {
+    const da = Math.min(Math.max(scelteDa ?? nMin, nMin), nMax)
+    const a = Math.max(Math.min(scelteA ?? nMax, nMax), da)
+    return { da, a, filtrata: da > nMin || a < nMax }
+  }
+
+  function disegnaBarra() {
+    if (!barraMin || !barraMax) return
+    const { da, a, filtrata } = durataScelta()
+    const unico = nMin === nMax
+    for (const el of [barraMin, barraMax]) {
+      el.min = String(nMin)
+      el.max = String(nMax)
+      el.disabled = unico
+    }
+    barraMin.value = String(da)
+    barraMax.value = String(a)
+    const span = Math.max(nMax - nMin, 1)
+    if (testoDurata) {
+      testoDurata.textContent = unico
+        ? `Durata: ${nMin} ${nMin === 1 ? 'notte' : 'notti'} (tutti i tour scelti hanno questa durata)`
+        : filtrata
+          ? `Durata: da ${da} a ${a} ${a === 1 ? 'notte' : 'notti'}`
+          : 'Durata: qualsiasi'
+    }
+    if (selezione) {
+      selezione.style.left = `${((da - nMin) / span) * 100}%`
+      selezione.style.right = `${100 - ((a - nMin) / span) * 100}%`
+    }
+    if (estremoMin) estremoMin.textContent = `${nMin} ${nMin === 1 ? 'notte' : 'notti'}`
+    if (estremoMax) estremoMax.textContent = `${nMax} ${nMax === 1 ? 'notte' : 'notti'}`
+  }
+
+  function riempi(sel: HTMLSelectElement | null, voci: Array<{ valore: string; testo: string; dal?: string; al?: string }>, ammessi: Set<string>) {
+    if (!sel) return
+    const scelto = sel.value
+    sel.innerHTML = ''
+    for (const v of voci) {
+      if (v.valore !== '' && !ammessi.has(v.valore) && v.valore !== scelto) continue
+      const o = document.createElement('option')
+      o.value = v.valore
+      o.textContent = v.testo
+      if (v.dal) o.dataset.dal = v.dal
+      if (v.al) o.dataset.al = v.al
+      sel.appendChild(o)
+    }
+    sel.value = scelto
+  }
+
+  async function aggiornaFiltri() {
+    if (!urlSupabase || !chiave) return
+    const numero = ++numeroFiltri
+    const { da, a, filtrata } = durataScelta()
+    const corpo: Record<string, unknown> = {}
+    if (campo('paese')) corpo.p_paese = campo('paese')
+    if (campo('dal')) corpo.p_dal = campo('dal')
+    if (campo('al')) corpo.p_al = campo('al')
+    if (campo('prezzo')) corpo.p_prezzo_max = Number(campo('prezzo'))
+    if (guidaAttiva()) corpo.p_guida = true
+    if (filtrata) {
+      corpo.p_notti_min = da
+      corpo.p_notti_max = a
+    }
+    try {
+      const risposta = await fetch(`${urlSupabase}/rest/v1/rpc/tour_filtri_pubblici`, {
+        method: 'POST',
+        headers: { apikey: chiave, Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo),
+      })
+      if (!risposta.ok || numero !== numeroFiltri) return
+      const d: { paesi: string[]; mesi: string[] } = await risposta.json()
+      riempi(selPaese, opzioniPaese, new Set(d.paesi))
+      riempi(selPeriodo, opzioniPeriodo, new Set(d.mesi))
+    } catch {
+      /* le scelte restano quelle di prima */
+    }
+  }
+
+  function programmaFiltri() {
+    window.clearTimeout(attesaFiltri)
+    attesaFiltri = window.setTimeout(aggiornaFiltri, 250)
+  }
+
+  function parametri() {
+    const p: Record<string, unknown> = { p_limit: 1000, p_ordine: campo('ordine') || 'data' }
+    if (campo('paese')) p.p_paese = campo('paese')
+    if (campo('dal')) p.p_dal = campo('dal')
+    if (campo('al')) p.p_al = campo('al')
+    if (campo('prezzo')) p.p_prezzo_max = Number(campo('prezzo'))
+    if (guidaAttiva()) p.p_guida = true
+    return p // niente durata: la applica il browser sui risultati
+  }
+
+  function disegna(dall: number) {
+    if (!griglia) return
+    const fine = Math.min(dall + PER_VOLTA, risultati.length)
+    const html = risultati.slice(dall, fine).map(scheda).join('')
+    if (dall === 0) griglia.innerHTML = html
+    else griglia.insertAdjacentHTML('beforeend', html)
+    mostrati = fine
+    if (altri) altri.hidden = mostrati >= risultati.length
+    if (bottoneAltri) bottoneAltri.textContent = `Mostra altri tour (${risultati.length - mostrati} ancora)`
+  }
+
+  // applica la durata scelta ai risultati degli altri filtri e ridisegna l'elenco
+  function rendi() {
+    const { da, a, filtrata } = durataScelta()
+    risultati = filtrata ? base.filter(t => t.notti >= da && t.notti <= a) : base
+    disegna(0)
+    disegnaBarra()
+    if (nessuno) nessuno.hidden = risultati.length > 0
+    if (esito) esito.textContent = risultati.length === 1 ? '1 tour trovato' : `${risultati.length} tour trovati`
+  }
+
+  async function applica() {
+    if (!modulo || !urlSupabase || !chiave) return
+    const numero = ++numeroRichiesta
+    if (esito) esito.textContent = 'Ricerca in corso…'
+    try {
+      const risposta = await fetch(`${urlSupabase}/rest/v1/rpc/tour_ricerca_pubblica`, {
+        method: 'POST',
+        headers: { apikey: chiave, Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(parametri()),
+      })
+      if (!risposta.ok) throw new Error(String(risposta.status))
+      const trovati: Tour[] = await risposta.json()
+      if (numero !== numeroRichiesta) return
+      base = trovati
+      baseCaricata = true
+      // la barra si restringe alla durata dei tour rimasti
+      const notti = trovati.map(t => t.notti)
+      nMin = notti.length ? Math.min(...notti) : 0
+      nMax = notti.length ? Math.max(...notti) : 0
+      rendi()
+      aggiornaFiltri()
+    } catch {
+      if (numero !== numeroRichiesta) return
+      if (esito) esito.textContent = 'Non riesco a filtrare in questo momento: riprova tra poco.'
+    }
+  }
+
+  function programma() {
+    window.clearTimeout(attesa)
+    attesa = window.setTimeout(applica, 250)
+  }
+
+  // il periodo (mese) riempie le due date; scrivere una data a mano toglie il periodo
+  modulo?.addEventListener('change', e => {
+    const bersaglio = e.target as HTMLInputElement | HTMLSelectElement
+    if (bersaglio.name === 'notti_min' || bersaglio.name === 'notti_max') return
+    if (bersaglio.name === 'periodo') {
+      const opzione = (bersaglio as HTMLSelectElement).selectedOptions[0]
+      ;(modulo.elements.namedItem('dal') as HTMLInputElement).value = opzione?.dataset.dal ?? ''
+      ;(modulo.elements.namedItem('al') as HTMLInputElement).value = opzione?.dataset.al ?? ''
+    } else if (bersaglio.name === 'dal' || bersaglio.name === 'al') {
+      ;(modulo.elements.namedItem('periodo') as HTMLSelectElement).value = ''
+    }
+    programma()
+  })
+  modulo?.addEventListener('input', e => {
+    const nome = (e.target as HTMLInputElement).name
+    if (nome === 'notti_min' || nome === 'notti_max') {
+      // spostare la barra non richiede altre richieste: filtra i risultati gia' presenti
+      const da = Number(barraMin?.value)
+      const a = Number(barraMax?.value)
+      if (nome === 'notti_min') scelteDa = Math.min(da, a)
+      else scelteA = Math.max(a, da)
+      if (baseCaricata) {
+        rendi()
+        programmaFiltri()
+      } else {
+        // l'elenco iniziale e' solo parziale: carico prima i risultati completi
+        disegnaBarra()
+        programma()
+      }
+      return
+    }
+    programma()
+  })
+  modulo?.addEventListener('reset', () => {
+    scelteDa = null
+    scelteA = null
+    window.setTimeout(applica, 0)
+  })
+  modulo?.addEventListener('submit', e => e.preventDefault())
+  bottoneAltri?.addEventListener('click', () => disegna(mostrati))
+  disegnaBarra()
+  // l'elenco iniziale e' gia' nella pagina (48 schede per i motori di ricerca): conta quanti ce ne sono
+  mostrati = griglia?.querySelectorAll('li').length ?? 0
+</script>
+
+<style>
+  .apertura {
+    padding: 2rem 0 2.5rem;
+  }
+
+  .briciole {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+    margin-bottom: 1.25rem;
+  }
+
+  .briciole a {
+    color: var(--testo-tenue);
+    text-decoration: none;
+  }
+
+  .briciole a:hover {
+    color: var(--colore-primario-scuro);
+  }
+
+  .apertura__interno h1 {
+    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .apertura__interno p {
+    color: var(--testo);
+    margin: 0;
+  }
+
+  /* solo sopra/sotto: i lati li da' .contenitore */
+  .pagina-tour {
+    padding-block: 1rem 4rem;
+  }
+
+  .filtri {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 2rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+  }
+
+  .filtri__riga {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    gap: 0.75rem 1rem;
+    align-items: end;
+  }
+
+  .filtri label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--testo);
+  }
+
+  .filtri input[type='date'],
+  .filtri input[type='number'],
+  .filtri select {
+    font: inherit;
+    font-size: 0.92rem;
+    padding: 0.55em 0.7em;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    min-width: 0;
+  }
+
+  .filtri__spunta {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 0.5rem !important;
+    padding-bottom: 0.55em;
+  }
+
+  .durata {
+    max-width: 34rem;
+  }
+
+  .durata__testo {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--testo);
+    margin-bottom: 0.2rem;
+  }
+
+  /* una sola barra con due maniglie (minimo e massimo di notti) */
+  .range-doppio {
+    position: relative;
+    height: 28px;
+  }
+
+  .range-doppio__traccia,
+  .range-doppio__selezione {
+    position: absolute;
+    top: 50%;
+    height: 6px;
+    margin-top: -3px;
+    border-radius: 3px;
+  }
+
+  .range-doppio__traccia {
+    left: 0;
+    right: 0;
+    background: var(--bordo);
+  }
+
+  .range-doppio__selezione {
+    left: 0;
+    right: 0;
+    background: var(--colore-primario-scuro);
+  }
+
+  .range-doppio input[type='range'] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .range-doppio input[type='range']::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 28px;
+  }
+
+  .range-doppio input[type='range']::-moz-range-track {
+    background: transparent;
+  }
+
+  .range-doppio input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: auto;
+    cursor: pointer;
+    width: 22px;
+    height: 22px;
+    margin-top: 3px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--colore-primario-scuro);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  .range-doppio input[type='range']::-moz-range-thumb {
+    pointer-events: auto;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--colore-primario-scuro);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  .range-doppio__estremi {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--testo-tenue);
+  }
+
+  .filtri__azioni {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .filtri__azzera {
+    font: inherit;
+    font-size: 0.88rem;
+    background: none;
+    border: none;
+    color: var(--colore-primario-scuro);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .filtri__esito {
+    font-size: 0.9rem;
+    color: var(--testo-tenue);
+  }
+
+  .griglia-tour {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  }
+
+  .altri {
+    text-align: center;
+    margin: 2rem 0 0;
+  }
+
+  .altri[hidden] {
+    display: none;
+  }
+
+  .pulsante-altri {
+    font: inherit;
+    font-weight: 600;
+    padding: 0.7em 1.6em;
+    border-radius: 999px;
+    border: 2px solid var(--colore-primario-scuro);
+    background: var(--superficie);
+    color: var(--colore-primario-scuro);
+    cursor: pointer;
+  }
+
+  .pulsante-altri:hover {
+    background: var(--colore-primario-scuro);
+    color: #fff;
+  }
+
+  .vuoto {
+    color: var(--testo-tenue);
+  }
+
+  .vuoto a {
+    color: var(--colore-primario-scuro);
+  }
+</style>
