@@ -350,7 +350,7 @@ const primaData = partenze[0]?.data_partenza ?? null
   }
 
   .partenze-tour__periodi-box {
-    margin: 0 0 1.25rem;
+    margin: 0 0 0.6rem;
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio-piccolo);
@@ -361,7 +361,8 @@ const primaData = partenze[0]?.data_partenza ?? null
     flex-wrap: wrap;
     align-items: center;
     gap: 0.25rem 0.75rem;
-    padding: 0.7rem 1rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8rem;
     cursor: pointer;
     font-weight: 700;
     color: var(--inchiostro);
@@ -384,16 +385,16 @@ const primaData = partenze[0]?.data_partenza ?? null
 
   .partenze-tour__periodi-da {
     font-weight: 600;
-    font-size: 0.88rem;
+    font-size: 0.75rem;
     color: var(--colore-primario-scuro);
   }
 
   .partenze-tour__periodi {
     list-style: none;
     margin: 0;
-    padding: 0 1rem 0.8rem;
+    padding: 0 0.6rem 0.6rem;
     display: grid;
-    gap: 0.4rem;
+    gap: 0.3rem;
   }
 
   .partenze-tour__periodi li {
@@ -401,7 +402,8 @@ const primaData = partenze[0]?.data_partenza ?? null
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 0.25rem 1rem;
-    padding: 0.65rem 1rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio-piccolo);
@@ -450,7 +452,6 @@ const primaData = partenze[0]?.data_partenza ?? null
   .cal__campo strong {
     font-size: 0.78rem;
     line-height: 1.25;
-    text-transform: capitalize;
   }
 
   .cal__campo--bottone {
@@ -649,8 +650,8 @@ const primaData = partenze[0]?.data_partenza ?? null
 
   .cal__ospiti-riga {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.4rem 0.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem 0.4rem;
   }
 
   .cal__ospiti-riga label {
@@ -665,7 +666,7 @@ const primaData = partenze[0]?.data_partenza ?? null
   .cal__ospiti-riga input {
     font: inherit;
     font-size: 0.82rem;
-    padding: 0.3em 0.5em;
+    padding: 0.25em 0.4em;
     border: 1px solid var(--bordo);
     border-radius: var(--raggio-piccolo);
     background: var(--superficie);

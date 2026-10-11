@@ -205,12 +205,12 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
 
   .sofly__colonne {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 21rem;
+    grid-template-columns: minmax(0, 1fr) 19rem;
     gap: 2rem;
     align-items: start;
   }
 
-  @media (max-width: 960px) {
+  @media (max-width: 700px) {
     .sofly__colonne {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -542,7 +542,7 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
     border-top: 1px solid var(--bordo-tenue);
   }
 
-  @media (max-width: 960px) {
+  @media (max-width: 700px) {
     .sofly__lato {
       position: static;
       max-height: none;
