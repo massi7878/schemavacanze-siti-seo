@@ -171,6 +171,14 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   let scelteDa: number | null = null // durata scelta dall'utente (null = tutto l'intervallo)
   let scelteA: number | null = null
 
+  // Nazione e Periodo si restringono a cascata: restano solo le scelte che hanno tour con gli altri filtri applicati.
+  const selPaese = modulo?.elements.namedItem('paese') as HTMLSelectElement | null
+  const selPeriodo = modulo?.elements.namedItem('periodo') as HTMLSelectElement | null
+  const opzioniPaese = Array.from(selPaese?.options ?? []).map(o => ({ valore: o.value, testo: o.textContent ?? '' }))
+  const opzioniPeriodo = Array.from(selPeriodo?.options ?? []).map(o => ({ valore: o.value, testo: o.textContent ?? '', dal: o.dataset.dal ?? '', al: o.dataset.al ?? '' }))
+  let numeroFiltri = 0
+  let attesaFiltri: number | undefined
+
   const esc = (s: string | null | undefined) =>
     String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
   const euro = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
@@ -234,6 +242,55 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     if (estremoMax) estremoMax.textContent = `${nMax} ${nMax === 1 ? 'notte' : 'notti'}`
   }
 
+  function riempi(sel: HTMLSelectElement | null, voci: Array<{ valore: string; testo: string; dal?: string; al?: string }>, ammessi: Set<string>) {
+    if (!sel) return
+    const scelto = sel.value
+    sel.innerHTML = ''
+    for (const v of voci) {
+      if (v.valore !== '' && !ammessi.has(v.valore) && v.valore !== scelto) continue
+      const o = document.createElement('option')
+      o.value = v.valore
+      o.textContent = v.testo
+      if (v.dal) o.dataset.dal = v.dal
+      if (v.al) o.dataset.al = v.al
+      sel.appendChild(o)
+    }
+    sel.value = scelto
+  }
+
+  async function aggiornaFiltri() {
+    if (!urlSupabase || !chiave) return
+    const numero = ++numeroFiltri
+    const { da, a, filtrata } = durataScelta()
+    const corpo: Record<string, unknown> = {}
+    if (campo('paese')) corpo.p_paese = campo('paese')
+    if (campo('dal')) corpo.p_dal = campo('dal')
+    if (campo('al')) corpo.p_al = campo('al')
+    if (campo('prezzo')) corpo.p_prezzo_max = Number(campo('prezzo'))
+    if (filtrata) {
+      corpo.p_notti_min = da
+      corpo.p_notti_max = a
+    }
+    try {
+      const risposta = await fetch(`${urlSupabase}/rest/v1/rpc/tour_filtri_pubblici`, {
+        method: 'POST',
+        headers: { apikey: chiave, Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo),
+      })
+      if (!risposta.ok || numero !== numeroFiltri) return
+      const d: { paesi: string[]; mesi: string[] } = await risposta.json()
+      riempi(selPaese, opzioniPaese, new Set(d.paesi))
+      riempi(selPeriodo, opzioniPeriodo, new Set(d.mesi))
+    } catch {
+      /* le scelte restano quelle di prima */
+    }
+  }
+
+  function programmaFiltri() {
+    window.clearTimeout(attesaFiltri)
+    attesaFiltri = window.setTimeout(aggiornaFiltri, 250)
+  }
+
   function parametri() {
     const p: Record<string, unknown> = { p_limit: 1000, p_ordine: campo('ordine') || 'data' }
     if (campo('paese')) p.p_paese = campo('paese')
@@ -284,6 +341,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       nMin = notti.length ? Math.min(...notti) : 0
       nMax = notti.length ? Math.max(...notti) : 0
       rendi()
+      aggiornaFiltri()
     } catch {
       if (numero !== numeroRichiesta) return
       if (esito) esito.textContent = 'Non riesco a filtrare in questo momento: riprova tra poco.'
@@ -316,8 +374,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       const a = Number(barraMax?.value)
       if (nome === 'notti_min') scelteDa = Math.min(da, a)
       else scelteA = Math.max(a, da)
-      if (baseCaricata) rendi()
-      else {
+      if (baseCaricata) {
+        rendi()
+        programmaFiltri()
+      } else {
         // l'elenco iniziale e' solo parziale: carico prima i risultati completi
         disegnaBarra()
         programma()
