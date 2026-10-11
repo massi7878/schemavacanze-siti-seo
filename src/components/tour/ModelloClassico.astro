@@ -60,8 +60,6 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
         </section>
       )}
 
-      {partenze.length > 0 && <CalendarioPartenze d={d} />}
-
       <SupplementiFacoltativi d={d} />
 
       {t.tappe.length > 0 && (
@@ -126,9 +124,9 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
             da <strong>{euro(prezzoMin)}</strong> <span>a persona in camera doppia</span>
           </p>
         )}
+        {partenze.length > 0 && <CalendarioPartenze d={d} />}
         <p class="riquadro__nota">Il prezzo cambia con la data di partenza. Scrivici: ti confermiamo disponibilità e quota esatta, senza impegno.</p>
         <div class="riquadro__azioni">
-          {partenze.length > 0 && <a class="pulsante" href="#partenze">Scegli la data</a>}
           {d.numeroWa && <button type="button" class="pulsante pulsante--secondario" data-apri-richiesta-tour>Scrivici su WhatsApp</button>}
           {linkTel && <a class="pulsante pulsante--secondario" href={linkTel}>Chiama {telefono}</a>}
         </div>
@@ -209,6 +207,8 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
     .colonna-lato {
       order: -1;
       position: static;
+      max-height: none;
+      overflow: visible;
     }
   }
 
@@ -372,6 +372,19 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
   .colonna-lato {
     position: sticky;
     top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+
+  /* il calendario sta dentro il riquadro: niente cornice propria */
+  :global(.colonna-lato .cal) {
+    max-width: none;
+  }
+
+  :global(.colonna-lato .partenze-tour) {
+    margin: 0;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--bordo-tenue);
   }
 
   .riquadro {
