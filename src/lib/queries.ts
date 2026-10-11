@@ -39,6 +39,23 @@ function memoize<T>(fn: () => Promise<T>): () => Promise<T> {
   }
 }
 
+// Durante la build un elenco di pagine vuoto vuol dire quasi sempre che il database non ha risposto (server
+// riavviato, rete): si riprova e, se resta vuoto, la build FALLISCE. Cosi' Vercel tiene online la versione
+// precedente invece di pubblicare un sito senza strutture, categorie e destinazioni.
+async function nonVuoto<T>(nome: string, leggi: () => Promise<T[]>): Promise<T[]> {
+  let ultimo = 'elenco vuoto'
+  for (let tentativo = 1; tentativo <= 5; tentativo++) {
+    try {
+      const r = await leggi()
+      if (r.length > 0) return r
+    } catch (e) {
+      ultimo = e instanceof Error ? e.message : String(e)
+    }
+    await new Promise(ok => setTimeout(ok, 10_000 * tentativo))
+  }
+  throw new Error(`${nome}: nessun dato dal database dopo 5 tentativi (${ultimo}). Build interrotta per non pubblicare un sito vuoto.`)
+}
+
 async function _getAzienda() {
   const { data } = await supabase
     .from('azienda')
@@ -57,12 +74,14 @@ export async function getCopertinaHomepage() {
 }
 
 export async function getSlugStruttureAttive() {
-  const { data } = await supabase
-    .from('strutture')
-    .select('slug')
-    .eq('attiva', true)
-    .not('slug', 'is', null)
-  return (data ?? []).map(r => r.slug as string)
+  return nonVuoto('strutture attive', async () => {
+    const { data } = await supabase
+      .from('strutture')
+      .select('slug')
+      .eq('attiva', true)
+      .not('slug', 'is', null)
+    return (data ?? []).map(r => r.slug as string)
+  })
 }
 
 export async function getStruttureSitemap() {
@@ -209,8 +228,10 @@ export async function percorsoDestinazione(destinazioneId: string | null | undef
 }
 
 export async function getSlugCategorie() {
-  const categorie = await getDestinazioniPerCategoria()
-  return categorie.map(c => c.slug)
+  return nonVuoto('categorie', async () => {
+    const categorie = await getDestinazioniPerCategoria()
+    return categorie.map(c => c.slug)
+  })
 }
 
 // Tutte le strutture della categoria (es. tutto l'"Estero": Zanzibar,
@@ -239,8 +260,10 @@ export async function getStruttureCategoria(categoriaSlug: string) {
 }
 
 export async function getSlugDestinazioni() {
-  const destinazioni = await destinazioniPubbliche()
-  return destinazioni.map(d => d.slug).filter((s): s is string => Boolean(s))
+  return nonVuoto('destinazioni', async () => {
+    const destinazioni = await destinazioniPubbliche()
+    return destinazioni.map(d => d.slug).filter((s): s is string => Boolean(s))
+  })
 }
 
 export async function getStruttureDestinazione(slug: string) {
