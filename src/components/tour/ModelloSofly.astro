@@ -164,6 +164,15 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
             <span class="prenota__nota">a persona in camera doppia · prezzo indicativo, scegli la partenza</span>
           </>
         )}
+        <div class="prenota__azioni">
+          {partenze.length > 0 && <a class="prenota__btn" href="#partenze">Scegli la partenza</a>}
+          {(d.linkWa() || linkTel) && (
+            <div class="prenota__contatti">
+              {d.linkWa() && <a class="prenota__btn prenota__btn--secondario prenota__btn--piccolo" href={d.linkWa()!} target="_blank" rel="noopener">WhatsApp</a>}
+              {linkTel && <a class="prenota__btn prenota__btn--secondario prenota__btn--piccolo" href={linkTel} title={telefono ? `Chiama ${telefono}` : 'Telefona'}>Telefona</a>}
+            </div>
+          )}
+        </div>
         <ul class="prenota__chip" aria-label="Riepilogo del tour">
           {paesi.map(p => <li>{p}</li>)}
           <li>{t.durata_giorni} giorni / {t.notti} notti</li>
@@ -176,9 +185,6 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
             {t.arrivo_a && <div><dt>Arrivo a</dt><dd>{t.arrivo_a}</dd></div>}
           </dl>
         )}
-        {partenze.length > 0 && <a class="prenota__btn" href="#partenze">Scegli la partenza</a>}
-        {d.linkWa() && <a class="prenota__btn prenota__btn--secondario" href={d.linkWa()!} target="_blank" rel="noopener">Scrivici su WhatsApp</a>}
-        {linkTel && <a class="prenota__btn prenota__btn--secondario" href={linkTel}>Chiama {telefono}</a>}
       </div>
     </aside>
   </div>
@@ -556,7 +562,7 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
   /* le stesse indicazioni della foto (nazione, durata, tipo, guida) nel riquadro di riepilogo */
   .prenota__chip {
     list-style: none;
-    margin: 0.6rem 0 0;
+    margin: 0.4rem 0 0;
     padding: 0;
     display: flex;
     flex-wrap: wrap;
@@ -599,12 +605,31 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
     text-align: right;
   }
 
+  /* tasti compatti, larghi quanto il loro testo: "Scegli la partenza" e sotto WhatsApp e Telefona piccoli, affiancati */
+  .prenota__azioni {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .prenota__contatti {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .prenota__btn--piccolo {
+    padding: 0.35em 0.9em !important;
+    font-size: 0.8rem;
+  }
+
   .prenota__btn {
-    display: block;
+    display: inline-block;
     text-align: center;
     text-decoration: none;
     font-weight: 700;
-    padding: 0.85em 1.2em;
+    font-size: 0.92rem;
+    padding: 0.55em 1.5em;
     border-radius: var(--raggio-piccolo);
     background: var(--accento);
     color: #fff;
