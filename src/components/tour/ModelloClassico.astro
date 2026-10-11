@@ -1,6 +1,7 @@
 ---
 import BarraCondividi from '../BarraCondividi.astro'
 import CalendarioPartenze from './CalendarioPartenze.astro'
+import SupplementiFacoltativi from './SupplementiFacoltativi.astro'
 import MiniatureGalleria from './MiniatureGalleria.astro'
 import { euro } from '../../lib/offerte'
 import { PASTI, etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
@@ -59,6 +60,8 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
       )}
 
       {partenze.length > 0 && <CalendarioPartenze d={d} />}
+
+      <SupplementiFacoltativi d={d} />
 
       {t.tappe.length > 0 && (
         <section class="blocco">

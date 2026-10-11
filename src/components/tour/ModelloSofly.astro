@@ -1,6 +1,7 @@
 ---
 import BarraCondividi from '../BarraCondividi.astro'
 import CalendarioPartenze from './CalendarioPartenze.astro'
+import SupplementiFacoltativi from './SupplementiFacoltativi.astro'
 import MiniatureGalleria from './MiniatureGalleria.astro'
 import { euro } from '../../lib/offerte'
 import { PASTI, etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
@@ -48,6 +49,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
         {t.tappe.length > 0 && <a href="#programma">Programma</a>}
         {(incluso.length > 0 || nonIncluso.length > 0) && <a href="#incluso">Incluso</a>}
         {partenze.length > 0 && <a href="#partenze">Partenze</a>}
+        {t.tappe.some(tp => tp.escursioni?.length > 0) && <a href="#extra">Extra</a>}
       </nav>
 
       <section class="sezione" id="sintesi">
@@ -141,6 +143,10 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
           <CalendarioPartenze d={d} />
         </div>
       )}
+
+      <div class="sezione">
+        <SupplementiFacoltativi d={d} />
+      </div>
 
     </div>
 

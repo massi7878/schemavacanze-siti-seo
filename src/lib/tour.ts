@@ -50,6 +50,7 @@ export interface TourDettaglio {
     foto_url: string | null
     pasti: string[]
     hotel: string | null
+    escursioni: Array<{ nome: string; descrizione: string | null; prezzo: number; durata: string | null; a_persona: boolean }>
   }>
   partenze: Array<{
     data_partenza: string

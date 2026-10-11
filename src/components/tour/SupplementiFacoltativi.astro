@@ -1,0 +1,97 @@
+---
+import { euro } from '../../lib/offerte'
+import { etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
+
+interface Props {
+  d: DatiPaginaTour
+}
+
+const { d } = Astro.props
+// tutti i supplementi facoltativi del tour, con il giorno a cui appartengono
+const extra = d.t.tappe.flatMap(tp =>
+  (tp.escursioni ?? []).map(e => ({ ...e, quando: etichettaGiorni(tp.giorno_da, tp.giorno_a), luogo: tp.nome }))
+)
+---
+
+{extra.length > 0 && (
+  <section class="extra-tour" id="extra">
+    <h2>Supplementi facoltativi</h2>
+    <p class="extra-tour__nota">
+      Servizi e visite che puoi aggiungere al viaggio. Il prezzo è indicativo (a persona o a gruppo secondo il servizio): lo confermiamo nel preventivo.
+    </p>
+    <ul class="extra-tour__lista">
+      {extra.map(e => (
+        <li>
+          <div class="extra-tour__testa">
+            <strong>{e.nome}</strong>
+            <span class="extra-tour__prezzo">{euro(Number(e.prezzo))}</span>
+          </div>
+          <span class="extra-tour__quando">{e.quando} · {e.luogo}{e.durata ? ` · ${e.durata}` : ''}</span>
+          {e.descrizione && <p>{e.descrizione}</p>}
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<style is:global>
+  .extra-tour {
+    margin: 0 0 1.5rem;
+  }
+
+  .extra-tour h2 {
+    font-size: 1.25rem;
+    margin: 0 0 0.4rem;
+  }
+
+  .extra-tour__nota {
+    margin: 0 0 0.8rem;
+    color: var(--testo-tenue);
+    font-size: 0.9rem;
+  }
+
+  .extra-tour__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: 0.6rem;
+  }
+
+  .extra-tour__lista li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.8rem 1rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .extra-tour__testa {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    color: var(--inchiostro);
+  }
+
+  .extra-tour__prezzo {
+    flex: 0 0 auto;
+    font-weight: 800;
+    color: var(--colore-primario-scuro);
+  }
+
+  .extra-tour__quando {
+    font-size: 0.78rem;
+    color: var(--testo-tenue);
+  }
+
+  .extra-tour__lista p {
+    margin: 0.2rem 0 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--testo);
+  }
+</style>
