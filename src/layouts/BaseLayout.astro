@@ -64,5 +64,10 @@ const coloriPersonalizzati = azienda?.colore_primario || azienda?.colore_seconda
     <Header />
     <slot />
     <Footer />
+    <script>
+      // regola primaria dei datari: la data di fine parte dalla data di inizio, non da oggi
+      import { installaCollegamentoDatari } from '../scripts/collegaDatari'
+      installaCollegamentoDatari()
+    </script>
   </body>
 </html>
