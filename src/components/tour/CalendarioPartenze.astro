@@ -27,11 +27,7 @@ const primaData = partenze[0]?.data_partenza ?? null
 ---
 
 <section class="partenze-tour" id="partenze">
-  <h2>Date di partenza e prezzi</h2>
-  <p class="partenze-tour__nota">
-    Prezzi a persona in camera doppia. Scegli il giorno di partenza sul calendario: il rientro si calcola da solo
-    ({t.notti} {t.notti === 1 ? 'notte' : 'notti'} dopo).
-  </p>
+  <h2>Scegli data e viaggiatori</h2>
 
   {periodi.length > 0 && (
     <details class="partenze-tour__periodi-box">
@@ -59,6 +55,25 @@ const primaData = partenze[0]?.data_partenza ?? null
     data-tour={t.nome}
     data-extra={JSON.stringify(extraScelta)}
   >
+    <div class="cal__date">
+      <button type="button" class="cal__campo cal__campo--bottone" data-apri-cal aria-expanded="false" aria-controls="cal-popup">
+        <span>Check-in</span>
+        <strong data-txt-dal>Scegli la data</strong>
+      </button>
+      <div class="cal__campo">
+        <span>Check-out</span>
+        <strong data-txt-al>Automatico · {t.notti} {t.notti === 1 ? 'notte' : 'notti'}</strong>
+      </div>
+    </div>
+    <div class="cal__popup" id="cal-popup" data-popup hidden>
+      <div class="cal__testata">
+        <button type="button" class="cal__nav" data-prec aria-label="Mese precedente">‹</button>
+        <strong class="cal__mese" aria-live="polite"></strong>
+        <button type="button" class="cal__nav" data-succ aria-label="Mese successivo">›</button>
+      </div>
+      <div class="cal__griglia" data-griglia></div>
+    </div>
+    <div class="cal__scelta" data-scelta aria-live="polite">Scegli la data di check-in: il check-out si calcola da solo.</div>
     <fieldset class="cal__ospiti">
       <legend>Viaggiatori e camere</legend>
       <div class="cal__ospiti-riga">
@@ -87,13 +102,7 @@ const primaData = partenze[0]?.data_partenza ?? null
         </details>
       )}
     </fieldset>
-    <div class="cal__testata">
-      <button type="button" class="cal__nav" data-prec aria-label="Mese precedente">‹</button>
-      <strong class="cal__mese" aria-live="polite"></strong>
-      <button type="button" class="cal__nav" data-succ aria-label="Mese successivo">›</button>
-    </div>
-    <div class="cal__griglia" data-griglia></div>
-    <div class="cal__scelta" data-scelta aria-live="polite">Scegli un giorno evidenziato sul calendario.</div>
+    <button type="button" class="cal__richiedi" data-richiedi-tour disabled>Richiedi questo preventivo</button>
   </div>
 </section>
 
@@ -109,6 +118,23 @@ const primaData = partenze[0]?.data_partenza ?? null
     const perData = new Map(partenze.map(x => [x.p, x]))
     const griglia = box.querySelector<HTMLElement>('[data-griglia]')!
     const scelta = box.querySelector<HTMLElement>('[data-scelta]')!
+    const popup = box.querySelector<HTMLElement>('[data-popup]')!
+    const apriCal = box.querySelector<HTMLButtonElement>('[data-apri-cal]')!
+    const txtDal = box.querySelector<HTMLElement>('[data-txt-dal]')!
+    const txtAl = box.querySelector<HTMLElement>('[data-txt-al]')!
+    const tastoRichiedi = box.querySelector<HTMLButtonElement>('[data-richiedi-tour]')!
+    const breve = (iso: string) => {
+      const [a, m, g] = iso.split('-').map(Number)
+      return new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, g)))
+    }
+    const apriChiudi = (apri: boolean) => {
+      popup.hidden = !apri
+      apriCal.setAttribute('aria-expanded', String(apri))
+    }
+    apriCal.addEventListener('click', () => apriChiudi(popup.hidden))
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') apriChiudi(false)
+    })
     const titoloMese = box.querySelector<HTMLElement>('.cal__mese')!
     const euro = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
     const lunga = (iso: string) => {
@@ -246,25 +272,24 @@ const primaData = partenze[0]?.data_partenza ?? null
       }
       const stato = x.s === 'ultimi_posti' ? '<span class="cal__badge">Ultimi posti</span>' : ''
       const dettaglio = c.righe.map(r => `<li><span>${r[0]}</span><b>${r[1] < 0 ? '−' + euro(-r[1]) : euro(r[1])}</b></li>`).join('')
+      txtDal.textContent = breve(x.p)
+      txtAl.textContent = `${breve(x.r)} · ${nottiN} ${nottiN === 1 ? 'notte' : 'notti'}`
+      tastoRichiedi.disabled = false
       scelta.innerHTML = `<div class="cal__riepilogo">
-        <div><span>Partenza</span><strong>${lunga(x.p)}</strong></div>
-        <div><span>Rientro</span><strong>${lunga(x.r)}</strong><small>${nottiN} ${nottiN === 1 ? 'notte' : 'notti'}</small></div>
-        <div><span>A persona (camera doppia)</span><strong class="cal__prezzo">${euro(x.e)}</strong>${stato}</div>
         <div class="cal__conto">
           <span>Il tuo preventivo · ${descriviOspiti()}</span>
           <ul>${dettaglio}</ul>
           <p class="cal__totale">Totale <strong>${euro(c.totale)}</strong></p>
+          ${stato}
           ${valide ? '' : '<p class="cal__avviso">Completa le camere per avere il totale corretto.</p>'}
         </div>
-        <button type="button" class="cal__richiedi" data-richiedi-tour>Richiedi questo preventivo</button>
       </div>`
+      apriChiudi(false)
       disegna()
     }
 
-    scelta.addEventListener('click', e => {
-      if ((e.target as HTMLElement).closest('[data-richiedi-tour]') && ultimaRichiesta) {
-        document.dispatchEvent(new CustomEvent('apri-richiesta-tour', { detail: ultimaRichiesta }))
-      }
+    tastoRichiedi.addEventListener('click', () => {
+      if (ultimaRichiesta) document.dispatchEvent(new CustomEvent('apri-richiesta-tour', { detail: ultimaRichiesta }))
     })
 
     // cambiando i viaggiatori si propongono di nuovo le camere; cambiando le camere si ricalcola il totale
@@ -314,8 +339,8 @@ const primaData = partenze[0]?.data_partenza ?? null
   }
 
   .partenze-tour h2 {
-    font-size: 1.4rem;
-    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    margin: 0 0 0.6rem;
   }
 
   .partenze-tour__nota {
@@ -388,11 +413,65 @@ const primaData = partenze[0]?.data_partenza ?? null
   }
 
   .cal {
+    display: grid;
+    gap: 0.7rem;
     max-width: 34rem;
+  }
+
+  /* check-in (si clicca e si apre il calendario) e check-out (si compila da solo), affiancati */
+  .cal__date {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .cal__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    text-align: left;
+    font: inherit;
+    padding: 0.5rem 0.65rem;
+    background: var(--superficie-tenue);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    color: var(--inchiostro);
+    min-width: 0;
+  }
+
+  .cal__campo span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--testo-tenue);
+  }
+
+  .cal__campo strong {
+    font-size: 0.85rem;
+    line-height: 1.25;
+    text-transform: capitalize;
+  }
+
+  .cal__campo--bottone {
+    background: var(--superficie);
+    border: 2px solid var(--colore-primario-scuro);
+    cursor: pointer;
+  }
+
+  .cal__campo--bottone strong {
+    color: var(--colore-primario-scuro);
+  }
+
+  .cal__popup {
+    padding: 0.6rem;
     background: var(--superficie);
     border: 1px solid var(--bordo);
-    border-radius: var(--raggio);
-    padding: 1rem;
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .cal__popup[hidden] {
+    display: none;
   }
 
   .cal__testata {
@@ -444,10 +523,10 @@ const primaData = partenze[0]?.data_partenza ?? null
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 3rem;
+    min-height: 2.6rem;
     border-radius: var(--raggio-piccolo);
     font: inherit;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     border: 1px solid transparent;
     padding: 0.15rem;
   }
@@ -487,11 +566,8 @@ const primaData = partenze[0]?.data_partenza ?? null
   }
 
   .cal__scelta {
-    margin-top: 1rem;
-    padding-top: 0.9rem;
-    border-top: 1px solid var(--bordo-tenue);
     color: var(--testo-tenue);
-    font-size: 0.92rem;
+    font-size: 0.85rem;
   }
 
   .cal__riepilogo {
@@ -533,6 +609,11 @@ const primaData = partenze[0]?.data_partenza ?? null
     border-radius: 999px;
   }
 
+  .cal__richiedi:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
   .cal__richiedi {
     display: inline-block;
     width: fit-content;
@@ -554,8 +635,8 @@ const primaData = partenze[0]?.data_partenza ?? null
   .cal__ospiti {
     border: 1px solid var(--bordo);
     border-radius: var(--raggio-piccolo);
-    padding: 0.7rem 0.9rem 0.8rem;
-    margin: 0 0 1rem;
+    padding: 0.6rem 0.7rem 0.7rem;
+    margin: 0;
   }
 
   .cal__ospiti legend {
@@ -567,7 +648,7 @@ const primaData = partenze[0]?.data_partenza ?? null
 
   .cal__ospiti-riga {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.6rem;
   }
 

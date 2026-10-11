@@ -143,12 +143,6 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
         </section>
       )}
 
-      {partenze.length > 0 && (
-        <div class="sezione">
-          <CalendarioPartenze d={d} />
-        </div>
-      )}
-
       <div class="sezione">
         <SupplementiFacoltativi d={d} />
       </div>
@@ -164,8 +158,8 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
             <span class="prenota__nota">a persona in camera doppia · prezzo indicativo, scegli la partenza</span>
           </>
         )}
+        {partenze.length > 0 && <CalendarioPartenze d={d} />}
         <div class="prenota__azioni">
-          {partenze.length > 0 && <a class="prenota__btn" href="#partenze">Scegli la partenza</a>}
           {(d.numeroWa || linkTel) && (
             <div class="prenota__contatti">
               {d.numeroWa && <button type="button" class="prenota__btn prenota__btn--secondario prenota__btn--piccolo" data-apri-richiesta-tour>WhatsApp</button>}
@@ -533,11 +527,26 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
   .sofly__lato {
     position: sticky;
     top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+
+  /* il calendario sta dentro il riquadro: niente cornice propria */
+  :global(.sofly__lato .cal) {
+    max-width: none;
+  }
+
+  :global(.sofly__lato .partenze-tour) {
+    margin: 0.2rem 0 0;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--bordo-tenue);
   }
 
   @media (max-width: 960px) {
     .sofly__lato {
       position: static;
+      max-height: none;
+      overflow: visible;
     }
   }
 
