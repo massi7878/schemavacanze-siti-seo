@@ -31,14 +31,20 @@ const primaData = partenze[0]?.data_partenza ?? null
   </p>
 
   {periodi.length > 0 && (
-    <ul class="partenze-tour__periodi">
-      {periodi.map(p => (
-        <li>
-          <span>{p.descrizione}</span>
-          <strong>{euro(p.prezzo)}</strong>
-        </li>
-      ))}
-    </ul>
+    <details class="partenze-tour__periodi-box">
+      <summary>
+        <span>Periodi e prezzi ({periodi.length})</span>
+        <span class="partenze-tour__periodi-da">da {euro(Math.min(...periodi.map(p => p.prezzo)))}</span>
+      </summary>
+      <ul class="partenze-tour__periodi">
+        {periodi.map(p => (
+          <li>
+            <span>{p.descrizione}</span>
+            <strong>{euro(p.prezzo)}</strong>
+          </li>
+        ))}
+      </ul>
+    </details>
   )}
 
   <div
@@ -274,10 +280,49 @@ const primaData = partenze[0]?.data_partenza ?? null
     line-height: 1.5;
   }
 
+  .partenze-tour__periodi-box {
+    margin: 0 0 1.25rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+  }
+
+  .partenze-tour__periodi-box > summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--inchiostro);
+    list-style: none;
+  }
+
+  .partenze-tour__periodi-box > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .partenze-tour__periodi-box > summary::before {
+    content: '▸';
+    color: var(--colore-primario-scuro);
+    transition: transform 0.15s ease;
+  }
+
+  .partenze-tour__periodi-box[open] > summary::before {
+    transform: rotate(90deg);
+  }
+
+  .partenze-tour__periodi-da {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--colore-primario-scuro);
+  }
+
   .partenze-tour__periodi {
     list-style: none;
-    margin: 0 0 1.25rem;
-    padding: 0;
+    margin: 0;
+    padding: 0 1rem 0.8rem;
     display: grid;
     gap: 0.4rem;
   }
