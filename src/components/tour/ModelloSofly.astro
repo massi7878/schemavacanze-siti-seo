@@ -80,7 +80,7 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
         {t.highlights?.length > 0 && (
           <>
             <h2 class="sezione__titolo">Da non perdere</h2>
-            <ul class="check">
+            <ul class="check check--fila">
               {t.highlights.map(h => <li>{h}</li>)}
             </ul>
           </>
@@ -387,6 +387,19 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
     padding-left: 1.6rem;
     line-height: 1.5;
     color: var(--testo);
+  }
+
+  /* "Da non perdere": le voci una di seguito all'altra, ognuna con la sua spunta, senza andare a capo a ogni voce */
+  .check--fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.1rem;
+  }
+
+  .check--fila li {
+    padding-left: 1.15rem;
+    font-size: 0.92rem;
+    line-height: 1.4;
   }
 
   .check li::before {

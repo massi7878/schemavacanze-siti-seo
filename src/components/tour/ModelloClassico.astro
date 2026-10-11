@@ -54,7 +54,7 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
       {t.highlights?.length > 0 && (
         <section class="blocco">
           <h2>Da non perdere</h2>
-          <ul class="elenco-check">
+          <ul class="elenco-check elenco-check--fila">
             {t.highlights.map(h => <li>{h}</li>)}
           </ul>
         </section>
@@ -267,6 +267,19 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
     padding-left: 1.5rem;
     color: var(--testo);
     line-height: 1.5;
+  }
+
+  /* "Da non perdere": voci una di seguito all'altra con la spunta, piu' compatte */
+  .elenco-check--fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.1rem;
+  }
+
+  .elenco-check--fila li {
+    padding-left: 1.15rem;
+    font-size: 0.92rem;
+    line-height: 1.4;
   }
 
   .elenco-check li::before {
