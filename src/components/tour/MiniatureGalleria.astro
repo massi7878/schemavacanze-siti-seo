@@ -1,0 +1,70 @@
+---
+interface Props {
+  immagini: string[]
+  nome: string
+}
+
+const { immagini, nome } = Astro.props
+---
+
+{immagini.length > 1 && (
+  <div class="miniature" role="group" aria-label={`Foto di ${nome}`}>
+    {immagini.map((u, i) => (
+      <button type="button" class={`miniature__foto${i === 0 ? ' miniature__foto--attiva' : ''}`} data-foto={u} aria-label={`Mostra la foto ${i + 1}`}>
+        <img src={u} alt="" loading={i < 8 ? 'eager' : 'lazy'} />
+      </button>
+    ))}
+  </div>
+)}
+
+<script>
+  // Un clic su una miniatura mostra quella foto al posto dell'immagine principale
+  const striscia = document.querySelector<HTMLElement>('.miniature')
+  const principale = document.querySelector<HTMLImageElement>('[data-foto-principale]')
+  striscia?.addEventListener('click', e => {
+    const bottone = (e.target as HTMLElement).closest<HTMLButtonElement>('.miniature__foto')
+    if (!bottone || !principale) return
+    principale.src = bottone.dataset.foto ?? principale.src
+    striscia.querySelectorAll('.miniature__foto--attiva').forEach(b => b.classList.remove('miniature__foto--attiva'))
+    bottone.classList.add('miniature__foto--attiva')
+  })
+</script>
+
+<style>
+  .miniature {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+  }
+
+  .miniature__foto {
+    flex: 0 0 auto;
+    width: 5.5rem;
+    aspect-ratio: 4 / 3;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: var(--raggio-piccolo);
+    overflow: hidden;
+    background: var(--superficie-tenue);
+    cursor: pointer;
+    opacity: 0.8;
+  }
+
+  .miniature__foto:hover {
+    opacity: 1;
+  }
+
+  .miniature__foto--attiva {
+    border-color: var(--colore-primario-scuro);
+    opacity: 1;
+  }
+
+  .miniature__foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>

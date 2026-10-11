@@ -1,6 +1,7 @@
 ---
 import BarraCondividi from '../BarraCondividi.astro'
 import CalendarioPartenze from './CalendarioPartenze.astro'
+import MiniatureGalleria from './MiniatureGalleria.astro'
 import { euro } from '../../lib/offerte'
 import { PASTI, etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
 
@@ -13,7 +14,6 @@ interface Props {
 
 const { d } = Astro.props
 const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazione, linkTel, telefono } = d
-const galleria = immagini.slice(1)
 const tappeNome = t.tappe.filter(tp => tp.nome)
 ---
 
@@ -25,7 +25,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
   <div class="sofly__colonne">
     <div class="sofly__principale">
       <header class="hero">
-        {d.copertina ? <img class="hero__immagine" src={d.copertina} alt={t.nome} /> : <div class="hero__immagine hero__immagine--vuota"></div>}
+        {d.copertina ? <img class="hero__immagine" data-foto-principale src={d.copertina} alt={t.nome} /> : <div class="hero__immagine hero__immagine--vuota"></div>}
         <div class="hero__velo"></div>
         <div class="hero__testo">
           <span class="hero__tipo">Tour con guida in italiano</span>
@@ -39,6 +39,8 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
         </div>
       </header>
 
+      <MiniatureGalleria immagini={immagini} nome={t.nome} />
+
       <BarraCondividi url={d.urlCanonica} titolo={t.nome} testo={d.testoCondivisione} slug={t.slug} immagine={d.copertina} />
 
       <nav class="indice" aria-label="Sezioni della pagina">
@@ -46,7 +48,6 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
         {t.tappe.length > 0 && <a href="#programma">Programma</a>}
         {(incluso.length > 0 || nonIncluso.length > 0) && <a href="#incluso">Incluso</a>}
         {partenze.length > 0 && <a href="#partenze">Partenze</a>}
-        {galleria.length > 0 && <a href="#galleria">Galleria</a>}
       </nav>
 
       <section class="sezione" id="sintesi">
@@ -141,14 +142,6 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
         </div>
       )}
 
-      {galleria.length > 0 && (
-        <section class="sezione" id="galleria">
-          <h2 class="sezione__titolo">Galleria</h2>
-          <div class="foto-griglia">
-            {galleria.slice(0, 12).map(u => <img src={u} alt="" loading="lazy" />)}
-          </div>
-        </section>
-      )}
     </div>
 
     <aside class="sofly__lato">
@@ -214,7 +207,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
     position: relative;
     border-radius: var(--raggio);
     overflow: hidden;
-    min-height: 22rem;
+    min-height: 18rem;
     display: flex;
     align-items: flex-end;
     background: var(--superficie-tenue);
@@ -285,7 +278,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-bottom: 1.75rem;
+    margin-bottom: 1rem;
     position: sticky;
     top: 0;
     z-index: 5;
@@ -310,13 +303,13 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
   }
 
   .sezione {
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.75rem;
     scroll-margin-top: 4.5rem;
   }
 
   .sezione__titolo {
-    font-size: 1.45rem;
-    margin: 1.5rem 0 0.8rem;
+    font-size: 1.25rem;
+    margin: 1.1rem 0 0.6rem;
   }
 
   .sezione__titolo:first-child {
@@ -324,7 +317,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
   }
 
   .testo {
-    line-height: 1.7;
+    line-height: 1.55;
     color: var(--testo);
   }
 
@@ -394,14 +387,14 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 1rem;
+    gap: 0.7rem;
   }
 
   .scheda-giorno {
     display: grid;
-    grid-template-columns: 4.5rem minmax(0, 1fr);
-    gap: 1rem;
-    padding: 1.1rem;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 0.8rem;
+    padding: 0.8rem;
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio);
@@ -515,7 +508,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
   .prenota {
     display: grid;
     gap: 0.6rem;
-    padding: 1.4rem;
+    padding: 1rem;
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio);
@@ -531,7 +524,7 @@ const tappeNome = t.tappe.filter(tp => tp.nome)
   .prenota__prezzo {
     margin: 0;
     text-align: center;
-    font-size: 2.4rem;
+    font-size: 2rem;
     font-weight: 800;
     color: var(--colore-primario-scuro);
     line-height: 1.1;
