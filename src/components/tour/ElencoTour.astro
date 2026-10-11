@@ -504,8 +504,13 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     gap: 0.75rem;
   }
 
-  .filtri__riga--principale {
-    grid-template-columns: repeat(3, minmax(9rem, 1fr)) minmax(15rem, 2fr);
+  .filtri .filtri__riga--principale {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem 0.6rem;
+  }
+
+  .filtri__ricerca {
+    grid-column: 1 / -1;
   }
 
   .filtri__ricercariga {

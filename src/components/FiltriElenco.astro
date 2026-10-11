@@ -139,6 +139,23 @@ const { colonna = false, conStelle = true } = Astro.props
     display: none;
   }
 
+  /* dentro la copertina: tre colonne, la ricerca per testo sotto a tutta riga */
+  .copertina__pannello .filtri-elenco:not(.filtri-elenco--colonna) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem 0.75rem;
+    align-items: end;
+  }
+
+  .copertina__pannello .filtri-elenco:not(.filtri-elenco--colonna) .filtri-elenco__ricerca {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .copertina__pannello .filtri-elenco:not(.filtri-elenco--colonna) .filtri-elenco__esito {
+    grid-column: 1 / -1;
+  }
+
   /* nella colonna a sinistra: un campo sotto l'altro */
   .filtri-elenco--colonna {
     flex-direction: column;

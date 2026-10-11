@@ -193,6 +193,27 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
     display: none;
   }
 
+  .copertina__pannello .filtri-dest {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem 0.75rem;
+    align-items: end;
+  }
+
+  .copertina__pannello .filtri-dest .filtri-dest__ricerca {
+    max-width: none;
+  }
+
+  .copertina__pannello .filtri-dest .filtri-dest__esito {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 560px) {
+    .copertina__pannello .filtri-dest .filtri-dest__ricerca {
+      grid-column: 1 / -1;
+    }
+  }
+
   .pagina-destinazioni {
     padding: 2rem 0 4rem;
   }
