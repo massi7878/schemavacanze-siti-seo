@@ -123,9 +123,20 @@ const conSezioni = Astro.slots.has('sezioni')
     text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
   }
 
-  .copertina .briciole,
-  .copertina .briciole a {
-    color: rgba(255, 255, 255, 0.85);
+  /* percorso (Home / Tour...) in bianco sulla foto, in tutte le sezioni */
+  .copertina .copertina__testo nav,
+  .copertina .copertina__testo nav a,
+  .copertina .copertina__testo nav span {
+    color: #fff !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  }
+
+  .copertina .copertina__testo nav a {
+    text-decoration: none;
+  }
+
+  .copertina .copertina__testo nav a:hover {
+    text-decoration: underline;
   }
 
   /* le sezioni (Mare Italia, Estero, Montagna, Crociere) sulla foto, in basso al centro */
