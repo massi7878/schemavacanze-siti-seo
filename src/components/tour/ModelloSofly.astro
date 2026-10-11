@@ -205,8 +205,8 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
 
   .sofly__colonne {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 19rem;
-    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) clamp(14.5rem, 26vw, 19rem);
+    gap: clamp(1rem, 2.5vw, 2rem);
     align-items: start;
   }
 
@@ -552,8 +552,8 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
 
   .prenota {
     display: grid;
-    gap: 0.6rem;
-    padding: 1rem;
+    gap: 0.5rem;
+    padding: 0.8rem;
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio);

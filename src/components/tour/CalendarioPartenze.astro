@@ -423,8 +423,8 @@ const primaData = partenze[0]?.data_partenza ?? null
   /* check-in (si clicca e si apre il calendario) e check-out (si compila da solo), affiancati */
   .cal__date {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(6.2rem, 1fr));
+    gap: 0.4rem;
   }
 
   .cal__campo {
@@ -465,7 +465,7 @@ const primaData = partenze[0]?.data_partenza ?? null
   }
 
   .cal__popup {
-    padding: 0.6rem;
+    padding: 0.4rem;
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio-piccolo);
@@ -533,7 +533,7 @@ const primaData = partenze[0]?.data_partenza ?? null
   }
 
   .cal__giorno small {
-    font-size: 0.62rem;
+    font-size: 0.55rem;
     line-height: 1.1;
     color: var(--colore-primario-scuro);
     font-weight: 700;
@@ -650,7 +650,7 @@ const primaData = partenze[0]?.data_partenza ?? null
 
   .cal__ospiti-riga {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(4.2rem, 1fr));
     gap: 0.4rem 0.4rem;
   }
 
