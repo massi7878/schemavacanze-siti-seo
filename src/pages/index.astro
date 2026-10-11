@@ -6,7 +6,18 @@ import SlideshowHome from '../components/SlideshowHome.astro'
 import { getSlideshow, getStruttureElenco, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
 
 const strutture = await getStruttureElenco()
-const slide = await getSlideshow('home')
+const slideHome = await getSlideshow('home')
+// Senza foto nella sezione Home dello slideshow, la home presenta le sezioni con la prima foto di ciascuna.
+let slide = slideHome
+if (slide.length === 0) {
+  const [fs, ft, fd] = await Promise.all([getSlideshow('strutture'), getSlideshow('tour'), getSlideshow('destinazioni')])
+  const sezioni = [
+    { foto: fs[0], titolo: 'Strutture', sottotitolo: 'Villaggi, hotel e resort selezionati: schede con spiaggia, camere, formula e prezzi.', link: '/strutture/' },
+    { foto: ft[0], titolo: 'Tour', sottotitolo: 'Viaggi nel mondo con partenze garantite, guida o assistenza in italiano.', link: '/tour/' },
+    { foto: fd[0], titolo: 'Destinazioni', sottotitolo: 'Scegli la meta: mare Italia, estero, montagna e crociere.', link: '/destinazioni/' },
+  ]
+  slide = sezioni.filter(x => x.foto).map(x => ({ url: x.foto.url, titolo: x.titolo, sottotitolo: x.sottotitolo, link: x.link }))
+}
 const categorie = await getDestinazioniPerCategoria()
 const tipologie = await getTipologieStruttura()
 const urlCanonica = new URL('/', Astro.site).toString()

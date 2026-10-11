@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import CardOfferta from '../../components/CardOfferta.astro'
+import CopertinaSezione from '../../components/CopertinaSezione.astro'
+import { getSlideshow } from '../../lib/queries'
 import { getFiltriOfferte, getOffertePubbliche, NOME_TIPO_OFFERTA, NOME_TIPO_PUNTO } from '../../lib/offerte'
 
 // Generata al momento della richiesta (cache breve su Vercel): le offerte salvate nel gestionale
@@ -9,6 +11,7 @@ export const prerender = false
 Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600')
 
 const offerte = await getOffertePubbliche()
+const slide = await getSlideshow('offerte')
 const filtri = await getFiltriOfferte()
 const tipiPresenti = [...new Set(offerte.map(o => o.tipo))]
 
@@ -24,17 +27,13 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
-  <section class="apertura">
-    <div class="contenitore apertura__interno">
-      <nav class="briciole" aria-label="Percorso">
-        <a href="/">Home</a>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">Offerte</span>
-      </nav>
-      <h1>Offerte</h1>
-      <p>{offerte.length > 0 ? `${offerte.length} offerte attive, con prezzo e date reali.` : 'Nessuna offerta attiva al momento: torna a trovarci presto.'}</p>
-    </div>
-  </section>
+  <CopertinaSezione slide={slide} titolo="Offerte" sottotitolo={offerte.length > 0 ? `${offerte.length} offerte attive, con prezzo e date reali.` : 'Nessuna offerta attiva al momento: torna a trovarci presto.'} compatta>
+    <nav slot="alto" class="briciole" aria-label="Percorso">
+      <a href="/">Home</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">Offerte</span>
+    </nav>
+  </CopertinaSezione>
 
   <main class="contenitore pagina-offerte" data-url-supabase={urlSupabase} data-chiave={chiaveAnon}>
     {offerte.length > 0 && (
