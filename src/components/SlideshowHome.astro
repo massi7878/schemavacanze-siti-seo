@@ -1,0 +1,200 @@
+---
+// Slideshow della home: una foto grande per ognuna delle sezioni principali (Strutture, Tour, Pacchetti...),
+// con titolo, sottotitolo e tasto verso la sezione. Le foto si gestiscono nel gestionale
+// (Impostazioni -> Slideshow del sito, sezione Home); se non ce n'e' nessuna si usano queste di riserva.
+// La sezione Pacchetti/Offerte e' in sospeso: si aggiunge dal gestionale quando si decide.
+import type { SlideSito } from '../lib/queries'
+
+interface Props {
+  slide?: SlideSito[]
+}
+
+const FOTO_RISERVA = 'https://www.schemavacanze.it/gallery/17595.jpg'
+const RISERVA: SlideSito[] = [
+  { url: FOTO_RISERVA, titolo: 'Strutture', sottotitolo: 'Villaggi, hotel e resort selezionati: schede con spiaggia, camere, formula e prezzi.', link: '/strutture/' },
+  { url: FOTO_RISERVA, titolo: 'Tour', sottotitolo: 'Viaggi nel mondo con partenze garantite, guida o assistenza in italiano.', link: '/tour/' },
+]
+const { slide = [] } = Astro.props
+const slides = slide.length > 0 ? slide : RISERVA
+---
+
+<section class="slide-home" data-slide-home data-quante={slides.length} aria-roledescription="carosello" aria-label="Le sezioni del sito">
+  {slides.map((s, i) => (
+    <div class="slide-home__slide" data-i={i} style={`background-image: url('${s.url}'); opacity: ${i === 0 ? 1 : 0};`} aria-hidden={i === 0 ? 'false' : 'true'}>
+      <div class="slide-home__velo"></div>
+      <div class="contenitore slide-home__testo">
+        {s.titolo && (i === 0 ? <h1 class="slide-home__titolo">{s.titolo}</h1> : <h2 class="slide-home__titolo">{s.titolo}</h2>)}
+        {s.sottotitolo && <p>{s.sottotitolo}</p>}
+        {s.link && <a class="slide-home__tasto" href={s.link}>{s.titolo ? `Scopri ${s.titolo.toLowerCase()}` : 'Scopri'}</a>}
+      </div>
+    </div>
+  ))}
+  {slides.length > 1 && (
+    <>
+      <button type="button" class="slide-home__freccia slide-home__freccia--prec" data-verso="-1" aria-label="Foto precedente">‹</button>
+      <button type="button" class="slide-home__freccia slide-home__freccia--succ" data-verso="1" aria-label="Foto successiva">›</button>
+      <div class="slide-home__punti" role="tablist">
+        {slides.map((_, i) => <button type="button" role="tab" data-vai={i} aria-label={`Vai alla foto ${i + 1}`} class:list={{ attivo: i === 0 }}></button>)}
+      </div>
+    </>
+  )}
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-slide-home]').forEach(radice => {
+    const slide = [...radice.querySelectorAll<HTMLElement>('.slide-home__slide')]
+    const punti = [...radice.querySelectorAll<HTMLButtonElement>('[data-vai]')]
+    if (slide.length < 2) return
+    let corrente = 0
+    let timer: number | undefined
+
+    function mostra(n: number) {
+      corrente = (n + slide.length) % slide.length
+      slide.forEach((s, i) => {
+        s.style.opacity = i === corrente ? '1' : '0'
+        s.style.pointerEvents = i === corrente ? 'auto' : 'none'
+        s.setAttribute('aria-hidden', i === corrente ? 'false' : 'true')
+      })
+      punti.forEach((p, i) => p.classList.toggle('attivo', i === corrente))
+    }
+    function riparti() {
+      window.clearInterval(timer)
+      timer = window.setInterval(() => mostra(corrente + 1), 6500)
+    }
+    radice.querySelectorAll<HTMLButtonElement>('[data-verso]').forEach(b =>
+      b.addEventListener('click', () => {
+        mostra(corrente + Number(b.dataset.verso))
+        riparti()
+      })
+    )
+    punti.forEach(p =>
+      p.addEventListener('click', () => {
+        mostra(Number(p.dataset.vai))
+        riparti()
+      })
+    )
+    radice.addEventListener('mouseenter', () => window.clearInterval(timer))
+    radice.addEventListener('mouseleave', riparti)
+    riparti()
+  })
+</script>
+
+<style is:global>
+  .slide-home {
+    position: relative;
+    min-height: 32rem;
+    overflow: hidden;
+    color: #fff;
+    background: var(--colore-primario-scuro);
+  }
+
+  .slide-home__slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    background-size: cover;
+    background-position: center;
+    transition: opacity 1s ease;
+  }
+
+  .slide-home__velo {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(10, 18, 28, 0.72), rgba(10, 18, 28, 0.25) 60%, rgba(10, 18, 28, 0.1));
+  }
+
+  .slide-home__testo {
+    position: relative;
+    z-index: 1;
+    padding-block: 3rem;
+  }
+
+  .slide-home__titolo {
+    font-size: clamp(2.6rem, 2rem + 3.5vw, 4.6rem);
+    color: #fff;
+    margin: 0 0 0.75rem;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .slide-home__testo p {
+    max-width: 34rem;
+    font-size: 1.15rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0 0 1.5rem;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+  }
+
+  .slide-home__tasto {
+    display: inline-block;
+    padding: 0.75em 1.8em;
+    border-radius: 999px;
+    background: var(--accento);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .slide-home__tasto:hover {
+    background: var(--accento-scuro);
+  }
+
+  .slide-home__freccia {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    transform: translateY(-50%);
+    width: 2.8rem;
+    height: 2.8rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--inchiostro);
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .slide-home__freccia--prec {
+    left: 1rem;
+  }
+
+  .slide-home__freccia--succ {
+    right: 1rem;
+  }
+
+  .slide-home__punti {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 1.1rem;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .slide-home__punti button {
+    width: 0.7rem;
+    height: 0.7rem;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .slide-home__punti button.attivo {
+    background: #fff;
+  }
+
+  @media (max-width: 640px) {
+    .slide-home {
+      min-height: 26rem;
+    }
+
+    .slide-home__freccia {
+      display: none;
+    }
+  }
+</style>

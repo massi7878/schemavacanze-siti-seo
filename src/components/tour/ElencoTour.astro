@@ -1,5 +1,7 @@
 ---
 import CardTour from '../CardTour.astro'
+import CopertinaSezione from '../CopertinaSezione.astro'
+import { getSlideshow } from '../../lib/queries'
 import { getToursPubblici, paesiDi, periodiProposti } from '../../lib/tour'
 
 // Elenco dei tour con i filtri. soloGuida = sezione "Tour con guida in italiano" (la guida e' sempre attiva).
@@ -9,6 +11,7 @@ interface Props {
 const { soloGuida = false } = Astro.props
 
 const tour = await getToursPubblici(soloGuida)
+const slide = await getSlideshow('tour')
 const paesi = [...new Set(tour.flatMap(t => paesiDi(t.paese)))].sort((a, b) => a.localeCompare(b, 'it'))
 const nottiMax = tour.length ? Math.max(...tour.map(t => t.notti)) : 0
 const nottiMin = tour.length ? Math.min(...tour.map(t => t.notti)) : 0
@@ -19,29 +22,98 @@ const INIZIALI = 48
 const urlSupabase = import.meta.env.PUBLIC_SUPABASE_URL
 const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
-  <section class="apertura">
-    <div class="contenitore apertura__interno">
-      <nav class="briciole" aria-label="Percorso">
-        <a href="/">Home</a>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">Tour</span>
-      </nav>
-      <h1>{soloGuida ? 'Tour con guida in italiano' : 'Tour nel mondo'}</h1>
-      {soloGuida ? (
-        <p>
-          {tour.length > 0
-            ? `${tour.length} tour con guida o assistenza in lingua italiana, date di partenza e prezzi reali. Dove la guida in italiano è su richiesta o insieme ad altre lingue lo trovi scritto sulla scheda.`
-            : 'Nessun tour con guida in italiano disponibile al momento: torna a trovarci presto.'}
-          {' '}<a href="/tour/">Vedi tutti i tour</a>
-        </p>
-      ) : (
-        <p>
-          {tour.length > 0 ? `${tour.length} tour con assistenza in italiano, date di partenza e prezzi reali.` : 'Nessun tour disponibile al momento: torna a trovarci presto.'}
-          {tour.length > 0 && <>{' '}<a href="/tour/guida-in-italiano/">Solo i tour con guida in italiano</a></>}
-        </p>
+  <CopertinaSezione slide={slide} titolo={soloGuida ? 'Tour con guida in italiano' : 'Tour nel mondo'} sottotitolo={tour.length > 0 ? (soloGuida ? `${tour.length} tour con guida o assistenza in italiano, date di partenza e prezzi reali.` : `${tour.length} tour con assistenza in italiano, date di partenza e prezzi reali.`) : 'Nessun tour disponibile al momento: torna a trovarci presto.'}>
+    <nav slot="alto" class="briciole" aria-label="Percorso">
+      <a href="/">Home</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">Tour</span>
+    </nav>
+      {tour.length > 0 && (
+        <form class="filtri" id="filtri-tour" aria-label="Filtra i tour">
+          <div class="filtri__riga filtri__riga--principale">
+            <label class="filtri__ricerca">
+              Cerca per testo
+              <span class="filtri__ricercariga">
+                <input type="search" name="testo" placeholder="Destinazione o nome del tour..." autocomplete="off" />
+                <button type="submit" class="filtri__cerca">Cerca</button>
+              </span>
+            </label>
+            <label>
+              Nazione
+              <select name="paese">
+                <option value="">Tutte</option>
+                {paesi.map(p => <option value={p}>{p}</option>)}
+              </select>
+            </label>
+            <label>
+              Periodo di partenza
+              <select name="periodo">
+                <option value="">Qualsiasi</option>
+                {periodi.map(p => <option value={p.valore} data-dal={p.dal} data-al={p.al}>{p.etichetta}</option>)}
+              </select>
+            </label>
+            <label>
+              Tipo di viaggio
+              <select name="tipo">
+                <option value="">Tutti</option>
+                <option value="guidato">Guidato (con guida)</option>
+                <option value="self">Self made (viaggio libero)</option>
+              </select>
+            </label>
+          </div>
+  
+          <details class="filtri__altri">
+            <summary>Altri filtri: date, prezzo, durata, ordine</summary>
+            <div class="filtri__riga">
+              <label>
+                Partenza dal
+                <input type="date" name="dal" />
+              </label>
+              <label>
+                al
+                <input type="date" name="al" />
+              </label>
+              {!soloGuida && (
+                <label class="filtri__spunta">
+                  <input type="checkbox" name="guida" value="1" />
+                  Solo con guida in italiano
+                </label>
+              )}
+              <label>
+                Prezzo massimo (€)
+                <input type="number" name="prezzo" min="0" step="50" inputmode="numeric" placeholder={prezzoMax ? `fino a ${prezzoMax}` : ''} />
+              </label>
+              <label>
+                Ordina per
+                <select name="ordine">
+                  <option value="data">Prima partenza</option>
+                  <option value="prezzo">Prezzo</option>
+                  <option value="durata">Durata</option>
+                  <option value="recenti">Più recenti</option>
+                </select>
+              </label>
+            </div>
+  
+            <div class="durata">
+              <strong id="durata-testo" class="durata__testo">Durata: qualsiasi</strong>
+              <div class="range-doppio">
+                <div class="range-doppio__traccia"></div>
+                <div class="range-doppio__selezione" id="durata-selezione"></div>
+                <input type="range" name="notti_min" min={nottiMin} max={nottiMax} step="1" value={nottiMin} aria-label="Numero minimo di notti" />
+                <input type="range" name="notti_max" min={nottiMin} max={nottiMax} step="1" value={nottiMax} aria-label="Numero massimo di notti" />
+              </div>
+              <div class="range-doppio__estremi"><span id="durata-estremo-min">{nottiMin} notti</span><span id="durata-estremo-max">{nottiMax} notti</span></div>
+            </div>
+          </details>
+  
+          <div class="filtri__azioni">
+            <button type="reset" class="filtri__azzera" id="azzera-filtri">Azzera i filtri</button>
+            <span class="filtri__esito" id="esito-filtri" role="status" aria-live="polite"></span>
+            {soloGuida ? <a class="filtri__link" href="/tour/">Vedi tutti i tour</a> : <a class="filtri__link" href="/tour/guida-in-italiano/">Solo i tour con guida in italiano</a>}
+          </div>
+        </form>
       )}
-    </div>
-  </section>
+  </CopertinaSezione>
 
   <main
     class="contenitore pagina-tour"
@@ -52,77 +124,6 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     data-notti-min={nottiMin}
     data-guida={soloGuida ? '1' : '0'}
   >
-    {tour.length > 0 && (
-      <form class="filtri" id="filtri-tour" aria-label="Filtra i tour">
-        <div class="filtri__riga">
-          <label>
-            Nazione
-            <select name="paese">
-              <option value="">Tutte</option>
-              {paesi.map(p => <option value={p}>{p}</option>)}
-            </select>
-          </label>
-          <label>
-            Periodo di partenza
-            <select name="periodo">
-              <option value="">Qualsiasi</option>
-              {periodi.map(p => <option value={p.valore} data-dal={p.dal} data-al={p.al}>{p.etichetta}</option>)}
-            </select>
-          </label>
-          <label>
-            Partenza dal
-            <input type="date" name="dal" />
-          </label>
-          <label>
-            al
-            <input type="date" name="al" />
-          </label>
-          <label>
-            Tipo di viaggio
-            <select name="tipo">
-              <option value="">Tutti</option>
-              <option value="guidato">Guidato (con guida)</option>
-              <option value="self">Self made (viaggio libero)</option>
-            </select>
-          </label>
-          {!soloGuida && (
-            <label class="filtri__spunta">
-              <input type="checkbox" name="guida" value="1" />
-              Solo con guida in italiano
-            </label>
-          )}
-          <label>
-            Prezzo massimo (€)
-            <input type="number" name="prezzo" min="0" step="50" inputmode="numeric" placeholder={prezzoMax ? `fino a ${prezzoMax}` : ''} />
-          </label>
-          <label>
-            Ordina per
-            <select name="ordine">
-              <option value="data">Prima partenza</option>
-              <option value="prezzo">Prezzo</option>
-              <option value="durata">Durata</option>
-              <option value="recenti">Più recenti</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="durata">
-          <strong id="durata-testo" class="durata__testo">Durata: qualsiasi</strong>
-          <div class="range-doppio">
-            <div class="range-doppio__traccia"></div>
-            <div class="range-doppio__selezione" id="durata-selezione"></div>
-            <input type="range" name="notti_min" min={nottiMin} max={nottiMax} step="1" value={nottiMin} aria-label="Numero minimo di notti" />
-            <input type="range" name="notti_max" min={nottiMin} max={nottiMax} step="1" value={nottiMax} aria-label="Numero massimo di notti" />
-          </div>
-          <div class="range-doppio__estremi"><span id="durata-estremo-min">{nottiMin} notti</span><span id="durata-estremo-max">{nottiMax} notti</span></div>
-        </div>
-
-        <div class="filtri__azioni">
-          <button type="reset" class="filtri__azzera" id="azzera-filtri">Azzera i filtri</button>
-          <span class="filtri__esito" id="esito-filtri" role="status" aria-live="polite"></span>
-        </div>
-      </form>
-    )}
 
     {tour.length > 0 ? (
       <>
@@ -325,6 +326,21 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     attesaFiltri = window.setTimeout(aggiornaFiltri, 250)
   }
 
+  const normalizza = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+  // la ricerca per testo guarda nome, sottotitolo e nazione dei risultati degli altri filtri
+  function perTesto(lista: Tour[]) {
+    const testo = normalizza(campo('testo')).trim()
+    if (!testo) return lista
+    return lista.filter(t => normalizza(`${t.nome} ${t.sottotitolo ?? ''} ${t.paese ?? ''}`).includes(testo))
+  }
+
+  function ricalcolaIntervallo() {
+    const notti = perTesto(base).map(t => t.notti)
+    nMin = notti.length ? Math.min(...notti) : 0
+    nMax = notti.length ? Math.max(...notti) : 0
+  }
+
   function parametri() {
     const p: Record<string, unknown> = { p_limit: 1000, p_ordine: campo('ordine') || 'data' }
     if (campo('paese')) p.p_paese = campo('paese')
@@ -350,7 +366,8 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   // applica la durata scelta ai risultati degli altri filtri e ridisegna l'elenco
   function rendi() {
     const { da, a, filtrata } = durataScelta()
-    risultati = filtrata ? base.filter(t => t.notti >= da && t.notti <= a) : base
+    const perTesti = perTesto(base)
+    risultati = filtrata ? perTesti.filter(t => t.notti >= da && t.notti <= a) : perTesti
     disegna(0)
     disegnaBarra()
     if (nessuno) nessuno.hidden = risultati.length > 0
@@ -373,9 +390,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       base = trovati
       baseCaricata = true
       // la barra si restringe alla durata dei tour rimasti
-      const notti = trovati.map(t => t.notti)
-      nMin = notti.length ? Math.min(...notti) : 0
-      nMax = notti.length ? Math.max(...notti) : 0
+      ricalcolaIntervallo()
       rendi()
       aggiornaFiltri()
     } catch {
@@ -404,6 +419,12 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   })
   modulo?.addEventListener('input', e => {
     const nome = (e.target as HTMLInputElement).name
+    if (nome === 'testo' && baseCaricata) {
+      // la ricerca per testo filtra i risultati gia' caricati, senza altre richieste
+      ricalcolaIntervallo()
+      rendi()
+      return
+    }
     if (nome === 'notti_min' || nome === 'notti_max') {
       // spostare la barra non richiede altre richieste: filtra i risultati gia' presenti
       const da = Number(barraMin?.value)
@@ -427,7 +448,14 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     scelteA = null
     window.setTimeout(applica, 0)
   })
-  modulo?.addEventListener('submit', e => e.preventDefault())
+  modulo?.addEventListener('submit', e => {
+    e.preventDefault()
+    if (baseCaricata) {
+      ricalcolaIntervallo()
+      rendi()
+    } else applica()
+    griglia?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
   bottoneAltri?.addEventListener('click', () => disegna(mostrati))
   disegnaBarra()
   // l'elenco iniziale e' gia' nella pagina (48 schede per i motori di ricerca): conta quanti ce ne sono
@@ -468,17 +496,70 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
   /* solo sopra/sotto: i lati li da' .contenitore */
   .pagina-tour {
-    padding-block: 1rem 4rem;
+    padding-block: 2rem 4rem;
   }
 
   .filtri {
     display: grid;
-    gap: 0.9rem;
-    padding: 1.1rem 1.25rem;
-    margin-bottom: 2rem;
-    background: var(--superficie);
+    gap: 0.75rem;
+  }
+
+  .filtri__riga--principale {
+    grid-template-columns: minmax(16rem, 2fr) repeat(auto-fit, minmax(10rem, 1fr));
+  }
+
+  .filtri__ricercariga {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .filtri__ricercariga input {
+    flex: 1;
+  }
+
+  .filtri__cerca {
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 0.55em 1.3em;
+    border: none;
+    border-radius: var(--raggio-piccolo);
+    background: var(--accento);
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .filtri__cerca:hover {
+    background: var(--accento-scuro);
+  }
+
+  .filtri__altri summary {
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--colore-primario-scuro);
+    margin-bottom: 0.6rem;
+  }
+
+  .filtri__altri[open] summary {
+    margin-bottom: 0.9rem;
+  }
+
+  .filtri__link {
+    margin-left: auto;
+    font-size: 0.88rem;
+    color: var(--colore-primario-scuro);
+  }
+
+  .filtri input[type='search'] {
+    font: inherit;
+    font-size: 0.92rem;
+    padding: 0.55em 0.7em;
     border: 1px solid var(--bordo);
-    border-radius: var(--raggio);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    min-width: 0;
   }
 
   .filtri__riga {

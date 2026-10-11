@@ -2,19 +2,13 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../components/GrigliaStrutture.astro'
 import FiltroSezioni from '../components/FiltroSezioni.astro'
-import { getAzienda, getCopertinaHomepage, getStruttureElenco, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
+import SlideshowHome from '../components/SlideshowHome.astro'
+import { getSlideshow, getStruttureElenco, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
 
 const strutture = await getStruttureElenco()
-const azienda = await getAzienda()
-const copertine = await getCopertinaHomepage()
+const slide = await getSlideshow('home')
 const categorie = await getDestinazioniPerCategoria()
 const tipologie = await getTipologieStruttura()
-// Finche' nel gestionale non viene caricata almeno una foto di copertina,
-// resta questa di riserva (una foto reale gia' in uso altrove sul sito).
-const foto = copertine.length > 0 ? copertine : ['https://www.schemavacanze.it/gallery/17595.jpg']
-// con piu' di una foto attiva nello slideshow della home le foto scorrono da sole
-const slideshow = foto.length > 1
-
 const urlCanonica = new URL('/', Astro.site).toString()
 ---
 
@@ -23,16 +17,7 @@ const urlCanonica = new URL('/', Astro.site).toString()
   descrizione="Villaggi turistici e strutture ricettive selezionate da Hotellando, con schede dettagliate su spiaggia, camere, formula e prezzi."
   urlCanonica={urlCanonica}
 >
-  <section class="apertura" data-slideshow={slideshow ? 'true' : 'false'}>
-    {foto.map((url, i) => (
-      <div class="apertura__foto" style={`background-image: url('${url}'); opacity: ${i === 0 ? 1 : 0};`} />
-    ))}
-    <div class="apertura__sfondo"></div>
-    <div class="contenitore apertura__interno">
-      <h1>Villaggi selezionati, prenotazione facile.</h1>
-      <p>Ogni scheda riporta solo dati verificati dalla nostra agenzia: spiaggia, camere, formula e prezzi, mai stimati.</p>
-    </div>
-  </section>
+  <SlideshowHome slide={slide} />
 
   <main class="contenitore pagina-home">
     {categorie.length > 0 && (
@@ -55,21 +40,6 @@ const urlCanonica = new URL('/', Astro.site).toString()
     <GrigliaStrutture strutture={strutture} />
   </main>
 </BaseLayout>
-
-{slideshow && (
-  <script>
-    const apertura = document.querySelector('.apertura[data-slideshow="true"]')
-    const foto = apertura?.querySelectorAll<HTMLElement>('.apertura__foto')
-    if (foto && foto.length > 1) {
-      let indice = 0
-      setInterval(() => {
-        foto[indice].style.opacity = '0'
-        indice = (indice + 1) % foto.length
-        foto[indice].style.opacity = '1'
-      }, 5000)
-    }
-  </script>
-)}
 
 <style>
   .apertura {

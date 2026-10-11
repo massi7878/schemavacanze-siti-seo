@@ -1,0 +1,130 @@
+---
+// Copertina in cima alle pagine di elenco: foto grande (o slideshow, gestito nel gestionale in
+// Impostazioni -> Slideshow del sito), titolo e, in basso al centro, il riquadro con i filtri della pagina.
+// Con `compatta` la copertina e' piu' bassa e non porta filtri: nelle pagine di dettaglio (una tipologia,
+// una sezione, una destinazione) i filtri stanno nella colonna a sinistra.
+import type { SlideSito } from '../lib/queries'
+
+interface Props {
+  slide?: SlideSito[]
+  titolo: string
+  sottotitolo?: string | null
+  compatta?: boolean
+}
+
+const FOTO_RISERVA = 'https://www.schemavacanze.it/gallery/17595.jpg'
+const { slide = [], titolo, sottotitolo = null, compatta = false } = Astro.props
+const foto = slide.length > 0 ? slide.map(s => s.url) : [FOTO_RISERVA]
+const conFiltri = Astro.slots.has('default')
+---
+
+<section class="copertina" class:list={{ 'copertina--compatta': compatta, 'copertina--filtri': conFiltri }} data-copertina data-slideshow={foto.length > 1 ? 'true' : 'false'}>
+  {foto.map((url, i) => <div class="copertina__foto" style={`background-image: url('${url}'); opacity: ${i === 0 ? 1 : 0};`}></div>)}
+  <div class="copertina__velo"></div>
+  <div class="contenitore copertina__testo">
+    <slot name="alto" />
+    <h1>{titolo}</h1>
+    {sottotitolo && <p>{sottotitolo}</p>}
+  </div>
+  {conFiltri && (
+    <div class="contenitore copertina__filtri">
+      <div class="copertina__pannello">
+        <slot />
+      </div>
+    </div>
+  )}
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-copertina][data-slideshow="true"]').forEach(copertina => {
+    const foto = copertina.querySelectorAll<HTMLElement>('.copertina__foto')
+    let indice = 0
+    setInterval(() => {
+      foto[indice].style.opacity = '0'
+      indice = (indice + 1) % foto.length
+      foto[indice].style.opacity = '1'
+    }, 5500)
+  })
+</script>
+
+<style is:global>
+  .copertina {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 24rem;
+    overflow: hidden;
+    color: #fff;
+    background: var(--colore-primario-scuro);
+  }
+
+  .copertina--compatta {
+    min-height: 13rem;
+  }
+
+  .copertina--filtri {
+    min-height: 30rem;
+  }
+
+  .copertina__foto {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    transition: opacity 1.2s ease;
+  }
+
+  .copertina__velo {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(10, 18, 28, 0.35), rgba(10, 18, 28, 0.15) 45%, rgba(10, 18, 28, 0.6));
+  }
+
+  .copertina__testo,
+  .copertina__filtri {
+    position: relative;
+    z-index: 1;
+  }
+
+  .copertina__testo {
+    padding-block: 2rem 1rem;
+  }
+
+  .copertina__testo h1 {
+    font-size: clamp(2.1rem, 1.6rem + 2.4vw, 3.4rem);
+    color: #fff;
+    margin: 0 0 0.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+
+  .copertina__testo p {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.1rem;
+    max-width: 36rem;
+    margin: 0;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  }
+
+  .copertina .briciole,
+  .copertina .briciole a {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  /* riquadro dei filtri: in basso, al centro della foto */
+  .copertina__filtri {
+    padding-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .copertina__pannello {
+    width: 100%;
+    max-width: 64rem;
+    background: rgba(255, 255, 255, 0.97);
+    color: var(--testo);
+    border-radius: var(--raggio);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.45);
+    padding: 1rem 1.25rem;
+  }
+</style>

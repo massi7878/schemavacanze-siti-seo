@@ -3,9 +3,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
 import FiltroDestinazioni from '../../components/FiltroDestinazioni.astro'
 import FiltroSezioni from '../../components/FiltroSezioni.astro'
-import FiltroStelle from '../../components/FiltroStelle.astro'
+import CopertinaSezione from '../../components/CopertinaSezione.astro'
+import FiltriElenco from '../../components/FiltriElenco.astro'
 import Briciole from '../../components/Briciole.astro'
-import { getGerarchiaRegioniDestinazioni, getSlugDestinazioni, getStruttureDestinazione, getDestinazioniPerCategoria, percorsoDestinazione } from '../../lib/queries'
+import { getSlideshow, getGerarchiaRegioniDestinazioni, getSlugDestinazioni, getStruttureDestinazione, getDestinazioniPerCategoria, percorsoDestinazione } from '../../lib/queries'
 
 export async function getStaticPaths() {
   const slug = await getSlugDestinazioni()
@@ -26,6 +27,7 @@ const regioneSlugAttuale = destinazione.parent_id
   : destinazione.slug
 const destinazioneSlugAttuale = destinazione.parent_id ? destinazione.slug : null
 const categorie = await getDestinazioniPerCategoria()
+const slide = await getSlideshow('destinazioni')
 const categoriaSlugAttuale = categorie.find(c => c.nome === destinazione.categoria_nome)?.slug ?? null
 
 const percorso = await percorsoDestinazione(destinazione.id)
@@ -37,14 +39,9 @@ const descrizione = strutture.length > 0
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
-  <section class="apertura">
-    <div class="contenitore apertura__interno">
-      <Briciole voci={percorso.length > 0 ? percorso : [{ nome: destinazione.nome }]} />
-      <h1>Villaggi a {destinazione.nome}</h1>
-      {strutture.length > 0 && <p>{strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.</p>}
-      <FiltroSezioni categorie={categorie} categoriaSlugAttuale={categoriaSlugAttuale} />
-    </div>
-  </section>
+  <CopertinaSezione slide={slide} titolo={`Villaggi a ${destinazione.nome}`} sottotitolo={strutture.length > 0 ? `${strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.` : null} compatta>
+    <Briciole slot="alto" voci={percorso.length > 0 ? percorso : [{ nome: destinazione.nome }]} />
+  </CopertinaSezione>
 
   <main class="contenitore pagina-elenco" class:list={{ 'pagina-elenco--con-filtro': strutture.length > 0 }}>
     {strutture.length > 0 && (
@@ -52,7 +49,8 @@ const descrizione = strutture.length > 0
         {regioni.length > 0 && (
           <FiltroDestinazioni regioni={regioni} regioneSlugAttuale={regioneSlugAttuale} destinazioneSlugAttuale={destinazioneSlugAttuale} />
         )}
-        <FiltroStelle />
+        <FiltriElenco colonna />
+        <FiltroSezioni categorie={categorie} categoriaSlugAttuale={categoriaSlugAttuale} />
       </div>
     )}
     <div class="pagina-elenco__risultati">

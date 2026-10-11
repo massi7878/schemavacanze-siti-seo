@@ -2,8 +2,9 @@
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
 import FiltroSezioni from '../../components/FiltroSezioni.astro'
-import FiltroStelle from '../../components/FiltroStelle.astro'
-import { getTipologieStruttura, getStruttureTipologia, getDestinazioniPerCategoria } from '../../lib/queries'
+import CopertinaSezione from '../../components/CopertinaSezione.astro'
+import FiltriElenco from '../../components/FiltriElenco.astro'
+import { getSlideshow, getTipologieStruttura, getStruttureTipologia, getDestinazioniPerCategoria } from '../../lib/queries'
 
 export async function getStaticPaths() {
   const tipologie = await getTipologieStruttura()
@@ -15,6 +16,7 @@ const { tipologia, strutture } = await getStruttureTipologia(tipologiaSlug as st
 if (!tipologia) return Astro.redirect('/404')
 
 const categorie = await getDestinazioniPerCategoria()
+const slide = await getSlideshow('strutture')
 
 const urlCanonica = new URL(`/strutture/${tipologia.slug}/`, Astro.site).toString()
 const titolo = `${tipologia.nome} | Hotellando`
@@ -22,23 +24,21 @@ const descrizione = `${strutture.length} strutture selezionate nella categoria $
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
-  <section class="apertura">
-    <div class="contenitore apertura__interno">
-      <nav class="briciole" aria-label="Percorso">
-        <a href="/">Home</a>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{tipologia.nome}</span>
-      </nav>
-      <h1>{tipologia.nome}</h1>
-      <p>{strutture.length} strutture selezionate in questa categoria.</p>
-      <FiltroSezioni categorie={categorie} />
-    </div>
-  </section>
+  <CopertinaSezione slide={slide} titolo={tipologia.nome} sottotitolo={`${strutture.length} strutture selezionate in questa categoria.`} compatta>
+    <nav slot="alto" class="briciole" aria-label="Percorso">
+      <a href="/">Home</a>
+      <span aria-hidden="true">/</span>
+      <a href="/strutture/">Strutture</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">{tipologia.nome}</span>
+    </nav>
+  </CopertinaSezione>
 
   <main class="contenitore pagina-elenco" class:list={{ 'pagina-elenco--con-filtro': strutture.length > 0 }}>
     {strutture.length > 0 && (
       <aside class="filtro-laterale" aria-label="Filtra">
-        <FiltroStelle />
+        <FiltriElenco colonna />
+        <FiltroSezioni categorie={categorie} />
       </aside>
     )}
     <div class="pagina-elenco__risultati">

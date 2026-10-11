@@ -20,7 +20,7 @@ const { strutture } = Astro.props
 
 <ul class="griglia-strutture" data-griglia-strutture>
   {strutture.map(s => (
-    <li data-stelle={s.stelle ?? ''}>
+    <li data-stelle={s.stelle ?? ''} data-testo={`${s.nome} ${s.localita ?? ''} ${s.regione ?? ''}`}>
       <a class="scheda-struttura" href={`/struttura/${s.slug}/`}>
         <div class="scheda-struttura__immagine">
           {s.copertina

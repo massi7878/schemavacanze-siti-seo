@@ -23,6 +23,7 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
       <details class="menu-tendina">
         <summary>Strutture</summary>
         <div class="menu-tendina__pannello">
+          <a href="/strutture/" class="menu-tendina__intestazione">Tutte le strutture</a>
           {tipologieStruttura.map(t => <a href={`/strutture/${t.slug}/`}>{t.nome}</a>)}
         </div>
       </details>
@@ -30,6 +31,7 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
       <details class="menu-tendina">
         <summary>Destinazioni</summary>
         <div class="menu-tendina__pannello menu-tendina__pannello--colonne">
+          <div class="menu-tendina__gruppo"><a href="/destinazioni/" class="menu-tendina__intestazione">Tutte le destinazioni</a></div>
           {categorieDestinazioni.map(cat => (
             <div class="menu-tendina__gruppo">
               <a href={`/categoria/${cat.slug}/`} class="menu-tendina__intestazione">{cat.nome}</a>
@@ -65,6 +67,7 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
       <details>
         <summary>Strutture</summary>
         <div class="testata-sito__mobile-pannello">
+          <a href="/strutture/" class="menu-tendina__intestazione">Tutte le strutture</a>
           {tipologieStruttura.map(t => <a href={`/strutture/${t.slug}/`}>{t.nome}</a>)}
         </div>
       </details>
@@ -72,6 +75,7 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
       <details>
         <summary>Destinazioni</summary>
         <div class="testata-sito__mobile-pannello">
+          <a href="/destinazioni/" class="menu-tendina__intestazione">Tutte le destinazioni</a>
           {categorieDestinazioni.map(cat => (
             <>
               <a href={`/categoria/${cat.slug}/`} class="menu-tendina__intestazione">{cat.nome}</a>

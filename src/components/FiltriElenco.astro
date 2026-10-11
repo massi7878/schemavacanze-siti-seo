@@ -1,0 +1,148 @@
+---
+// Filtri delle pagine con un elenco di strutture: "Cerca per testo" (con il tasto Cerca) e stelle.
+// Filtrano la griglia gia' a schermo (data-griglia-strutture): la ricerca guarda nome, localita' e regione.
+// `colonna` = nella colonna a sinistra (pagine di dettaglio); altrimenti in riga dentro la copertina.
+interface Props {
+  colonna?: boolean
+  conStelle?: boolean
+}
+const { colonna = false, conStelle = true } = Astro.props
+---
+
+<form class="filtri-elenco" class:list={{ 'filtri-elenco--colonna': colonna }} data-filtri-elenco role="search" aria-label="Cerca nell'elenco">
+  <label class="filtri-elenco__campo filtri-elenco__ricerca">
+    <span>Cerca per testo</span>
+    <span class="filtri-elenco__riga">
+      <input type="search" name="testo" placeholder="Nome, località, regione..." autocomplete="off" />
+      <button type="submit" class="filtri-elenco__cerca">Cerca</button>
+    </span>
+  </label>
+  {conStelle && (
+    <label class="filtri-elenco__campo">
+      <span>Stelle</span>
+      <select name="stelle">
+        <option value="">Tutte</option>
+        <option value="3">3 stelle</option>
+        <option value="4">4 stelle</option>
+        <option value="5">5 stelle</option>
+        <option value="6">6 stelle</option>
+      </select>
+    </label>
+  )}
+  <slot />
+  <p class="filtri-elenco__esito" data-esito-elenco role="status" aria-live="polite"></p>
+</form>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>('[data-filtri-elenco]').forEach(modulo => {
+    const griglia = document.querySelector<HTMLElement>('[data-griglia-strutture]')
+    const vuoto = document.querySelector<HTMLElement>('[data-griglia-vuoto]')
+    const esito = modulo.querySelector<HTMLElement>('[data-esito-elenco]')
+    if (!griglia) return
+    const righe = [...griglia.querySelectorAll<HTMLLIElement>('li')]
+    const normalizza = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+    function applica() {
+      const testo = normalizza(String((modulo.elements.namedItem('testo') as HTMLInputElement)?.value ?? '')).trim()
+      const stelle = String((modulo.elements.namedItem('stelle') as HTMLSelectElement | null)?.value ?? '')
+      let visibili = 0
+      for (const riga of righe) {
+        const ok = (!stelle || riga.dataset.stelle === stelle) && (!testo || normalizza(riga.dataset.testo ?? '').includes(testo))
+        riga.hidden = !ok
+        if (ok) visibili++
+      }
+      if (vuoto) vuoto.hidden = visibili > 0
+      if (esito) esito.textContent = testo || stelle ? `${visibili} ${visibili === 1 ? 'struttura trovata' : 'strutture trovate'}` : ''
+    }
+
+    modulo.addEventListener('submit', e => {
+      e.preventDefault()
+      applica()
+      griglia.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    modulo.addEventListener('input', applica)
+    modulo.addEventListener('change', applica)
+    modulo.addEventListener('reset', () => setTimeout(applica, 0))
+  })
+</script>
+
+<style is:global>
+  .filtri-elenco {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1rem;
+  }
+
+  .filtri-elenco__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--testo);
+    min-width: 0;
+  }
+
+  .filtri-elenco__ricerca {
+    flex: 1 1 18rem;
+  }
+
+  .filtri-elenco__riga {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .filtri-elenco input[type='search'],
+  .filtri-elenco select {
+    font: inherit;
+    font-size: 0.92rem;
+    padding: 0.55em 0.75em;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    min-width: 0;
+  }
+
+  .filtri-elenco input[type='search'] {
+    flex: 1;
+  }
+
+  .filtri-elenco__cerca {
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 0.55em 1.3em;
+    border: none;
+    border-radius: var(--raggio-piccolo);
+    background: var(--accento);
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .filtri-elenco__cerca:hover {
+    background: var(--accento-scuro);
+  }
+
+  .filtri-elenco__esito {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+  }
+
+  .filtri-elenco__esito:empty {
+    display: none;
+  }
+
+  /* nella colonna a sinistra: un campo sotto l'altro */
+  .filtri-elenco--colonna {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtri-elenco--colonna .filtri-elenco__ricerca {
+    flex: none;
+  }
+</style>

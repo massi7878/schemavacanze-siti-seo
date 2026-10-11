@@ -2,10 +2,11 @@
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
 import FiltroSezioni from '../../components/FiltroSezioni.astro'
-import FiltroStelle from '../../components/FiltroStelle.astro'
+import CopertinaSezione from '../../components/CopertinaSezione.astro'
+import FiltriElenco from '../../components/FiltriElenco.astro'
 import Briciole from '../../components/Briciole.astro'
 import SelettoreDestinazioneCategoria from '../../components/SelettoreDestinazioneCategoria.astro'
-import { getSlugCategorie, getStruttureCategoria, getDestinazioniPerCategoria } from '../../lib/queries'
+import { getSlideshow, getSlugCategorie, getStruttureCategoria, getDestinazioniPerCategoria } from '../../lib/queries'
 
 export async function getStaticPaths() {
   const slug = await getSlugCategorie()
@@ -17,6 +18,7 @@ const { categoria, destinazioni, strutture } = await getStruttureCategoria(slug 
 if (!categoria) return Astro.redirect('/404')
 
 const categorie = await getDestinazioniPerCategoria()
+const slide = await getSlideshow('strutture')
 
 const urlCanonica = new URL(`/categoria/${categoria.slug}/`, Astro.site).toString()
 const titolo = `${categoria.nome} | Hotellando`
@@ -26,20 +28,16 @@ const descrizione = strutture.length > 0
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
-  <section class="apertura">
-    <div class="contenitore apertura__interno">
-      <Briciole voci={[{ nome: categoria.nome }]} />
-      <h1>{categoria.nome}</h1>
-      {strutture.length > 0 && <p>{strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.</p>}
-      <FiltroSezioni categorie={categorie} categoriaSlugAttuale={categoria.slug} />
-    </div>
-  </section>
+  <CopertinaSezione slide={slide} titolo={categoria.nome} sottotitolo={strutture.length > 0 ? `${strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.` : null} compatta>
+    <Briciole slot="alto" voci={[{ nome: categoria.nome }]} />
+  </CopertinaSezione>
 
   <main class="contenitore pagina-elenco" class:list={{ 'pagina-elenco--con-filtro': strutture.length > 0 }}>
     {strutture.length > 0 && (
       <aside class="filtro-laterale" aria-label="Filtra">
         {destinazioni.length > 0 && <SelettoreDestinazioneCategoria destinazioni={destinazioni} />}
-        <FiltroStelle />
+        <FiltriElenco colonna />
+        <FiltroSezioni categorie={categorie} categoriaSlugAttuale={categoria.slug} />
       </aside>
     )}
     <div class="pagina-elenco__risultati">

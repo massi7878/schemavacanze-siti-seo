@@ -1,0 +1,217 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import CopertinaSezione from '../../components/CopertinaSezione.astro'
+import { getSlideshow, getDestinazioniPerCategoria } from '../../lib/queries'
+
+// Tutte le destinazioni, per sezione (Mare Italia, Estero...): copertina con i filtri al centro in basso.
+// Scegliendo una destinazione si passa alla sua pagina, dove i filtri stanno nella colonna a sinistra.
+const [categorie, slide] = await Promise.all([getDestinazioniPerCategoria(), getSlideshow('destinazioni')])
+const totale = categorie.reduce((n, c) => n + c.destinazioni.length, 0)
+
+const urlCanonica = new URL('/destinazioni/', Astro.site).toString()
+const titolo = 'Destinazioni: mare Italia, estero, montagna e crociere | Hotellando'
+const descrizione = `${totale} destinazioni con strutture selezionate da Hotellando: scegli la meta e confronta villaggi, hotel e resort.`
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <CopertinaSezione slide={slide} titolo="Destinazioni" sottotitolo={`${totale} mete con strutture selezionate: scegli dove andare.`}>
+    <nav slot="alto" class="briciole" aria-label="Percorso">
+      <a href="/">Home</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">Destinazioni</span>
+    </nav>
+    <form class="filtri-dest" data-filtri-dest role="search" aria-label="Cerca tra le destinazioni">
+      <label class="filtri-dest__campo filtri-dest__ricerca">
+        <span>Cerca per testo</span>
+        <span class="filtri-dest__riga">
+          <input type="search" name="testo" placeholder="Nome della destinazione..." autocomplete="off" />
+          <button type="submit" class="filtri-dest__cerca">Cerca</button>
+        </span>
+      </label>
+      <label class="filtri-dest__campo">
+        <span>Sezione</span>
+        <select name="sezione">
+          <option value="">Tutte</option>
+          {categorie.map(c => <option value={c.slug}>{c.nome}</option>)}
+        </select>
+      </label>
+      <p class="filtri-dest__esito" data-esito-dest role="status" aria-live="polite"></p>
+    </form>
+  </CopertinaSezione>
+
+  <main class="contenitore pagina-destinazioni">
+    {categorie.map(c => (
+      <section class="gruppo" data-gruppo={c.slug}>
+        <h2><a href={`/categoria/${c.slug}/`}>{c.nome}</a></h2>
+        <ul class="gruppo__elenco">
+          {c.destinazioni.map(d => (
+            <li data-testo={d.nome}>
+              <a class="dest" href={`/destinazioni/${d.slug}/`}>{d.nome.trim()}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+    <p class="vuoto" data-dest-vuoto hidden>Nessuna destinazione corrisponde ai filtri scelti.</p>
+  </main>
+</BaseLayout>
+
+<script>
+  const modulo = document.querySelector<HTMLFormElement>('[data-filtri-dest]')
+  const gruppi = [...document.querySelectorAll<HTMLElement>('[data-gruppo]')]
+  const vuoto = document.querySelector<HTMLElement>('[data-dest-vuoto]')
+  const esito = document.querySelector<HTMLElement>('[data-esito-dest]')
+  const normalizza = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+  function applica() {
+    if (!modulo) return
+    const testo = normalizza(String((modulo.elements.namedItem('testo') as HTMLInputElement).value)).trim()
+    const sezione = String((modulo.elements.namedItem('sezione') as HTMLSelectElement).value)
+    let totale = 0
+    for (const gruppo of gruppi) {
+      let visibili = 0
+      gruppo.querySelectorAll<HTMLLIElement>('li').forEach(li => {
+        const ok = (!sezione || gruppo.dataset.gruppo === sezione) && (!testo || normalizza(li.dataset.testo ?? '').includes(testo))
+        li.hidden = !ok
+        if (ok) visibili++
+      })
+      gruppo.hidden = visibili === 0
+      totale += visibili
+    }
+    if (vuoto) vuoto.hidden = totale > 0
+    if (esito) esito.textContent = testo || sezione ? `${totale} ${totale === 1 ? 'destinazione trovata' : 'destinazioni trovate'}` : ''
+  }
+
+  modulo?.addEventListener('submit', e => {
+    e.preventDefault()
+    applica()
+    document.querySelector('.pagina-destinazioni')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+  modulo?.addEventListener('input', applica)
+  modulo?.addEventListener('change', applica)
+</script>
+
+<style is:global>
+  .filtri-dest {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1rem;
+  }
+
+  .filtri-dest__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--testo);
+    min-width: 0;
+  }
+
+  .filtri-dest__ricerca {
+    flex: 1 1 18rem;
+  }
+
+  .filtri-dest__riga {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .filtri-dest input[type='search'],
+  .filtri-dest select {
+    font: inherit;
+    font-size: 0.92rem;
+    padding: 0.55em 0.75em;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    min-width: 0;
+  }
+
+  .filtri-dest input[type='search'] {
+    flex: 1;
+  }
+
+  .filtri-dest__cerca {
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 0.55em 1.3em;
+    border: none;
+    border-radius: var(--raggio-piccolo);
+    background: var(--accento);
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .filtri-dest__cerca:hover {
+    background: var(--accento-scuro);
+  }
+
+  .filtri-dest__esito {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--testo-tenue);
+  }
+
+  .filtri-dest__esito:empty {
+    display: none;
+  }
+
+  .pagina-destinazioni {
+    padding: 2rem 0 4rem;
+  }
+
+  .pagina-destinazioni .gruppo {
+    margin-bottom: 2rem;
+  }
+
+  .pagina-destinazioni .gruppo h2 {
+    font-size: 1.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .pagina-destinazioni .gruppo h2 a {
+    color: var(--inchiostro);
+    text-decoration: none;
+  }
+
+  .pagina-destinazioni .gruppo h2 a:hover {
+    color: var(--colore-primario-scuro);
+  }
+
+  .pagina-destinazioni .gruppo__elenco {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  }
+
+  .pagina-destinazioni .dest {
+    display: block;
+    padding: 0.9rem 1.1rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+    color: var(--inchiostro);
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .pagina-destinazioni .dest:hover {
+    transform: translateY(-2px);
+    border-color: var(--colore-primario-scuro);
+    color: var(--colore-primario-scuro);
+  }
+
+  .pagina-destinazioni .vuoto {
+    color: var(--testo-tenue);
+  }
+</style>

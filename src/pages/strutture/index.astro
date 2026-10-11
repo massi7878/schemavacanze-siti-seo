@@ -1,0 +1,69 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import CopertinaSezione from '../../components/CopertinaSezione.astro'
+import FiltriElenco from '../../components/FiltriElenco.astro'
+import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
+import { getSlideshow, getStruttureElenco, getTipologieStruttura, getDestinazioniPerCategoria } from '../../lib/queries'
+
+// Tutte le strutture: copertina con i filtri al centro in basso. Scegliendo una tipologia o una sezione si passa
+// alla sua pagina, dove i filtri stanno nella colonna a sinistra.
+const [strutture, tipologie, categorie, slide] = await Promise.all([
+  getStruttureElenco(),
+  getTipologieStruttura(),
+  getDestinazioniPerCategoria(),
+  getSlideshow('strutture'),
+])
+
+const urlCanonica = new URL('/strutture/', Astro.site).toString()
+const titolo = 'Strutture selezionate: hotel, villaggi e resort | Hotellando'
+const descrizione = `${strutture.length} strutture selezionate da Hotellando, con schede su spiaggia, camere, formula e prezzi.`
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <CopertinaSezione slide={slide} titolo="Strutture" sottotitolo={`${strutture.length} strutture selezionate, con schede su camere, formula e prezzi.`}>
+    <nav slot="alto" class="briciole" aria-label="Percorso">
+      <a href="/">Home</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">Strutture</span>
+    </nav>
+    <FiltriElenco>
+      {tipologie.length > 0 && (
+        <label class="filtri-elenco__campo">
+          <span>Tipologia</span>
+          <select data-vai>
+            <option value="">Tutte</option>
+            {tipologie.map(t => <option value={`/strutture/${t.slug}/`}>{t.nome}</option>)}
+          </select>
+        </label>
+      )}
+      {categorie.length > 0 && (
+        <label class="filtri-elenco__campo">
+          <span>Sezione</span>
+          <select data-vai>
+            <option value="">Tutte</option>
+            {categorie.map(c => <option value={`/categoria/${c.slug}/`}>{c.nome}</option>)}
+          </select>
+        </label>
+      )}
+    </FiltriElenco>
+  </CopertinaSezione>
+
+  <main class="contenitore pagina-elenco-semplice">
+    <GrigliaStrutture strutture={strutture} />
+  </main>
+</BaseLayout>
+
+<script>
+  // la tipologia e la sezione portano alla loro pagina
+  document.querySelectorAll<HTMLSelectElement>('select[data-vai]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      if (sel.value) window.location.href = sel.value
+    })
+  })
+</script>
+
+<style>
+  .pagina-elenco-semplice {
+    padding: 2rem 0 4rem;
+  }
+</style>
