@@ -12,7 +12,8 @@ const tipologie = await getTipologieStruttura()
 // Finche' nel gestionale non viene caricata almeno una foto di copertina,
 // resta questa di riserva (una foto reale gia' in uso altrove sul sito).
 const foto = copertine.length > 0 ? copertine : ['https://www.schemavacanze.it/gallery/17595.jpg']
-const slideshow = Boolean(azienda?.slideshow_copertina_attivo) && foto.length > 1
+// con piu' di una foto attiva nello slideshow della home le foto scorrono da sole
+const slideshow = foto.length > 1
 
 const urlCanonica = new URL('/', Astro.site).toString()
 ---

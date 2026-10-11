@@ -68,9 +68,27 @@ async function _getAzienda() {
 }
 export const getAzienda = memoize(_getAzienda)
 
+export interface SlideSito {
+  url: string
+  titolo: string | null
+  sottotitolo: string | null
+  link: string | null
+}
+
+// Foto dello slideshow di una sezione del sito (home, strutture, destinazioni, tour, offerte), gestite nel
+// gestionale in Impostazioni -> Slideshow del sito. Solo quelle attive, nell'ordine scelto.
+export async function getSlideshow(sezione: 'home' | 'strutture' | 'destinazioni' | 'tour' | 'offerte'): Promise<SlideSito[]> {
+  const { data } = await supabase
+    .from('sito_slideshow')
+    .select('url, titolo, sottotitolo, link')
+    .eq('sezione', sezione)
+    .eq('attiva', true)
+    .order('ordine')
+  return (data ?? []) as SlideSito[]
+}
+
 export async function getCopertinaHomepage() {
-  const { data } = await supabase.from('homepage_copertina').select('url').order('ordine')
-  return (data ?? []).map(r => r.url as string)
+  return (await getSlideshow('home')).map(r => r.url)
 }
 
 export async function getSlugStruttureAttive() {
