@@ -469,6 +469,11 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 </script>
 
 <style>
+  /* l'attributo "hidden" deve nascondere davvero: i riquadri con display:grid lo ignoravano e la richiesta appariva gia' inviata */
+  .richiesta :global([hidden]) {
+    display: none !important;
+  }
+
   .richiesta {
     border: none;
     border-radius: var(--raggio);
