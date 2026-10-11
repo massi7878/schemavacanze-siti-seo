@@ -311,6 +311,32 @@ export async function getSlugDestinazioni() {
   })
 }
 
+// Per ogni destinazione: una foto (la copertina della prima struttura) e quante strutture ha, comprese quelle
+// delle destinazioni figlie (una regione raccoglie le sue). Serve alle schede della pagina /destinazioni/.
+export async function getCopertineDestinazioni() {
+  const destinazioni = await destinazioniPubbliche()
+  const righe: { id: string; destinazione_id: string }[] = []
+  for (let da = 0; ; da += 1000) {
+    const { data } = await supabase
+      .from('strutture')
+      .select('id, destinazione_id')
+      .eq('attiva', true)
+      .not('slug', 'is', null)
+      .not('destinazione_id', 'is', null)
+      .range(da, da + 999)
+    righe.push(...((data ?? []) as { id: string; destinazione_id: string }[]))
+    if ((data ?? []).length < 1000) break
+  }
+  const conFoto = await conCopertine(righe)
+  const per = new Map<string, { copertina: string | null; strutture: number }>()
+  for (const d of destinazioni) {
+    const ids = new Set([d.id, ...destinazioni.filter(x => x.parent_id === d.id).map(x => x.id)])
+    const sue = conFoto.filter(r => ids.has(r.destinazione_id))
+    per.set(d.id, { copertina: sue.find(r => r.copertina)?.copertina ?? null, strutture: sue.length })
+  }
+  return per
+}
+
 export async function getStruttureDestinazione(slug: string) {
   const destinazioni = await destinazioniPubbliche()
   const destinazione = destinazioni.find(d => d.slug === slug)

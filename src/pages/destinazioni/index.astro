@@ -1,11 +1,11 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import CopertinaSezione from '../../components/CopertinaSezione.astro'
-import { getSlideshow, getDestinazioniPerCategoria } from '../../lib/queries'
+import { getSlideshow, getDestinazioniPerCategoria, getCopertineDestinazioni } from '../../lib/queries'
 
 // Tutte le destinazioni, per sezione (Mare Italia, Estero...): copertina con i filtri al centro in basso.
 // Scegliendo una destinazione si passa alla sua pagina, dove i filtri stanno nella colonna a sinistra.
-const [categorie, slide] = await Promise.all([getDestinazioniPerCategoria(), getSlideshow('destinazioni')])
+const [categorie, slide, dettagli] = await Promise.all([getDestinazioniPerCategoria(), getSlideshow('destinazioni'), getCopertineDestinazioni()])
 const totale = categorie.reduce((n, c) => n + c.destinazioni.length, 0)
 
 const urlCanonica = new URL('/destinazioni/', Astro.site).toString()
@@ -51,11 +51,28 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
       <section class="gruppo" data-gruppo={c.slug}>
         <h2><a href={`/categoria/${c.slug}/`}>{c.nome}</a></h2>
         <ul class="gruppo__elenco">
-          {c.destinazioni.map(d => (
-            <li data-testo={d.nome} data-slug={d.slug}>
-              <a class="dest" href={`/destinazioni/${d.slug}/`}>{d.nome.trim()}</a>
-            </li>
-          ))}
+          {c.destinazioni.map(d => {
+            const info = dettagli.get(d.id)
+            return (
+              <li data-testo={d.nome} data-slug={d.slug}>
+                <a class="card-dest" href={`/destinazioni/${d.slug}/`}>
+                  <div class="card-dest__immagine">
+                    {info?.copertina
+                      ? <img src={info.copertina} alt={d.nome.trim()} loading="lazy" />
+                      : <span class="card-dest__segnaposto" aria-hidden="true">{d.nome.trim().charAt(0)}</span>}
+                    <div class="card-dest__sopra">
+                      <span class="card-dest__sezione">{c.nome}</span>
+                      <span class="card-dest__titolo">{d.nome.trim()}</span>
+                    </div>
+                  </div>
+                  <div class="card-dest__corpo">
+                    <span>{info?.strutture ?? 0} {(info?.strutture ?? 0) === 1 ? 'struttura' : 'strutture'}</span>
+                    <span class="card-dest__vai">Scopri →</span>
+                  </div>
+                </a>
+              </li>
+            )
+          })}
         </ul>
       </section>
     ))}
@@ -215,7 +232,7 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
   }
 
   .pagina-destinazioni {
-    padding: 2rem 0 4rem;
+    padding-block: 2rem 4rem;
   }
 
   .pagina-destinazioni .gruppo {
@@ -241,26 +258,98 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: 1.5rem;
   }
 
-  .pagina-destinazioni .dest {
-    display: block;
-    padding: 0.9rem 1.1rem;
+  .pagina-destinazioni .card-dest {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio);
+    overflow: hidden;
     box-shadow: var(--ombra);
-    color: var(--inchiostro);
-    font-weight: 600;
     text-decoration: none;
-    transition: transform 0.15s ease, border-color 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .pagina-destinazioni .dest:hover {
-    transform: translateY(-2px);
-    border-color: var(--colore-primario-scuro);
+  .pagina-destinazioni .card-dest:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(52, 54, 58, 0.08), 0 16px 32px -16px rgba(52, 54, 58, 0.28);
+  }
+
+  .pagina-destinazioni .card-dest__immagine {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--colore-primario-scuro), var(--colore-primario-scuro-hover));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pagina-destinazioni .card-dest__immagine img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .pagina-destinazioni .card-dest__immagine::after {
+    content: '';
+    position: absolute;
+    inset: 40% 0 0;
+    background: linear-gradient(to top, rgba(10, 18, 28, 0.82), rgba(10, 18, 28, 0));
+    pointer-events: none;
+  }
+
+  .pagina-destinazioni .card-dest__segnaposto {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .pagina-destinazioni .card-dest__sopra {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0 1.1rem 0.9rem;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+
+  .pagina-destinazioni .card-dest__sezione {
+    font-size: 0.82rem;
+    font-weight: 600;
+    opacity: 0.95;
+  }
+
+  .pagina-destinazioni .card-dest__titolo {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: #fff;
+  }
+
+  .pagina-destinazioni .card-dest__corpo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.1rem 1rem;
+    font-size: 0.9rem;
+    color: var(--testo-tenue);
+  }
+
+  .pagina-destinazioni .card-dest__vai {
+    font-weight: 600;
     color: var(--colore-primario-scuro);
   }
 

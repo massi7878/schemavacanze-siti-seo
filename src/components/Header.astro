@@ -7,6 +7,11 @@ const telefono = azienda?.telefono ?? null
 const numeroWhatsapp = azienda?.numero_whatsapp ?? null
 const linkWhatsapp = numeroWhatsapp ? `https://wa.me/39${soloNumeri(numeroWhatsapp)}` : null
 const linkTelefono = telefono ? `tel:+39${soloNumeri(telefono)}` : null
+const numeroMostrato = (() => {
+  const n = telefono ?? numeroWhatsapp
+  if (!n) return null
+  return String(n).trim().startsWith('+') ? String(n).trim() : `+39 ${String(n).trim()}`
+})()
 const tipologieStruttura = await getTipologieStruttura()
 const categorieDestinazioni = await getDestinazioniPerCategoria()
 ---
@@ -47,9 +52,19 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
 
     <div class="testata-sito__contatti">
       {(linkWhatsapp || linkTelefono) && (
-        <a class="testata-sito__contatto" href={linkWhatsapp ?? linkTelefono} target={linkWhatsapp ? '_blank' : undefined} rel={linkWhatsapp ? 'noopener' : undefined}>
-          Chiama o scrivi al {telefono ?? numeroWhatsapp}
-        </a>
+        <div class="contatto-verde">
+          {linkWhatsapp && (
+            <a class="contatto-verde__icona" href={linkWhatsapp} target="_blank" rel="noopener" aria-label="Scrivici su WhatsApp">
+              <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M16.04 3C9.4 3 4 8.38 4 15.01c0 2.12.56 4.19 1.62 6.01L4 28l7.16-1.88a12.02 12.02 0 0 0 4.88 1.03h.01C22.7 27.15 28 21.77 28 15.14 28 8.5 22.68 3 16.04 3Zm0 21.98h-.01a9.99 9.99 0 0 1-5.1-1.4l-.37-.22-3.8 1 1.02-3.7-.24-.38a9.94 9.94 0 0 1-1.53-5.3c0-5.5 4.5-9.97 10.04-9.97 2.68 0 5.2 1.04 7.09 2.93a9.9 9.9 0 0 1 2.93 7.05c0 5.5-4.5 9.99-10.03 9.99Zm5.5-7.48c-.3-.15-1.78-.88-2.05-.98-.28-.1-.48-.15-.68.15-.2.3-.78.98-.95 1.18-.18.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.78-1.67-2.08-.18-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.68-1.64-.93-2.25-.25-.58-.5-.5-.68-.51h-.58c-.2 0-.53.08-.8.38-.28.3-1.05 1.03-1.05 2.5s1.08 2.9 1.23 3.1c.15.2 2.12 3.24 5.14 4.54.72.31 1.28.5 1.72.64.72.23 1.37.2 1.89.12.58-.09 1.78-.73 2.03-1.43.25-.7.25-1.3.18-1.43-.08-.13-.28-.2-.58-.35Z"/></svg>
+            </a>
+          )}
+          {linkTelefono && (
+            <a class="contatto-verde__icona" href={linkTelefono} aria-label="Chiama">
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2Z"/></svg>
+            </a>
+          )}
+          {numeroMostrato && <a class="contatto-verde__numero" href={linkTelefono ?? linkWhatsapp ?? '#'}>{numeroMostrato}</a>}
+        </div>
       )}
     </div>
 
@@ -89,9 +104,19 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
       <a href="/tour/">Tour</a>
     </nav>
     {(linkWhatsapp || linkTelefono) && (
-      <a class="testata-sito__contatto" href={linkWhatsapp ?? linkTelefono} target={linkWhatsapp ? '_blank' : undefined} rel={linkWhatsapp ? 'noopener' : undefined}>
-        Chiama o scrivi al {telefono ?? numeroWhatsapp}
-      </a>
+      <div class="contatto-verde">
+        {linkWhatsapp && (
+          <a class="contatto-verde__icona" href={linkWhatsapp} target="_blank" rel="noopener" aria-label="Scrivici su WhatsApp">
+            <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M16.04 3C9.4 3 4 8.38 4 15.01c0 2.12.56 4.19 1.62 6.01L4 28l7.16-1.88a12.02 12.02 0 0 0 4.88 1.03h.01C22.7 27.15 28 21.77 28 15.14 28 8.5 22.68 3 16.04 3Zm0 21.98h-.01a9.99 9.99 0 0 1-5.1-1.4l-.37-.22-3.8 1 1.02-3.7-.24-.38a9.94 9.94 0 0 1-1.53-5.3c0-5.5 4.5-9.97 10.04-9.97 2.68 0 5.2 1.04 7.09 2.93a9.9 9.9 0 0 1 2.93 7.05c0 5.5-4.5 9.99-10.03 9.99Zm5.5-7.48c-.3-.15-1.78-.88-2.05-.98-.28-.1-.48-.15-.68.15-.2.3-.78.98-.95 1.18-.18.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.78-1.67-2.08-.18-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.68-1.64-.93-2.25-.25-.58-.5-.5-.68-.51h-.58c-.2 0-.53.08-.8.38-.28.3-1.05 1.03-1.05 2.5s1.08 2.9 1.23 3.1c.15.2 2.12 3.24 5.14 4.54.72.31 1.28.5 1.72.64.72.23 1.37.2 1.89.12.58-.09 1.78-.73 2.03-1.43.25-.7.25-1.3.18-1.43-.08-.13-.28-.2-.58-.35Z"/></svg>
+          </a>
+        )}
+        {linkTelefono && (
+          <a class="contatto-verde__icona" href={linkTelefono} aria-label="Chiama">
+            <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2Z"/></svg>
+          </a>
+        )}
+        {numeroMostrato && <a class="contatto-verde__numero" href={linkTelefono ?? linkWhatsapp ?? '#'}>{numeroMostrato}</a>}
+      </div>
     )}
   </div>
 </header>
@@ -247,6 +272,43 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
   .menu-tendina__pannello a:hover {
     background: var(--superficie-tenue);
     color: var(--colore-primario-scuro-hover);
+  }
+
+  /* contatto in alto a destra: icona WhatsApp, icona telefono e numero, in verde */
+  .contatto-verde {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    color: #16a34a;
+  }
+
+  .contatto-verde__icona {
+    display: inline-flex;
+    color: #16a34a;
+    transition: transform 0.15s ease, color 0.15s ease;
+  }
+
+  .contatto-verde__icona:hover {
+    color: #128a3e;
+    transform: translateY(-1px);
+  }
+
+  .contatto-verde__numero {
+    color: #16a34a;
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .contatto-verde__numero:hover {
+    color: #128a3e;
+  }
+
+  .testata-sito__mobile .contatto-verde {
+    justify-content: center;
+    padding: 0.75rem 0;
   }
 
   .testata-sito__contatti {
