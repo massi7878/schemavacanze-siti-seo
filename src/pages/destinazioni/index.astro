@@ -21,19 +21,26 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
       <span aria-current="page">Destinazioni</span>
     </nav>
     <form class="filtri-dest" data-filtri-dest role="search" aria-label="Cerca tra le destinazioni">
-      <label class="filtri-dest__campo filtri-dest__ricerca">
-        <span>Cerca per testo</span>
-        <span class="filtri-dest__riga">
-          <input type="search" name="testo" placeholder="Nome della destinazione..." autocomplete="off" />
-          <button type="submit" class="filtri-dest__cerca">Cerca</button>
-        </span>
-      </label>
       <label class="filtri-dest__campo">
         <span>Sezione</span>
         <select name="sezione">
           <option value="">Tutte</option>
           {categorie.map(c => <option value={c.slug}>{c.nome}</option>)}
         </select>
+      </label>
+      <label class="filtri-dest__campo">
+        <span>Regione o destinazione</span>
+        <select name="regione" data-regioni={JSON.stringify(categorie.flatMap(c => c.destinazioni.map(d => ({ slug: d.slug, nome: d.nome.trim(), sezione: c.slug }))))}>
+          <option value="">Tutte</option>
+          {categorie.flatMap(c => c.destinazioni.map(d => <option value={d.slug}>{d.nome.trim()}</option>))}
+        </select>
+      </label>
+      <label class="filtri-dest__campo filtri-dest__ricerca">
+        <span>Cerca per testo</span>
+        <span class="filtri-dest__riga">
+          <input type="search" name="testo" placeholder="Nome della destinazione..." autocomplete="off" />
+          <button type="submit" class="filtri-dest__cerca">Cerca</button>
+        </span>
       </label>
       <p class="filtri-dest__esito" data-esito-dest role="status" aria-live="polite"></p>
     </form>
@@ -45,7 +52,7 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
         <h2><a href={`/categoria/${c.slug}/`}>{c.nome}</a></h2>
         <ul class="gruppo__elenco">
           {c.destinazioni.map(d => (
-            <li data-testo={d.nome}>
+            <li data-testo={d.nome} data-slug={d.slug}>
               <a class="dest" href={`/destinazioni/${d.slug}/`}>{d.nome.trim()}</a>
             </li>
           ))}
@@ -67,11 +74,12 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
     if (!modulo) return
     const testo = normalizza(String((modulo.elements.namedItem('testo') as HTMLInputElement).value)).trim()
     const sezione = String((modulo.elements.namedItem('sezione') as HTMLSelectElement).value)
+    const regione = String((modulo.elements.namedItem('regione') as HTMLSelectElement).value)
     let totale = 0
     for (const gruppo of gruppi) {
       let visibili = 0
       gruppo.querySelectorAll<HTMLLIElement>('li').forEach(li => {
-        const ok = (!sezione || gruppo.dataset.gruppo === sezione) && (!testo || normalizza(li.dataset.testo ?? '').includes(testo))
+        const ok = (!sezione || gruppo.dataset.gruppo === sezione) && (!regione || li.dataset.slug === regione) && (!testo || normalizza(li.dataset.testo ?? '').includes(testo))
         li.hidden = !ok
         if (ok) visibili++
       })
@@ -79,8 +87,29 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
       totale += visibili
     }
     if (vuoto) vuoto.hidden = totale > 0
-    if (esito) esito.textContent = testo || sezione ? `${totale} ${totale === 1 ? 'destinazione trovata' : 'destinazioni trovate'}` : ''
+    if (esito) esito.textContent = testo || sezione || regione ? `${totale} ${totale === 1 ? 'destinazione trovata' : 'destinazioni trovate'}` : ''
   }
+
+  // la scelta della regione segue la sezione: restano solo le regioni di quella sezione
+  type Regione = { slug: string; nome: string; sezione: string }
+  const selRegione = modulo?.elements.namedItem('regione') as HTMLSelectElement | null
+  const regioni: Regione[] = JSON.parse(selRegione?.dataset.regioni ?? '[]')
+  function aggiornaRegioni() {
+    if (!modulo || !selRegione) return
+    const sezione = String((modulo.elements.namedItem('sezione') as HTMLSelectElement).value)
+    const scelta = selRegione.value
+    selRegione.innerHTML = '<option value="">Tutte</option>'
+    for (const r of regioni.filter(x => !sezione || x.sezione === sezione)) {
+      const o = document.createElement('option')
+      o.value = r.slug
+      o.textContent = r.nome
+      selRegione.appendChild(o)
+    }
+    selRegione.value = [...selRegione.options].some(o => o.value === scelta) ? scelta : ''
+  }
+  modulo?.addEventListener('change', e => {
+    if ((e.target as HTMLElement).getAttribute('name') === 'sezione') aggiornaRegioni()
+  })
 
   modulo?.addEventListener('submit', e => {
     e.preventDefault()
@@ -96,6 +125,7 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
+    justify-content: center;
     gap: 0.75rem 1rem;
   }
 
@@ -111,6 +141,7 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
 
   .filtri-dest__ricerca {
     flex: 1 1 18rem;
+    max-width: 28rem;
   }
 
   .filtri-dest__riga {
@@ -152,6 +183,7 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
 
   .filtri-dest__esito {
     flex-basis: 100%;
+    text-align: center;
     margin: 0;
     font-size: 0.85rem;
     color: var(--testo-tenue);

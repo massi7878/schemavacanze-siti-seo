@@ -10,13 +10,7 @@ const { colonna = false, conStelle = true } = Astro.props
 ---
 
 <form class="filtri-elenco" class:list={{ 'filtri-elenco--colonna': colonna }} data-filtri-elenco role="search" aria-label="Cerca nell'elenco">
-  <label class="filtri-elenco__campo filtri-elenco__ricerca">
-    <span>Cerca per testo</span>
-    <span class="filtri-elenco__riga">
-      <input type="search" name="testo" placeholder="Nome, località, regione..." autocomplete="off" />
-      <button type="submit" class="filtri-elenco__cerca">Cerca</button>
-    </span>
-  </label>
+  <slot />
   {conStelle && (
     <label class="filtri-elenco__campo">
       <span>Stelle</span>
@@ -29,7 +23,13 @@ const { colonna = false, conStelle = true } = Astro.props
       </select>
     </label>
   )}
-  <slot />
+  <label class="filtri-elenco__campo filtri-elenco__ricerca">
+    <span>Cerca per testo</span>
+    <span class="filtri-elenco__riga">
+      <input type="search" name="testo" placeholder="Nome, località, regione..." autocomplete="off" />
+      <button type="submit" class="filtri-elenco__cerca">Cerca</button>
+    </span>
+  </label>
   <p class="filtri-elenco__esito" data-esito-elenco role="status" aria-live="polite"></p>
 </form>
 
@@ -71,6 +71,7 @@ const { colonna = false, conStelle = true } = Astro.props
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
+    justify-content: center;
     gap: 0.75rem 1rem;
   }
 
@@ -86,6 +87,7 @@ const { colonna = false, conStelle = true } = Astro.props
 
   .filtri-elenco__ricerca {
     flex: 1 1 18rem;
+    max-width: 28rem;
   }
 
   .filtri-elenco__riga {
@@ -127,6 +129,7 @@ const { colonna = false, conStelle = true } = Astro.props
 
   .filtri-elenco__esito {
     flex-basis: 100%;
+    text-align: center;
     margin: 0;
     font-size: 0.85rem;
     color: var(--testo-tenue);
@@ -144,5 +147,6 @@ const { colonna = false, conStelle = true } = Astro.props
 
   .filtri-elenco--colonna .filtri-elenco__ricerca {
     flex: none;
+    max-width: none;
   }
 </style>

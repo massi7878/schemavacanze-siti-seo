@@ -31,13 +31,6 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       {tour.length > 0 && (
         <form class="filtri" id="filtri-tour" aria-label="Filtra i tour">
           <div class="filtri__riga filtri__riga--principale">
-            <label class="filtri__ricerca">
-              Cerca per testo
-              <span class="filtri__ricercariga">
-                <input type="search" name="testo" placeholder="Destinazione o nome del tour..." autocomplete="off" />
-                <button type="submit" class="filtri__cerca">Cerca</button>
-              </span>
-            </label>
             <label>
               Nazione
               <select name="paese">
@@ -59,6 +52,13 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
                 <option value="guidato">Guidato (con guida)</option>
                 <option value="self">Self made (viaggio libero)</option>
               </select>
+            </label>
+            <label class="filtri__ricerca">
+              Cerca per testo
+              <span class="filtri__ricercariga">
+                <input type="search" name="testo" placeholder="Destinazione o nome del tour..." autocomplete="off" />
+                <button type="submit" class="filtri__cerca">Cerca</button>
+              </span>
             </label>
           </div>
   
@@ -505,7 +505,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   }
 
   .filtri__riga--principale {
-    grid-template-columns: minmax(16rem, 2fr) repeat(auto-fit, minmax(10rem, 1fr));
+    grid-template-columns: repeat(3, minmax(9rem, 1fr)) minmax(15rem, 2fr);
   }
 
   .filtri__ricercariga {

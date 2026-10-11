@@ -27,21 +27,21 @@ const descrizione = `${strutture.length} strutture selezionate da Hotellando, co
       <span aria-current="page">Strutture</span>
     </nav>
     <FiltriElenco>
-      {tipologie.length > 0 && (
-        <label class="filtri-elenco__campo">
-          <span>Tipologia</span>
-          <select data-vai>
-            <option value="">Tutte</option>
-            {tipologie.map(t => <option value={`/strutture/${t.slug}/`}>{t.nome}</option>)}
-          </select>
-        </label>
-      )}
       {categorie.length > 0 && (
         <label class="filtri-elenco__campo">
           <span>Sezione</span>
           <select data-vai>
             <option value="">Tutte</option>
             {categorie.map(c => <option value={`/categoria/${c.slug}/`}>{c.nome}</option>)}
+          </select>
+        </label>
+      )}
+      {tipologie.length > 0 && (
+        <label class="filtri-elenco__campo">
+          <span>Tipologia</span>
+          <select data-vai>
+            <option value="">Tutte</option>
+            {tipologie.map(t => <option value={`/strutture/${t.slug}/`}>{t.nome}</option>)}
           </select>
         </label>
       )}

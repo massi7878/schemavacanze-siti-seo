@@ -204,9 +204,36 @@ export const getRegioni = memoize(_getRegioni)
 // E' la funzione piu' riusata di tutte (Header, Footer, Home, Categoria,
 // Destinazioni, Offerte, sitemap, llms.txt...): memoizzata, altrimenti la
 // stessa lista di destinazioni viene rifatta a ogni singola pagina.
+// Si mostrano SOLO le destinazioni che hanno almeno una struttura attiva (propria o in una destinazione figlia):
+// una destinazione senza strutture (e senza offerte, che dipendono da una struttura) non compare nei menu,
+// negli elenchi ne' come pagina. Se la lettura delle strutture non riesce si torna all'elenco completo,
+// meglio di nascondere tutto per un errore momentaneo.
+async function idDestinazioniConStrutture(): Promise<Set<string> | null> {
+  const id = new Set<string>()
+  for (let da = 0; ; da += 1000) {
+    const { data, error } = await supabase
+      .from('strutture')
+      .select('destinazione_id')
+      .eq('attiva', true)
+      .not('slug', 'is', null)
+      .not('destinazione_id', 'is', null)
+      .range(da, da + 999)
+    if (error) return null
+    for (const r of data ?? []) id.add(r.destinazione_id as string)
+    if ((data ?? []).length < 1000) break
+  }
+  return id
+}
+
 const destinazioniPubbliche = memoize(async () => {
   const { data } = await supabase.rpc('destinazioni_pubbliche')
-  return (data ?? []) as { id: string; nome: string; slug: string | null; parent_id: string | null; categoria_nome: string }[]
+  const tutte = (data ?? []) as { id: string; nome: string; slug: string | null; parent_id: string | null; categoria_nome: string }[]
+  const conStrutture = await idDestinazioniConStrutture()
+  if (!conStrutture || conStrutture.size === 0) return tutte
+  // una destinazione "regione" vale se ha strutture lei o una delle figlie
+  const conContenuto = new Set<string>(conStrutture)
+  for (const d of tutte) if (d.parent_id && conStrutture.has(d.id)) conContenuto.add(d.parent_id)
+  return tutte.filter(d => conContenuto.has(d.id))
 })
 
 // Header e Footer la chiamano su ogni pagina (735 pagine x 2): memoizzata
