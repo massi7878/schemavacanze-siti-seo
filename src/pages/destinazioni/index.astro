@@ -42,7 +42,11 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
           <button type="submit" class="filtri-dest__cerca">Cerca</button>
         </span>
       </label>
-      <p class="filtri-dest__esito" data-esito-dest role="status" aria-live="polite"></p>
+      <div class="riga-azioni">
+        <button type="reset">Azzera i filtri</button>
+        <span class="esito" data-esito-dest role="status" aria-live="polite"></span>
+        <a href="/strutture/">Vedi tutte le strutture</a>
+      </div>
     </form>
   </CopertinaSezione>
 
@@ -133,6 +137,7 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
     applica()
     document.querySelector('.pagina-destinazioni')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   })
+  modulo?.addEventListener('reset', () => setTimeout(() => { aggiornaRegioni(); applica() }, 0))
   modulo?.addEventListener('input', applica)
   modulo?.addEventListener('change', applica)
 </script>
@@ -212,23 +217,22 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
 
   .copertina__pannello .filtri-dest {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem 0.75rem;
     align-items: end;
   }
 
   .copertina__pannello .filtri-dest .filtri-dest__ricerca {
+    grid-column: 1 / -1;
     max-width: none;
+  }
+
+  .copertina__pannello .filtri-dest .riga-azioni {
+    grid-column: 1 / -1;
   }
 
   .copertina__pannello .filtri-dest .filtri-dest__esito {
     grid-column: 1 / -1;
-  }
-
-  @media (max-width: 560px) {
-    .copertina__pannello .filtri-dest .filtri-dest__ricerca {
-      grid-column: 1 / -1;
-    }
   }
 
   .pagina-destinazioni {

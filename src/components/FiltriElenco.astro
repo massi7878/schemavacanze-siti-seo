@@ -5,8 +5,9 @@
 interface Props {
   colonna?: boolean
   conStelle?: boolean
+  collegamento?: { href: string; testo: string } | null
 }
-const { colonna = false, conStelle = true } = Astro.props
+const { colonna = false, conStelle = true, collegamento = null } = Astro.props
 ---
 
 <form class="filtri-elenco" class:list={{ 'filtri-elenco--colonna': colonna }} data-filtri-elenco role="search" aria-label="Cerca nell'elenco">
@@ -30,7 +31,15 @@ const { colonna = false, conStelle = true } = Astro.props
       <button type="submit" class="filtri-elenco__cerca">Cerca</button>
     </span>
   </label>
-  <p class="filtri-elenco__esito" data-esito-elenco role="status" aria-live="polite"></p>
+  {!colonna ? (
+    <div class="riga-azioni">
+      <button type="reset">Azzera i filtri</button>
+      <span class="esito" data-esito-elenco role="status" aria-live="polite"></span>
+      {collegamento ? <a href={collegamento.href}>{collegamento.testo}</a> : <span></span>}
+    </div>
+  ) : (
+    <p class="filtri-elenco__esito" data-esito-elenco role="status" aria-live="polite"></p>
+  )}
 </form>
 
 <script>
