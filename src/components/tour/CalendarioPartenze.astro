@@ -86,8 +86,8 @@ const primaData = partenze[0]?.data_partenza ?? null
       </div>
       <p class="cal__ospiti-esito" data-ospiti-esito role="status"></p>
       {extraScelta.length > 0 && (
-        <details class="cal__extra">
-          <summary>Aggiungi supplementi facoltativi ({extraScelta.length})</summary>
+        <details class="cal__extra" open>
+          <summary>Supplementi facoltativi: aggiungili al pacchetto ({extraScelta.length})</summary>
           <ul>
             {extraScelta.map((x, i) => (
               <li>
@@ -268,7 +268,7 @@ const primaData = partenze[0]?.data_partenza ?? null
         al: x.r,
         adulti: Math.max(o.adulti, 1),
         bambini: o.bambini,
-        riepilogo: `Partenza: ${lunga(x.p)}\nRientro: ${lunga(x.r)} (${nottiN} ${nottiN === 1 ? 'notte' : 'notti'})\nCamere: ${descriviOspiti()}\nTotale indicativo: ${euro(c.totale)}`,
+        riepilogo: `Partenza: ${lunga(x.p)}\nRientro: ${lunga(x.r)} (${nottiN} ${nottiN === 1 ? 'notte' : 'notti'})\nCamere: ${descriviOspiti()}${extraScelti().length ? `\nSupplementi: ${extraScelti().map(xs => `${xs.n} (${xs.p ? 'a persona' : 'a gruppo'})`).join(', ')}` : ''}\nTotale indicativo: ${euro(c.totale)}`,
       }
       const stato = x.s === 'ultimi_posti' ? '<span class="cal__badge">Ultimi posti</span>' : ''
       const dettaglio = c.righe.map(r => `<li><span>${r[0]}</span><b>${r[1] < 0 ? '−' + euro(-r[1]) : euro(r[1])}</b></li>`).join('')

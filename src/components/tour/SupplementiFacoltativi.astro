@@ -17,10 +17,10 @@ const extra = d.t.tappe.flatMap(tp =>
   <section class="extra-tour" id="extra">
     <h2>Supplementi facoltativi</h2>
     <p class="extra-tour__nota">
-      Servizi e visite che puoi aggiungere al viaggio. Il prezzo è indicativo e lo confermiamo nel preventivo. Puoi aggiungerli al totale dal calendario delle partenze.
+      Servizi e visite che puoi aggiungere al viaggio. Il prezzo è indicativo e lo confermiamo nel preventivo. Con "Aggiungi al preventivo" li inserisci nel totale del pacchetto base: sono indicati a persona o a gruppo.
     </p>
     <ul class="extra-tour__lista">
-      {extra.map(e => (
+      {extra.map((e, i) => (
         <li>
           <div class="extra-tour__testa">
             <strong>{e.nome}</strong>
@@ -28,13 +28,59 @@ const extra = d.t.tappe.flatMap(tp =>
           </div>
           <span class="extra-tour__quando">{e.quando} · {e.luogo}{e.durata ? ` · ${e.durata}` : ''}</span>
           {e.descrizione && <p>{e.descrizione}</p>}
+          <button type="button" class="extra-tour__aggiungi" data-aggiungi-extra={i} aria-pressed="false">+ Aggiungi al preventivo</button>
         </li>
       ))}
     </ul>
   </section>
 )}
 
+<script>
+  // i pulsanti della scheda spuntano lo stesso supplemento nel riquadro del preventivo e viceversa
+  const casella = (i: string) => document.querySelector<HTMLInputElement>(`input[name="extra"][value="${i}"]`)
+  function allinea() {
+    document.querySelectorAll<HTMLButtonElement>('[data-aggiungi-extra]').forEach(b => {
+      const c = casella(b.dataset.aggiungiExtra ?? '')
+      const on = !!c?.checked
+      b.setAttribute('aria-pressed', String(on))
+      b.textContent = on ? '✓ Aggiunto · togli' : '+ Aggiungi al preventivo'
+      b.classList.toggle('extra-tour__aggiungi--attivo', on)
+    })
+  }
+  document.querySelectorAll<HTMLButtonElement>('[data-aggiungi-extra]').forEach(b =>
+    b.addEventListener('click', () => {
+      const c = casella(b.dataset.aggiungiExtra ?? '')
+      if (!c) return
+      c.checked = !c.checked
+      c.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+  )
+  document.addEventListener('change', e => {
+    if ((e.target as HTMLInputElement)?.name === 'extra') allinea()
+  })
+  allinea()
+</script>
+
 <style is:global>
+  .extra-tour__aggiungi {
+    align-self: flex-start;
+    margin-top: 0.3rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.3em 0.9em;
+    border-radius: 999px;
+    border: 1.5px solid var(--colore-primario-scuro);
+    background: var(--superficie);
+    color: var(--colore-primario-scuro);
+    cursor: pointer;
+  }
+
+  .extra-tour__aggiungi--attivo {
+    background: var(--colore-primario-scuro);
+    color: #fff;
+  }
+
   .extra-tour {
     margin: 0 0 1.5rem;
   }
