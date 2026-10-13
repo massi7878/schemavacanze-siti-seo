@@ -18,6 +18,7 @@ import {
   slugifica,
 } from '../../lib/formato'
 import { etichettaSezione, pluraleCamera } from '../../lib/etichette'
+import { descrizioneStruttura, titoloStruttura } from '../../lib/seoPagine'
 
 export async function getStaticPaths() {
   const slug = await getSlugStruttureAttive()
@@ -40,22 +41,23 @@ const etichettaCamera = struttura.tipologie_struttura?.etichetta_camera || 'Came
 const etichettaCamerePlurale = pluraleCamera(etichettaCamera)
 
 const localitaBreve = [struttura.localita, struttura.provincia].filter(Boolean).join(', ')
-const localitaOTipologia = struttura.localita ?? struttura.regione ?? struttura.tipologie_struttura?.nome ?? ''
-let titolo = localitaOTipologia ? `${struttura.nome} | ${localitaOTipologia}` : struttura.nome
-if (anno) titolo += ` – Offerte ${anno}`
-titolo = troncaConEllissi(titolo, 60)
-
+// titolo e descrizione nascono dai dati della struttura (tipologia, stelle, localita', formula, distanza dal mare);
+// una descrizione scritta a mano nel gestionale ha la precedenza
 const bimbiGratis = riduzioni.some(r => r.tipo_riduzione === 'gratuito')
-let descrizione = struttura.seo_meta_description
-if (!descrizione) {
-  const pezzi = [struttura.nome]
-  if (struttura.formula) pezzi.push(ETICHETTA_FORMULA[struttura.formula] ?? struttura.formula)
-  if (struttura.localita) pezzi.push(`a ${struttura.localita}`)
-  if (struttura.distanza_spiaggia_km != null) pezzi.push(`a ${struttura.distanza_spiaggia_km} km dal mare`)
-  if (bimbiGratis) pezzi.push('bimbi gratis')
-  descrizione = pezzi.join(', ') + '.'
-}
-descrizione = troncaConEllissi(descrizione, 155)
+const titolo = titoloStruttura({ nome: struttura.nome, tipologia: struttura.tipologie_struttura?.nome, stelle: struttura.stelle, localita: struttura.localita, regione: struttura.regione, anno })
+const descrizione = struttura.seo_meta_description
+  ? troncaConEllissi(struttura.seo_meta_description, 155)
+  : descrizioneStruttura({
+      nome: struttura.nome,
+      tipologia: struttura.tipologie_struttura?.nome,
+      stelle: struttura.stelle,
+      localita: struttura.localita,
+      regione: struttura.regione,
+      formula: struttura.formula ? ETICHETTA_FORMULA[struttura.formula] ?? struttura.formula : null,
+      distanzaMareKm: struttura.distanza_spiaggia_km,
+      bimbiGratis,
+      anno,
+    })
 
 const urlCanonica = new URL(`/struttura/${struttura.slug}/`, Astro.site).toString()
 const percorso = await percorsoDestinazione(struttura.destinazione_id)

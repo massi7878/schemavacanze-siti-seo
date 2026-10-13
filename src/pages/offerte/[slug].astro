@@ -4,6 +4,7 @@ import ModuloRichiestaOfferta from '../../components/ModuloRichiestaOfferta.astr
 import CondividiOfferta from '../../components/CondividiOfferta.astro'
 import { getAzienda } from '../../lib/queries'
 import { soloNumeri } from '../../lib/formato'
+import { descrizioneOfferta, titoloOfferta } from '../../lib/seoPagine'
 import {
   NOME_FASE_TRASPORTO,
   NOME_MODO_TRASPORTO,
@@ -42,16 +43,18 @@ const partenze = o.partenze ?? []
 const prezzoTesto = o.prezzo_tipo === 'a_camera' ? 'a camera' : 'a persona'
 const luogo = o.destinazione?.nome ?? o.struttura?.localita ?? null
 
-const titolo = `${o.titolo} | Hotellando`
-const riassunto = [
-  NOME_TIPO_OFFERTA[o.tipo] ?? 'Offerta',
+// titolo e descrizione nascono dai dati dell'offerta (tipo, luogo, notti, prezzo da)
+const prezzoDaTesto = o.prezzo_da != null ? euro(Number(o.prezzo_da)) : null
+const titolo = titoloOfferta({ titolo: o.titolo, luogo, notti: o.durata_notti, prezzoDa: prezzoDaTesto })
+const descrizione = descrizioneOfferta({
+  titolo: o.titolo,
+  tipo: NOME_TIPO_OFFERTA[o.tipo] ?? 'Offerta',
   luogo,
-  o.durata_notti != null ? `${o.durata_notti} notti` : null,
-  o.prezzo_da != null ? `da ${euro(Number(o.prezzo_da))} ${prezzoTesto}` : null,
-]
-  .filter(Boolean)
-  .join(' · ')
-const descrizione = (o.testo ? `${o.testo.replace(/\s+/g, ' ').slice(0, 140)}… ` : '') + riassunto + '. Richiedi disponibilità senza impegno.'
+  notti: o.durata_notti,
+  prezzoDa: prezzoDaTesto,
+  prezzoTesto,
+  testo: o.testo,
+})
 
 const testoCondivisione = `${o.titolo}${o.prezzo_da != null ? ` — da ${euro(Number(o.prezzo_da))}` : ''}`
 
