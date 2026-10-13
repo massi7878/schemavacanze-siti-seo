@@ -1,4 +1,5 @@
 ---
+import IconaContatto from './IconaContatto.astro'
 import { NOME_TIPO_PUNTO, descriviPartenza, euro } from '../lib/offerte'
 
 interface Props {
@@ -157,10 +158,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       <p class="richiesta__scelta">Come vuoi inviarla?</p>
       <div class="richiesta__invii">
         {canaleWhatsapp && numeroWa && (
-          <button type="button" class="pulsante richiesta__whatsapp" id="richiesta-whatsapp">Invia su WhatsApp</button>
+          <button type="button" class="pulsante richiesta__whatsapp" id="richiesta-whatsapp"><IconaContatto tipo="whatsapp" dimensione={16} /><span>Invia su WhatsApp</span></button>
         )}
         {canaleEmail && (
-          <button type="submit" class="pulsante richiesta__invia" id="richiesta-invia">Invia via e-mail</button>
+          <button type="submit" class="pulsante richiesta__invia" id="richiesta-invia"><IconaContatto tipo="email" dimensione={16} /><span id="richiesta-invia-testo">Invia via e-mail</span></button>
         )}
       </div>
     </div>
@@ -431,7 +432,8 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
     const r = creaRichiesta(d, 'email', infoTour.riepilogo ?? '')
     invia.disabled = true
-    invia.textContent = 'Invio in corso…'
+    const testoInvia = invia.querySelector<HTMLElement>('#richiesta-invia-testo')
+    if (testoInvia) testoInvia.textContent = 'Invio in corso…'
     try {
       const risposta = await fetch(`${r.url}/rest/v1/rpc/${r.funzione}`, { method: 'POST', headers: r.intestazioni, body: JSON.stringify(r.corpo) })
       if (!risposta.ok) {
@@ -463,7 +465,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       )
     } finally {
       invia.disabled = false
-      invia.textContent = 'Invia via e-mail'
+      if (testoInvia) testoInvia.textContent = 'Invia via e-mail'
     }
   })
 </script>
@@ -617,15 +619,33 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   .richiesta__invii {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    justify-content: center;
+    gap: 0.6rem;
   }
 
+  .richiesta__whatsapp,
+  .richiesta__invia {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+  }
+
+  /* WhatsApp nei suoi colori; l'e-mail nel colore primario del marchio */
   .richiesta__whatsapp {
-    background: #1faa59;
+    background: #25d366;
   }
 
   .richiesta__whatsapp:hover {
-    background: #178a47;
+    background: #1ebe5b;
+  }
+
+  .richiesta__invia {
+    background: var(--colore-primario-scuro);
+  }
+
+  .richiesta__invia:hover {
+    background: var(--colore-primario-scuro-hover);
   }
 
   .campo small {

@@ -60,7 +60,7 @@ const primaData = partenze[0]?.data_partenza ?? null
         <span>Check-in</span>
         <strong data-txt-dal>Scegli la data</strong>
       </button>
-      <div class="cal__campo">
+      <div class="cal__campo cal__campo--fine">
         <span>Check-out</span>
         <strong data-txt-al>Automatico · {t.notti} {t.notti === 1 ? 'notte' : 'notti'}</strong>
       </div>
@@ -423,7 +423,8 @@ const primaData = partenze[0]?.data_partenza ?? null
   /* check-in (si clicca e si apre il calendario) e check-out (si compila da solo), affiancati */
   .cal__date {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(6.2rem, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
     gap: 0.4rem;
   }
 
@@ -433,12 +434,15 @@ const primaData = partenze[0]?.data_partenza ?? null
     gap: 0.15rem;
     text-align: left;
     font: inherit;
-    padding: 0.35rem 0.55rem;
-    background: var(--superficie-tenue);
-    border: 1px solid var(--bordo);
+    justify-content: center;
+    padding: 0.4rem 0.6rem;
+    min-height: 3.1rem;
+    background: var(--superficie);
+    border: 2px solid var(--bordo);
     border-radius: var(--raggio-piccolo);
     color: var(--inchiostro);
     min-width: 0;
+    box-sizing: border-box;
   }
 
   .cal__campo span {
@@ -454,14 +458,24 @@ const primaData = partenze[0]?.data_partenza ?? null
     line-height: 1.25;
   }
 
+  /* i due colori del marchio: check-in nel primario, check-out nel secondario */
   .cal__campo--bottone {
-    background: var(--superficie);
-    border: 2px solid var(--colore-primario-scuro);
+    border-color: var(--colore-primario-scuro);
     cursor: pointer;
   }
 
+  .cal__campo--bottone span,
   .cal__campo--bottone strong {
     color: var(--colore-primario-scuro);
+  }
+
+  .cal__campo--fine {
+    border-color: var(--accento);
+  }
+
+  .cal__campo--fine span,
+  .cal__campo--fine strong {
+    color: var(--accento);
   }
 
   .cal__popup {
@@ -618,18 +632,21 @@ const primaData = partenze[0]?.data_partenza ?? null
   .cal__richiedi {
     display: inline-block;
     width: fit-content;
+    justify-self: center;
     text-align: center;
     text-decoration: none;
     font-weight: 700;
-    padding: 0.45em 1.1em;
-    font-size: 0.85rem;
+    padding: 0.55em 1.4em;
+    font-size: 0.9rem;
+    border: none;
     border-radius: 999px;
-    background: var(--colore-primario-scuro);
+    background: var(--accento);
     color: #fff;
+    cursor: pointer;
   }
 
-  .cal__richiedi:hover {
-    background: var(--colore-primario-scuro-hover);
+  .cal__richiedi:hover:not(:disabled) {
+    background: var(--accento-scuro);
   }
 </style>
 
@@ -644,19 +661,22 @@ const primaData = partenze[0]?.data_partenza ?? null
   .cal__ospiti legend {
     font-size: 0.75rem;
     font-weight: 700;
-    color: var(--inchiostro);
+    color: var(--colore-primario-scuro);
     padding: 0 0.3rem;
   }
 
+  /* tre colonne uguali: le etichette stanno tutte sul fondo di una fascia alta due righe, cosi' i campi sono sulla stessa linea */
   .cal__ospiti-riga {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(4.2rem, 1fr));
-    gap: 0.4rem 0.4rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    align-items: end;
   }
 
   .cal__ospiti-riga label {
     display: flex;
     flex-direction: column;
+    justify-content: flex-end;
     gap: 0.2rem;
     font-size: 0.7rem;
     font-weight: 600;
@@ -673,6 +693,18 @@ const primaData = partenze[0]?.data_partenza ?? null
     color: var(--inchiostro);
     width: 100%;
     box-sizing: border-box;
+    height: 2rem;
+  }
+
+  .cal__ospiti-riga input:focus {
+    outline: 2px solid var(--colore-primario-scuro);
+    outline-offset: 1px;
+  }
+
+  .cal__ospiti-riga label > span {
+    min-height: 2.1em;
+    display: flex;
+    align-items: flex-end;
   }
 
   .cal__ospiti-esito {
@@ -723,7 +755,7 @@ const primaData = partenze[0]?.data_partenza ?? null
 
   .cal__totale strong {
     font-size: 1.2rem;
-    color: var(--colore-primario-scuro);
+    color: var(--accento);
     text-transform: none;
   }
 

@@ -3,6 +3,7 @@ import BarraCondividi from '../BarraCondividi.astro'
 import CalendarioPartenze from './CalendarioPartenze.astro'
 import SupplementiFacoltativi from './SupplementiFacoltativi.astro'
 import MiniatureGalleria from './MiniatureGalleria.astro'
+import IconaContatto from '../IconaContatto.astro'
 import { euro } from '../../lib/offerte'
 import { PASTI, etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
 
@@ -162,8 +163,8 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
         <div class="prenota__azioni">
           {(d.numeroWa || linkTel) && (
             <div class="prenota__contatti">
-              {d.numeroWa && <button type="button" class="prenota__btn prenota__btn--secondario prenota__btn--piccolo" data-apri-richiesta-tour>WhatsApp</button>}
-              {linkTel && <a class="prenota__btn prenota__btn--secondario prenota__btn--piccolo" href={linkTel} title={telefono ? `Chiama ${telefono}` : 'Telefona'}>Telefona</a>}
+              {d.numeroWa && <button type="button" class="prenota__btn prenota__btn--wa prenota__btn--piccolo" data-apri-richiesta-tour><IconaContatto tipo="whatsapp" dimensione={16} />WhatsApp</button>}
+              {linkTel && <a class="prenota__btn prenota__btn--tel prenota__btn--piccolo" href={linkTel} title={telefono ? `Chiama ${telefono}` : 'Telefona'}><IconaContatto tipo="telefono" dimensione={16} />Telefona</a>}
             </div>
           )}
         </div>
@@ -571,7 +572,7 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
     text-align: center;
     font-size: 2rem;
     font-weight: 800;
-    color: var(--colore-primario-scuro);
+    color: var(--accento);
     line-height: 1.1;
   }
 
@@ -669,5 +670,38 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
 
   .prenota__btn--secondario:hover {
     background: var(--superficie-tenue);
+  }
+
+  /* contatti: WhatsApp nei suoi colori, telefono nel colore primario del marchio */
+  .prenota__btn--wa,
+  .prenota__btn--tel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .prenota__btn--wa {
+    background: #25d366;
+    border: 2px solid #25d366;
+    color: #fff;
+  }
+
+  .prenota__btn--wa:hover {
+    background: #1ebe5b;
+    border-color: #1ebe5b;
+  }
+
+  .prenota__btn--tel {
+    background: var(--superficie);
+    border: 2px solid var(--colore-primario-scuro);
+    color: var(--colore-primario-scuro);
+  }
+
+  .prenota__btn--tel:hover {
+    background: var(--colore-primario-scuro);
+    color: #fff;
   }
 </style>
