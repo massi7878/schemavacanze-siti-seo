@@ -589,6 +589,7 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
     padding: 0;
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.4rem;
   }
 
@@ -641,9 +642,13 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
     gap: 0.5rem;
   }
 
+  /* tutti e tre i tasti (Richiedi, WhatsApp, Telefona) hanno la stessa forma e la stessa misura */
   .prenota__btn--piccolo {
-    padding: 0.35em 0.9em !important;
-    font-size: 0.8rem;
+    padding: 0.5em 1em !important;
+    min-height: 2.4rem;
+    box-sizing: border-box;
+    line-height: 1.3;
+    border-radius: var(--raggio-piccolo);
   }
 
   .prenota__btn {
@@ -695,13 +700,13 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
   }
 
   .prenota__btn--tel {
-    background: var(--superficie);
+    background: var(--colore-primario-scuro);
     border: 2px solid var(--colore-primario-scuro);
-    color: var(--colore-primario-scuro);
+    color: #fff;
   }
 
   .prenota__btn--tel:hover {
-    background: var(--colore-primario-scuro);
-    color: #fff;
+    background: var(--colore-primario-scuro-hover);
+    border-color: var(--colore-primario-scuro-hover);
   }
 </style>
