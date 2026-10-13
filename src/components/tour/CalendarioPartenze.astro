@@ -102,7 +102,7 @@ const primaData = partenze[0]?.data_partenza ?? null
         </details>
       )}
     </fieldset>
-    <button type="button" class="cal__richiedi" data-richiedi-tour disabled>Richiedi questo preventivo</button>
+    <button type="button" class="cal__richiedi" data-richiedi-tour>Richiedi questo preventivo</button>
   </div>
 </section>
 
@@ -288,8 +288,9 @@ const primaData = partenze[0]?.data_partenza ?? null
       disegna()
     }
 
+    // senza una data scelta il modulo si apre comunque (senza partenza): il cliente sceglie dentro se scrivere su WhatsApp o per e-mail
     tastoRichiedi.addEventListener('click', () => {
-      if (ultimaRichiesta) document.dispatchEvent(new CustomEvent('apri-richiesta-tour', { detail: ultimaRichiesta }))
+      document.dispatchEvent(new CustomEvent('apri-richiesta-tour', { detail: ultimaRichiesta ?? {} }))
     })
 
     // cambiando i viaggiatori si propongono di nuovo le camere; cambiando le camere si ricalcola il totale
@@ -648,8 +649,19 @@ const primaData = partenze[0]?.data_partenza ?? null
     cursor: pointer;
   }
 
-  .cal__richiedi:hover:not(:disabled) {
+  .cal__richiedi:hover {
     background: var(--accento-scuro);
+    border-color: var(--accento-scuro);
+  }
+
+  /* niente riquadro nero del browser: l'anello di tastiera e' nel colore del marchio */
+  .cal__richiedi:focus {
+    outline: none;
+  }
+
+  .cal__richiedi:focus-visible {
+    outline: 2px solid var(--accento);
+    outline-offset: 2px;
   }
 </style>
 

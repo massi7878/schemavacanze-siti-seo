@@ -3,7 +3,6 @@ import BarraCondividi from '../BarraCondividi.astro'
 import CalendarioPartenze from './CalendarioPartenze.astro'
 import SupplementiFacoltativi from './SupplementiFacoltativi.astro'
 import MiniatureGalleria from './MiniatureGalleria.astro'
-import IconaContatto from '../IconaContatto.astro'
 import { euro } from '../../lib/offerte'
 import { PASTI, etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
 
@@ -127,10 +126,6 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
         )}
         {partenze.length > 0 && <CalendarioPartenze d={d} />}
         <p class="riquadro__nota">Il prezzo cambia con la data di partenza. Scrivici: ti confermiamo disponibilità e quota esatta, senza impegno.</p>
-        <div class="riquadro__azioni">
-          {d.numeroWa && <button type="button" class="pulsante pulsante--wa" data-apri-richiesta-tour><IconaContatto tipo="whatsapp" />Scrivici su WhatsApp</button>}
-          {linkTel && <a class="pulsante pulsante--secondario pulsante--tel" href={linkTel}><IconaContatto tipo="telefono" />Chiama {telefono}</a>}
-        </div>
       </div>
     </aside>
   </div>
@@ -420,11 +415,6 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
     color: var(--testo-tenue);
   }
 
-  .riquadro__azioni {
-    display: grid;
-    gap: 0.5rem;
-  }
-
   .pulsante {
     display: block;
     text-align: center;
@@ -448,33 +438,6 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
 
   .pulsante--secondario:hover {
     background: var(--superficie-tenue);
-  }
-
-  .pulsante--wa,
-  .pulsante--tel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: inherit;
-  }
-
-  .pulsante--wa {
-    background: #25d366;
-    border: 2px solid #25d366;
-    color: #fff;
-  }
-
-  .pulsante--secondario.pulsante--tel {
-    background: var(--colore-primario-scuro);
-    border-color: var(--colore-primario-scuro);
-    color: #fff;
-  }
-
-  .pulsante--secondario.pulsante--tel:hover {
-    background: var(--colore-primario-scuro-hover);
   }
 
   .pulsante--wa:hover {
