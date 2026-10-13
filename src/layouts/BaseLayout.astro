@@ -4,6 +4,7 @@ import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
 import { getAzienda } from '../lib/queries'
 import { scurisci } from '../lib/formato'
+import { grafoAzienda } from '../lib/seo'
 
 interface Props {
   titolo: string
@@ -20,6 +21,10 @@ const { titolo, descrizione, urlCanonica, immagine } = Astro.props
 // toccare il codice. Se assenti, restano i valori di default in global.css.
 const azienda = await getAzienda()
 const coloriPersonalizzati = azienda?.colore_primario || azienda?.colore_secondario
+// identita' dell'azienda (agenzia di viaggi, telefono, indirizzo) e sito: in tutte le pagine
+const grafoIdentita = { '@context': 'https://schema.org', '@graph': grafoAzienda(azienda, Astro.site) }
+// immagine di anteprima per i social: quella della pagina, altrimenti il logo
+const immagineSocial = immagine || new URL('/brand/hotellando-logo.jpg', Astro.site).toString()
 ---
 
 <!doctype html>
@@ -41,11 +46,14 @@ const coloriPersonalizzati = azienda?.colore_primario || azienda?.colore_seconda
     <meta property="og:title" content={titolo} />
     <meta property="og:description" content={descrizione} />
     <meta property="og:url" content={urlCanonica} />
-    {immagine && <meta property="og:image" content={immagine} />}
+    <meta property="og:image" content={immagineSocial} />
+    <meta property="og:locale" content="it_IT" />
+    <meta property="og:site_name" content={azienda?.nome_commerciale || 'Hotellando'} />
     <meta name="twitter:card" content={immagine ? 'summary_large_image' : 'summary'} />
     <meta name="twitter:title" content={titolo} />
     <meta name="twitter:description" content={descrizione} />
-    {immagine && <meta name="twitter:image" content={immagine} />}
+    <meta name="twitter:image" content={immagineSocial} />
+    <script type="application/ld+json" set:html={JSON.stringify(grafoIdentita)} />
     {coloriPersonalizzati && (
       <style set:html={`:root:root {
         ${azienda?.colore_primario ? `

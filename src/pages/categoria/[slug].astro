@@ -7,6 +7,8 @@ import FiltriElenco from '../../components/FiltriElenco.astro'
 import Briciole from '../../components/Briciole.astro'
 import SelettoreDestinazioneCategoria from '../../components/SelettoreDestinazioneCategoria.astro'
 import { getSlideshow, getSlugCategorie, getStruttureCategoria, getDestinazioniPerCategoria } from '../../lib/queries'
+import DatiStrutturati from '../../components/DatiStrutturati.astro'
+import { grafoBriciole, grafoElenco } from '../../lib/seo'
 
 export async function getStaticPaths() {
   const slug = await getSlugCategorie()
@@ -28,6 +30,12 @@ const descrizione = strutture.length > 0
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <DatiStrutturati
+    nodi={[
+      grafoBriciole([{ nome: 'Home', href: '/' }, { nome: 'Destinazioni', href: '/destinazioni/' }, { nome: categoria.nome, href: `/categoria/${categoria.slug}/` }], Astro.site),
+      grafoElenco(categoria.nome, urlCanonica, strutture.slice(0, 24).map(s => ({ nome: s.nome, url: new URL(`/struttura/${s.slug}/`, Astro.site).toString(), immagine: s.copertina }))),
+    ]}
+  />
   <CopertinaSezione slide={slide} titolo={categoria.nome} sottotitolo={strutture.length > 0 ? `${strutture.length} strutture selezionate, con schede su spiaggia, camere, formula e prezzi.` : null} compatta>
     <Briciole slot="alto" voci={[{ nome: categoria.nome }]} />
     <div slot="sezioni">

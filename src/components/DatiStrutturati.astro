@@ -1,0 +1,10 @@
+---
+// Dati strutturati (JSON-LD) di una pagina: uno o piu' nodi schema.org, per esempio il percorso di navigazione e l'elenco delle pagine.
+interface Props {
+  nodi: Record<string, any>[]
+}
+const { nodi } = Astro.props
+const grafo = { '@context': 'https://schema.org', '@graph': nodi }
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(grafo)} />

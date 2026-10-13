@@ -4,6 +4,8 @@ import CopertinaSezione from '../../components/CopertinaSezione.astro'
 import FiltriElenco from '../../components/FiltriElenco.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
 import { getSlideshow, getStruttureConFiltri, getTipologieStruttura, getDestinazioniPerCategoria } from '../../lib/queries'
+import DatiStrutturati from '../../components/DatiStrutturati.astro'
+import { grafoBriciole, grafoElenco } from '../../lib/seo'
 
 // Tutte le strutture: copertina con i filtri al centro in basso. Sezione, tipologia, stelle e testo filtrano sul posto,
 // a cascata: le strutture scelte compaiono subito sotto, senza cambiare pagina.
@@ -20,6 +22,12 @@ const descrizione = `${strutture.length} strutture selezionate da Hotellando, co
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <DatiStrutturati
+    nodi={[
+      grafoBriciole([{ nome: 'Home', href: '/' }, { nome: 'Strutture', href: '/strutture/' }], Astro.site),
+      grafoElenco('Strutture selezionate', urlCanonica, strutture.slice(0, 24).map(s => ({ nome: s.nome, url: new URL(`/struttura/${s.slug}/`, Astro.site).toString(), immagine: s.copertina }))),
+    ]}
+  />
   <CopertinaSezione slide={slide} titolo="Strutture" sottotitolo={`${strutture.length} strutture selezionate, con schede su camere, formula e prezzi.`}>
     <nav slot="alto" class="briciole" aria-label="Percorso">
       <a href="/">Home</a>

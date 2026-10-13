@@ -2,6 +2,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import ElencoTour from '../../components/tour/ElencoTour.astro'
 import { getToursPubblici } from '../../lib/tour'
+import DatiStrutturati from '../../components/DatiStrutturati.astro'
+import { grafoBriciole, grafoElenco } from '../../lib/seo'
 
 // Generata al momento della richiesta (cache breve su Vercel): tour e partenze salvati nel
 // gestionale compaiono senza ripubblicare il sito.
@@ -18,5 +20,11 @@ const descrizione =
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <DatiStrutturati
+    nodi={[
+      grafoBriciole([{ nome: 'Home', href: '/' }, { nome: 'Tour', href: '/tour/' }], Astro.site),
+      grafoElenco('Tour e viaggi nel mondo', urlCanonica, tour.slice(0, 24).map(x => ({ nome: x.nome, url: new URL(`/tour/${x.slug}/`, Astro.site).toString(), immagine: x.immagine_url }))),
+    ]}
+  />
   <ElencoTour />
 </BaseLayout>

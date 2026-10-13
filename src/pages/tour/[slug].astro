@@ -3,7 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import ModelloClassico from '../../components/tour/ModelloClassico.astro'
 import ModelloSofly from '../../components/tour/ModelloSofly.astro'
 import { getAzienda } from '../../lib/queries'
-import { euro } from '../../lib/offerte'
+import { descrizioneTour, grafoTour, titoloTour } from '../../lib/seoTour'
 import { getTourPubblico } from '../../lib/tour'
 import { MODELLI_VALIDI, datiPaginaTour } from '../../lib/tourPagina'
 
@@ -27,20 +27,11 @@ const azienda = await getAzienda()
 const urlCanonica = new URL(`/tour/${t.slug}/`, Astro.site).toString()
 const d = datiPaginaTour(t, azienda, urlCanonica)
 
-const titolo = t.seo_titolo || `${t.nome} | Hotellando`
-const riassunto = [t.paese, `${t.notti} notti`, d.prezzoMin != null ? `da ${euro(d.prezzoMin)} a persona` : null].filter(Boolean).join(' · ')
-const descrizione =
-  t.seo_meta_description || (t.introduzione ? `${t.introduzione.replace(/\s+/g, ' ').slice(0, 140)}… ` : '') + riassunto + '. Richiedi disponibilità senza impegno.'
-
-const grafo = {
-  '@context': 'https://schema.org',
-  '@type': 'TouristTrip',
-  name: t.nome,
-  description: descrizione,
-  url: urlCanonica,
-  ...(d.copertina ? { image: d.copertina } : {}),
-  ...(d.prezzoMin != null ? { offers: { '@type': 'Offer', priceCurrency: 'EUR', price: d.prezzoMin, availability: 'https://schema.org/InStock' } } : {}),
-}
+// titolo, descrizione e dati strutturati nascono dai dati del tour (paese, durata, tipo, guida, tappe, prezzo, partenze);
+// un titolo o una descrizione scritti a mano nel gestionale hanno la precedenza
+const titolo = titoloTour(t, d.prezzoMin)
+const descrizione = descrizioneTour(t, d.prezzoMin, d.paesi)
+const grafo = grafoTour({ t, url: urlCanonica, titolo, descrizione, immagini: d.immagini, prezzoMin: d.prezzoMin, paesi: d.paesi, azienda, sito: Astro.site })
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={d.copertina}>

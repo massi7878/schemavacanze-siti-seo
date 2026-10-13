@@ -11,7 +11,7 @@ const { immagini, nome } = Astro.props
   <div class="miniature" role="group" aria-label={`Foto di ${nome}`}>
     {immagini.map((u, i) => (
       <button type="button" class={`miniature__foto${i === 0 ? ' miniature__foto--attiva' : ''}`} data-foto={u} aria-label={`Mostra la foto ${i + 1}`}>
-        <img src={u} alt="" loading={i < 8 ? 'eager' : 'lazy'} />
+        <img src={u} alt={`${nome}, foto ${i + 1}`} loading={i < 8 ? 'eager' : 'lazy'} />
       </button>
     ))}
   </div>

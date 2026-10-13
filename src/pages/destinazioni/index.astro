@@ -3,6 +3,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import CopertinaSezione from '../../components/CopertinaSezione.astro'
 import GrigliaStrutture from '../../components/GrigliaStrutture.astro'
 import { getSlideshow, getDestinazioniPerCategoria, getCopertineDestinazioni, getStruttureConFiltri } from '../../lib/queries'
+import DatiStrutturati from '../../components/DatiStrutturati.astro'
+import { grafoBriciole, grafoElenco } from '../../lib/seo'
 
 // Tutte le destinazioni, per sezione (Mare Italia, Estero...): copertina con i filtri al centro in basso.
 // Scegliendo una destinazione si passa alla sua pagina, dove i filtri stanno nella colonna a sinistra.
@@ -15,6 +17,12 @@ const descrizione = `${totale} destinazioni con strutture selezionate da Hotella
 ---
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica}>
+  <DatiStrutturati
+    nodi={[
+      grafoBriciole([{ nome: 'Home', href: '/' }, { nome: 'Destinazioni', href: '/destinazioni/' }], Astro.site),
+      grafoElenco('Destinazioni', urlCanonica, categorie.flatMap(c => c.destinazioni.map(d => ({ nome: d.nome.trim(), url: new URL(`/destinazioni/${d.slug}/`, Astro.site).toString() }))).slice(0, 60)),
+    ]}
+  />
   <CopertinaSezione slide={slide} titolo="Destinazioni" sottotitolo={`${totale} mete con strutture selezionate: scegli dove andare.`}>
     <nav slot="alto" class="briciole" aria-label="Percorso">
       <a href="/">Home</a>
