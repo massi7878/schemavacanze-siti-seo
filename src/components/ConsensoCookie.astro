@@ -2,9 +2,12 @@
 // Banner dei cookie e Pixel di Meta. Il Pixel si carica SOLO dopo "Accetta" (GDPR): senza consenso
 // non parte nessuna chiamata verso Meta. La scelta resta salvata nel browser e si puo' cambiare dal piede del sito.
 const ID_PIXEL = '1431343939188844'
+// l'API Conversions (invio degli stessi eventi dal server) passa dalla funzione meta-capi del gestionale
+const URL_CAPI = `${import.meta.env.PUBLIC_SUPABASE_URL}/functions/v1/meta-capi`
+const CHIAVE_CAPI = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
 
-<script is:inline define:vars={{ ID_PIXEL }}>
+<script is:inline define:vars={{ ID_PIXEL, URL_CAPI, CHIAVE_CAPI }}>
   ;(function () {
     var CHIAVE = 'hotellando-consenso'
     var coda = []
@@ -22,19 +25,58 @@ const ID_PIXEL = '1431343939188844'
       caricato = true
       !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js')
       window.fbq('init', ID_PIXEL)
-      window.fbq('track', 'PageView')
-      coda.forEach(function (ev) { window.fbq('track', ev[0], ev[1]) })
+      var idVisita = nuovoId()
+      window.fbq('track', 'PageView', {}, { eventID: idVisita })
+      inviaAlServer('PageView', idVisita, undefined, undefined)
+      var inCoda = coda
       coda = []
+      inCoda.forEach(function (ev) { emetti(ev[0], ev[1], ev[2]) })
     }
 
-    // eventi (ViewContent, Lead): partono solo con il consenso, altrimenti si scartano
-    window.tracciaEvento = function (nome, dati) {
+    function nuovoId() {
+      return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10)
+    }
+    function cookie(nome) {
+      var m = document.cookie.match(new RegExp('(?:^|; )' + nome + '=([^;]*)'))
+      return m ? decodeURIComponent(m[1]) : ''
+    }
+
+    // lo stesso evento va anche al server (API Conversions), con lo stesso id: Meta lo conta una volta sola
+    function inviaAlServer(nome, idEvento, dati, contatto) {
+      try {
+        fetch(URL_CAPI, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: CHIAVE_CAPI, Authorization: 'Bearer ' + CHIAVE_CAPI },
+          body: JSON.stringify({
+            evento: nome,
+            eventId: idEvento,
+            url: location.href.split('#')[0],
+            userAgent: navigator.userAgent,
+            fbp: cookie('_fbp'),
+            fbc: cookie('_fbc'),
+            dati: dati,
+            contatto: contatto,
+          }),
+          keepalive: true,
+        }).catch(function () {})
+      } catch (e) {}
+    }
+
+    function emetti(nome, dati, contatto) {
+      var idEvento = nuovoId()
+      window.fbq('track', nome, dati || {}, { eventID: idEvento })
+      inviaAlServer(nome, idEvento, dati, contatto)
+    }
+
+    // eventi (ViewContent, Lead): partono solo con il consenso, altrimenti si scartano.
+    // "contatto" (solo per Lead): e-mail, telefono, nome; il server li cifra prima di mandarli a Meta
+    window.tracciaEvento = function (nome, dati, contatto) {
       var scelta = leggi()
       if (scelta === 'si') {
-        if (caricato) window.fbq('track', nome, dati)
-        else coda.push([nome, dati])
+        if (caricato) emetti(nome, dati, contatto)
+        else coda.push([nome, dati, contatto])
       } else if (scelta === null) {
-        coda.push([nome, dati])
+        coda.push([nome, dati, contatto])
       }
     }
 
