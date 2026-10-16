@@ -405,6 +405,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     // si registra la richiesta senza aspettarla: la chat si apre subito
     const r = creaRichiesta(d, 'whatsapp', infoTour.riepilogo ?? '')
     fetch(`${r.url}/rest/v1/rpc/${r.funzione}`, { method: 'POST', headers: r.intestazioni, body: JSON.stringify(r.corpo), keepalive: true }).catch(() => {})
+    ;(window as any).tracciaEvento?.('Lead')
     window.open(link, '_blank', 'noopener')
     if (campi) campi.hidden = true
     if (esitoWa) esitoWa.hidden = false
@@ -448,6 +449,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
         headers: r.intestazioni,
         body: JSON.stringify({ leadId }),
       }).catch(() => {})
+      ;(window as any).tracciaEvento?.('Lead')
       modulo.reset()
       aggiornaPunti()
       if (etaBox) {

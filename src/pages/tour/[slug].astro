@@ -36,6 +36,7 @@ const grafo = grafoTour({ t, url: urlCanonica, titolo, descrizione, immagini: d.
 
 <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={d.copertina}>
   <script type="application/ld+json" set:html={JSON.stringify(grafo)} />
+  {!anteprima && <script is:inline define:vars={{ nome: t.nome, prezzo: d.prezzoMin }}>window.tracciaEvento && window.tracciaEvento('ViewContent', { content_name: nome, content_type: 'product', value: prezzo || 0, currency: 'EUR' })</script>}
   {anteprima && <meta name="robots" content="noindex" />}
   {modello === 'sofly' ? <ModelloSofly d={d} /> : <ModelloClassico d={d} />}
 </BaseLayout>

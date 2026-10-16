@@ -14,6 +14,8 @@ const categorie = await getDestinazioniPerCategoria()
         {azienda?.telefono && <a href={`tel:${azienda.telefono.replace(/\s/g, '')}`}>{azienda.telefono}</a>}
       </p>
       <a href="/offerte/">Offerte</a>
+      <a href="/privacy/">Cookie e privacy</a>
+      <a href="/privacy/" data-preferenze-cookie>Preferenze cookie</a>
     </div>
 
     {tipologieStruttura.length > 0 && (

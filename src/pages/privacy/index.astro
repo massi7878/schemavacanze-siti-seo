@@ -1,0 +1,71 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import { getAzienda } from '../../lib/queries'
+
+const azienda = await getAzienda()
+const titolare = azienda?.ragione_sociale || azienda?.nome_commerciale || 'Schema Vacanze'
+const urlCanonica = new URL('/privacy/', Astro.site).toString()
+---
+
+<BaseLayout titolo="Cookie e privacy | Hotellando" descrizione="Come usiamo i cookie e i dati di navigazione su Hotellando, e come cambiare la tua scelta." urlCanonica={urlCanonica}>
+  <main class="contenitore privacy">
+    <h1>Cookie e privacy</h1>
+
+    <h2>Chi tratta i dati</h2>
+    <p>
+      Titolare del trattamento: {titolare}
+      {azienda?.indirizzo && <>, {azienda.indirizzo}</>}
+      {azienda?.telefono && <>. Telefono: {azienda.telefono}</>}.
+    </p>
+
+    <h2>Cookie tecnici</h2>
+    <p>
+      Il sito ricorda la tua scelta sui cookie nel tuo browser. Non serve il tuo consenso e non contiene dati personali.
+    </p>
+
+    <h2>Cookie di Meta (Pixel)</h2>
+    <p>
+      Se accetti, carichiamo il Pixel di Meta Platforms (Facebook e Instagram). Registra le pagine che visiti e quando invii una richiesta
+      di preventivo, così possiamo misurare i risultati delle nostre campagne e mostrare le nostre proposte a chi ha già visto i nostri viaggi.
+      Se rifiuti, il Pixel non viene caricato e nessun dato parte verso Meta.
+    </p>
+
+    <h2>Richieste di preventivo</h2>
+    <p>
+      I dati che inserisci nel modulo di richiesta (nome, telefono, e-mail, date e numero di viaggiatori) servono solo a risponderti
+      e a prepararti il preventivo. Non vengono venduti.
+    </p>
+
+    <h2>Cambiare la scelta</h2>
+    <p>
+      Puoi cambiare idea in qualsiasi momento: <a href="/privacy/" data-preferenze-cookie>riapri le preferenze sui cookie</a>.
+    </p>
+  </main>
+</BaseLayout>
+
+<style>
+  .privacy {
+    padding-block: 2.5rem 4rem;
+    max-width: 48rem;
+  }
+  .privacy h1 {
+    font-family: var(--font-display);
+    color: var(--inchiostro);
+    font-size: 2.2rem;
+    margin: 0 0 1.5rem;
+  }
+  .privacy h2 {
+    font-family: var(--font-display);
+    color: var(--inchiostro);
+    font-size: 1.25rem;
+    margin: 1.75rem 0 0.5rem;
+  }
+  .privacy p {
+    line-height: 1.65;
+    margin: 0;
+  }
+  .privacy a {
+    color: var(--accento-scuro);
+    text-decoration: underline;
+  }
+</style>

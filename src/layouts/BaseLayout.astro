@@ -5,6 +5,7 @@ import Footer from '../components/Footer.astro'
 import { getAzienda } from '../lib/queries'
 import { scurisci } from '../lib/formato'
 import { grafoAzienda } from '../lib/seo'
+import ConsensoCookie from '../components/ConsensoCookie.astro'
 
 interface Props {
   titolo: string
@@ -72,6 +73,7 @@ const immagineSocial = immagine || new URL('/brand/hotellando-logo.jpg', Astro.s
     <Header />
     <slot />
     <Footer />
+    <ConsensoCookie />
     <script>
       // regola primaria dei datari: la data di fine parte dalla data di inizio, non da oggi
       import { installaCollegamentoDatari } from '../scripts/collegaDatari'

@@ -1,0 +1,136 @@
+---
+// Banner dei cookie e Pixel di Meta. Il Pixel si carica SOLO dopo "Accetta" (GDPR): senza consenso
+// non parte nessuna chiamata verso Meta. La scelta resta salvata nel browser e si puo' cambiare dal piede del sito.
+const ID_PIXEL = '1441083101191097'
+---
+
+<script is:inline define:vars={{ ID_PIXEL }}>
+  ;(function () {
+    var CHIAVE = 'hotellando-consenso'
+    var coda = []
+    var caricato = false
+
+    function leggi() {
+      try { return localStorage.getItem(CHIAVE) } catch (e) { return null }
+    }
+    function salva(v) {
+      try { localStorage.setItem(CHIAVE, v) } catch (e) {}
+    }
+
+    function caricaPixel() {
+      if (caricato) return
+      caricato = true
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js')
+      window.fbq('init', ID_PIXEL)
+      window.fbq('track', 'PageView')
+      coda.forEach(function (ev) { window.fbq('track', ev[0], ev[1]) })
+      coda = []
+    }
+
+    // eventi (ViewContent, Lead): partono solo con il consenso, altrimenti si scartano
+    window.tracciaEvento = function (nome, dati) {
+      var scelta = leggi()
+      if (scelta === 'si') {
+        if (caricato) window.fbq('track', nome, dati)
+        else coda.push([nome, dati])
+      } else if (scelta === null) {
+        coda.push([nome, dati])
+      }
+    }
+
+    function chiudi(v) {
+      salva(v)
+      var b = document.getElementById('banner-cookie')
+      if (b) b.hidden = true
+      if (v === 'si') caricaPixel()
+      else { coda = [] }
+    }
+
+    function mostra() {
+      var b = document.getElementById('banner-cookie')
+      if (b) b.hidden = false
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var scelta = leggi()
+      if (scelta === 'si') caricaPixel()
+      else if (scelta === null) mostra()
+      var si = document.getElementById('cookie-accetta')
+      var no = document.getElementById('cookie-rifiuta')
+      if (si) si.addEventListener('click', function () { chiudi('si') })
+      if (no) no.addEventListener('click', function () { chiudi('no') })
+      document.querySelectorAll('[data-preferenze-cookie]').forEach(function (el) {
+        el.addEventListener('click', function (e) { e.preventDefault(); mostra() })
+      })
+    })
+  })()
+</script>
+
+<div id="banner-cookie" class="cookie" role="dialog" aria-label="Cookie e privacy" hidden>
+  <p class="cookie__testo">
+    Usiamo un cookie di Meta (Facebook e Instagram) per misurare le visite e mostrarti le nostre proposte di viaggio.
+    Parte solo se accetti. <a href="/privacy/">Maggiori informazioni</a>
+  </p>
+  <div class="cookie__azioni">
+    <button type="button" id="cookie-accetta" class="cookie__tasto cookie__tasto--si">Accetta</button>
+    <button type="button" id="cookie-rifiuta" class="cookie__tasto">Rifiuta</button>
+  </div>
+</div>
+
+<style>
+  .cookie {
+    position: fixed;
+    left: 1rem;
+    bottom: 1rem;
+    z-index: 1000;
+    max-width: 30rem;
+    padding: 1rem 1.1rem;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--testo);
+  }
+  .cookie[hidden] {
+    display: none;
+  }
+  .cookie__testo {
+    margin: 0;
+    line-height: 1.45;
+  }
+  .cookie__testo a {
+    color: var(--accento-scuro);
+    text-decoration: underline;
+  }
+  .cookie__azioni {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .cookie__tasto {
+    padding: 0.45em 1.1em;
+    border-radius: 999px;
+    border: 1px solid var(--bordo);
+    background: var(--superficie);
+    color: var(--inchiostro);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .cookie__tasto--si {
+    background: var(--accento-scuro);
+    border-color: var(--accento-scuro);
+    color: #fff;
+  }
+  @media (max-width: 40rem) {
+    .cookie {
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: 0.75rem;
+      max-width: none;
+    }
+  }
+</style>
