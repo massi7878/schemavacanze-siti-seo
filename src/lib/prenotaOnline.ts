@@ -1,7 +1,7 @@
 // "Prenota online": quali strutture hanno prezzi di partenza (elenco dal database, ricordato per 10 minuti).
 const CHIAVE = 'strutture-prenota-online'
 
-export async function struttureConPrezzi(): Promise<Set<string>> {
+async function leggi(): Promise<Set<string>> {
   try {
     const salvato = sessionStorage.getItem(CHIAVE)
     if (salvato) {
@@ -31,6 +31,13 @@ export async function struttureConPrezzi(): Promise<Set<string>> {
   } catch {
     return new Set()
   }
+}
+
+// una sola lettura per pagina, condivisa da nastro e filtro
+let lettura: Promise<Set<string>> | null = null
+export function struttureConPrezzi(): Promise<Set<string>> {
+  lettura ??= leggi()
+  return lettura
 }
 
 export function creaNastro() {

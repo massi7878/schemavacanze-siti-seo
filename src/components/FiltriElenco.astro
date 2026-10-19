@@ -24,6 +24,10 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
       </select>
     </label>
   )}
+  <label class="filtri-elenco__online" data-filtro-online hidden>
+    <input type="checkbox" name="online" />
+    <span>Prenotabili online</span>
+  </label>
   <label class="filtri-elenco__campo filtri-elenco__ricerca">
     <span>Cerca per testo</span>
     <span class="filtri-elenco__riga">
@@ -43,6 +47,8 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
 </form>
 
 <script>
+  import { struttureConPrezzi } from '../lib/prenotaOnline'
+
   document.querySelectorAll<HTMLFormElement>('[data-filtri-elenco]').forEach(modulo => {
     const griglia = document.querySelector<HTMLElement>('[data-griglia-strutture]')
     const vuoto = document.querySelector<HTMLElement>('[data-griglia-vuoto]')
@@ -60,6 +66,8 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
       const testo = normalizza(String((modulo.elements.namedItem('testo') as HTMLInputElement)?.value ?? '')).trim()
       const stelle = String((modulo.elements.namedItem('stelle') as HTMLSelectElement | null)?.value ?? '')
       if (stelle && riga.dataset.stelle !== stelle) return false
+      // solo le strutture con prezzi di partenza (quelle con il nastro "Prenota online")
+      if ((modulo.elements.namedItem('online') as HTMLInputElement | null)?.checked && riga.dataset.online !== '1') return false
       if (testo && !normalizza(riga.dataset.testo ?? '').includes(testo)) return false
       for (const sel of selezioni) {
         if (sel === salta || !sel.value) continue
@@ -99,6 +107,22 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
       if (esito) esito.textContent = filtrato ? `${visibili} ${visibili === 1 ? 'struttura trovata' : 'strutture trovate'}` : ''
     }
 
+    // il filtro compare solo se almeno una struttura dell'elenco ha i prezzi caricati
+    const filtroOnline = modulo.querySelector<HTMLElement>('[data-filtro-online]')
+    if (filtroOnline) {
+      struttureConPrezzi().then(conPrezzi => {
+        let n = 0
+        for (const riga of righe) {
+          const slug = riga.querySelector('a.scheda-struttura')?.getAttribute('href')?.split('/').filter(Boolean).pop()
+          if (slug && conPrezzi.has(slug)) {
+            riga.dataset.online = '1'
+            n++
+          }
+        }
+        if (n > 0) filtroOnline.hidden = false
+      })
+    }
+
     modulo.addEventListener('submit', e => {
       e.preventDefault()
       applica()
@@ -127,6 +151,29 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
     font-weight: 600;
     color: var(--testo);
     min-width: 0;
+  }
+
+  .filtri-elenco__online {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--colore-primario-scuro);
+    border-radius: 999px;
+    background: var(--superficie);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--colore-primario-scuro);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .filtri-elenco__online[hidden] {
+    display: none;
+  }
+
+  .filtri-elenco__online input {
+    accent-color: var(--colore-primario-scuro);
   }
 
   .filtri-elenco__ricerca {
