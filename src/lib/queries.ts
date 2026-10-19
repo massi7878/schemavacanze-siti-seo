@@ -96,7 +96,7 @@ export async function getSlugStruttureAttive() {
     const { data } = await supabase
       .from('strutture')
       .select('slug')
-      .eq('attiva', true)
+      .eq('attiva', true).eq('visibile_sito', true)
       .not('slug', 'is', null)
     return (data ?? []).map(r => r.slug as string)
   })
@@ -106,7 +106,7 @@ export async function getStruttureSitemap() {
   const { data } = await supabase
     .from('strutture')
     .select('slug, nome, localita, regione, data_aggiornamento_contenuti, updated_at')
-    .eq('attiva', true)
+    .eq('attiva', true).eq('visibile_sito', true)
     .not('slug', 'is', null)
   return data ?? []
 }
@@ -117,7 +117,7 @@ export async function getStruttureConFiltri() {
   const { data } = await supabase
     .from('strutture')
     .select('id, slug, nome, localita, regione, stelle, formula, tipologia_id, destinazione_id')
-    .eq('attiva', true)
+    .eq('attiva', true).eq('visibile_sito', true)
     .not('slug', 'is', null)
   const [destinazioni, tipologie] = await Promise.all([destinazioniPubbliche(), getTipologieStruttura()])
   const perId = new Map(destinazioni.map(d => [d.id, d]))
@@ -139,7 +139,7 @@ export async function getStruttureElenco() {
   const { data } = await supabase
     .from('strutture')
     .select('id, slug, nome, localita, regione, stelle, formula')
-    .eq('attiva', true)
+    .eq('attiva', true).eq('visibile_sito', true)
     .not('slug', 'is', null)
   return conCopertine(data ?? [])
 }
@@ -197,7 +197,7 @@ export async function getStruttureTipologia(tipologiaSlug: string) {
   const { data } = await supabase
     .from('strutture')
     .select('id, slug, nome, localita, regione, stelle, formula')
-    .eq('attiva', true)
+    .eq('attiva', true).eq('visibile_sito', true)
     .eq('tipologia_id', tipologia.id)
     .not('slug', 'is', null)
   return { tipologia, strutture: await conCopertine(data ?? []) }
@@ -209,7 +209,7 @@ async function _getRegioni() {
   const { data } = await supabase
     .from('strutture')
     .select('regione')
-    .eq('attiva', true)
+    .eq('attiva', true).eq('visibile_sito', true)
     .not('regione', 'is', null)
   const conteggio = new Map<string, number>()
   for (const riga of data ?? []) {
@@ -238,7 +238,7 @@ async function idDestinazioniConStrutture(): Promise<Set<string> | null> {
     const { data, error } = await supabase
       .from('strutture')
       .select('destinazione_id')
-      .eq('attiva', true)
+      .eq('attiva', true).eq('visibile_sito', true)
       .not('slug', 'is', null)
       .not('destinazione_id', 'is', null)
       .range(da, da + 999)
@@ -322,7 +322,7 @@ export async function getStruttureCategoria(categoriaSlug: string) {
   const { data } = await supabase
     .from('strutture')
     .select('id, slug, nome, localita, regione, stelle, formula')
-    .eq('attiva', true)
+    .eq('attiva', true).eq('visibile_sito', true)
     .in('destinazione_id', idDaCercare)
     .not('slug', 'is', null)
   return { categoria, destinazioni: categoria.destinazioni, strutture: await conCopertine(data ?? []) }
@@ -344,7 +344,7 @@ export async function getCopertineDestinazioni() {
     const { data } = await supabase
       .from('strutture')
       .select('id, destinazione_id')
-      .eq('attiva', true)
+      .eq('attiva', true).eq('visibile_sito', true)
       .not('slug', 'is', null)
       .not('destinazione_id', 'is', null)
       .range(da, da + 999)
@@ -376,7 +376,7 @@ export async function getStruttureDestinazione(slug: string) {
   const { data } = await supabase
     .from('strutture')
     .select('id, slug, nome, localita, regione, stelle, formula')
-    .eq('attiva', true)
+    .eq('attiva', true).eq('visibile_sito', true)
     .in('destinazione_id', idDaCercare)
     .not('slug', 'is', null)
   return { destinazione, strutture: await conCopertine(data ?? []) }
@@ -407,7 +407,7 @@ export async function getStrutturaCompleta(slug: string) {
     .from('strutture')
     .select('*, tipologie_struttura(nome, etichetta_camera, etichette_extra)')
     .eq('slug', slug)
-    .eq('attiva', true)
+    .eq('attiva', true).eq('visibile_sito', true)
     .maybeSingle()
   if (!struttura) return null
 
