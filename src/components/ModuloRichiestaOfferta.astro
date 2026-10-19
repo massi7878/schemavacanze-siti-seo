@@ -6,6 +6,8 @@ interface Props {
   // offerta (con le sue partenze) oppure tour (la partenza arriva dal calendario della pagina)
   offertaId?: string
   tourId?: string
+  // richiesta dalla scheda di una struttura (ricerca per date con i prezzi): si comporta come il tour
+  strutturaId?: string
   codice?: number
   titolo: string
   numeroWa?: string | null
@@ -25,8 +27,10 @@ interface Props {
   validaAl?: string | null
 }
 
-const { offertaId, tourId, codice, titolo, numeroWa = null, urlPagina, canaleEmail = true, canaleWhatsapp = true, partenze = [], punti = [], validaDal = null, validaAl = null } = Astro.props
+const { offertaId, tourId, strutturaId, codice, titolo, numeroWa = null, urlPagina, canaleEmail = true, canaleWhatsapp = true, partenze = [], punti = [], validaDal = null, validaAl = null } = Astro.props
 const eTour = Boolean(tourId)
+// tour e struttura non hanno la scelta della partenza nel modulo: i dati arrivano dalla pagina
+const eLibero = eTour || Boolean(strutturaId)
 
 function nomePunto(p: { tipo: string; nome: string }) {
   return `${NOME_TIPO_PUNTO[p.tipo] ?? ''} ${p.nome}`.trim()
@@ -59,19 +63,19 @@ const urlSupabase = import.meta.env.PUBLIC_SUPABASE_URL
 const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
 
-<dialog id="dialog-richiesta" class="richiesta" data-offerta={offertaId} data-tour={tourId} data-titolo={titolo} data-codice={codice} data-wa={numeroWa} data-pagina={urlPagina} data-url={urlSupabase} data-chiave={chiaveAnon} data-punti-offerta={JSON.stringify(puntiOfferta)}>
+<dialog id="dialog-richiesta" class="richiesta" data-offerta={offertaId} data-tour={tourId} data-struttura={strutturaId} data-titolo={titolo} data-codice={codice} data-wa={numeroWa} data-pagina={urlPagina} data-url={urlSupabase} data-chiave={chiaveAnon} data-punti-offerta={JSON.stringify(puntiOfferta)}>
   <form method="dialog" class="richiesta__modulo" id="modulo-richiesta" novalidate>
     <header class="richiesta__testata">
       <div>
         <h2>Richiedi disponibilità</h2>
-        <p class="richiesta__rif">{eTour ? titolo : `${titolo} · Rif. OFF-${codice}`}</p>
+        <p class="richiesta__rif">{eLibero ? titolo : `${titolo} · Rif. OFF-${codice}`}</p>
       </div>
       <button type="button" class="richiesta__chiudi" data-chiudi aria-label="Chiudi">×</button>
     </header>
 
     <div class="richiesta__corpo" id="richiesta-campi">
-      {eTour && <div class="richiesta__riepilogo" id="richiesta-riepilogo" hidden></div>}
-      {!eTour && (prenotabili.length > 0 ? (
+      {eLibero && <div class="richiesta__riepilogo" id="richiesta-riepilogo" hidden></div>}
+      {!eLibero && (prenotabili.length > 0 ? (
         <label class="campo">
           Partenza
           <select name="partenza" required>
@@ -192,6 +196,8 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   const bottoneWa = document.querySelector<HTMLButtonElement>('#richiesta-whatsapp')
   const riepilogoBox = document.querySelector<HTMLElement>('#richiesta-riepilogo')
   const eTour = Boolean(dialog?.dataset.tour)
+  const eStruttura = Boolean(dialog?.dataset.struttura)
+  const eLibero = eTour || eStruttura
   // dati della partenza scelta nel calendario del tour (testo del riepilogo, date, persone)
   let infoTour: { dal?: string; al?: string; adulti?: number; bambini?: number; riepilogo?: string } = {}
 
@@ -258,7 +264,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     if (errore) errore.hidden = true
     const sel = modulo.elements.namedItem('partenza') as HTMLSelectElement | null
     if (sel && partenzaId) sel.value = partenzaId
-    if (eTour) {
+    if (eLibero) {
       infoTour = tour ?? {}
       if (riepilogoBox) {
         riepilogoBox.textContent = infoTour.riepilogo ?? ''
@@ -355,8 +361,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     }
     const corpo = eTour
       ? { p_tour_id: dialog!.dataset.tour, p_riepilogo: riepilogo, p_link: dialog!.dataset.pagina, ...comuni }
-      : { p_offerta_id: dialog!.dataset.offerta, p_partenza_id: d.partenzaId, p_punto_id: (d.dati.get('punto') as string) || null, ...comuni }
-    return { url, intestazioni, corpo, funzione: eTour ? 'crea_richiesta_tour' : 'crea_richiesta_offerta' }
+      : eStruttura
+        ? { p_struttura_id: dialog!.dataset.struttura, p_riepilogo: riepilogo, p_link: dialog!.dataset.pagina, ...comuni }
+        : { p_offerta_id: dialog!.dataset.offerta, p_partenza_id: d.partenzaId, p_punto_id: (d.dati.get('punto') as string) || null, ...comuni }
+    return { url, intestazioni, corpo, funzione: eTour ? 'crea_richiesta_tour' : eStruttura ? 'crea_richiesta_struttura' : 'crea_richiesta_offerta' }
   }
 
   function personeTesto(d: NonNullable<ReturnType<typeof leggiDati>>) {
@@ -369,10 +377,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   function testoWhatsApp(d: NonNullable<ReturnType<typeof leggiDati>>) {
     const titolo = dialog!.dataset.titolo ?? ''
     const righe: string[] = [
-      eTour ? `Buongiorno, vorrei un preventivo per il tour "${titolo}".` : `Buongiorno, vorrei informazioni sull'offerta "${titolo}" (Rif. OFF-${dialog!.dataset.codice}).`,
+      eTour ? `Buongiorno, vorrei un preventivo per il tour "${titolo}".` : eStruttura ? `Buongiorno, vorrei un preventivo per "${titolo}".` : `Buongiorno, vorrei informazioni sull'offerta "${titolo}" (Rif. OFF-${dialog!.dataset.codice}).`,
       '',
     ]
-    if (eTour && infoTour.riepilogo) righe.push(infoTour.riepilogo)
+    if (eLibero && infoTour.riepilogo) righe.push(infoTour.riepilogo)
     else if (d.partenzaTesto) righe.push(`Partenza: ${d.partenzaTesto}`)
     else if (d.dal || d.al) righe.push(`Periodo: ${[dataIt(d.dal), dataIt(d.al)].filter(Boolean).join(' - ')}`)
     righe.push(`Persone: ${personeTesto(d)}`)

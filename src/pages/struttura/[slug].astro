@@ -3,6 +3,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import JsonLd from '../../components/JsonLd.astro'
 import IconaServizio from '../../components/IconaServizio.astro'
 import Briciole from '../../components/Briciole.astro'
+import CercaPartenzeStruttura from '../../components/CercaPartenzeStruttura.astro'
+import ModuloRichiestaOfferta from '../../components/ModuloRichiestaOfferta.astro'
 import { getAzienda, getOffertaStruttura, getSlugStruttureAttive, getStrutturaCompleta, percorsoDestinazione } from '../../lib/queries'
 import {
   ETICHETTA_FORMULA,
@@ -238,6 +240,8 @@ const sezioniTab = [
   )}
 
   <main class="contenitore">
+    <CercaPartenzeStruttura strutturaId={struttura.id} nome={struttura.nome} />
+
     <section
       class="sezione offerta-struttura"
       id="offerta"
@@ -520,6 +524,8 @@ const sezioniTab = [
       </p>
     )}
   </main>
+
+  <ModuloRichiestaOfferta strutturaId={struttura.id} titolo={struttura.nome} numeroWa={soloNumeri(azienda?.numero_whatsapp)} urlPagina={urlCanonica} />
 </BaseLayout>
 
 <script>

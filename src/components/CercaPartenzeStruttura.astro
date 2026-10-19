@@ -1,0 +1,488 @@
+---
+// Ricerca per data e numero di persone sulla scheda di una struttura.
+// I prezzi (volo + hotel, a persona in doppia) sono quelli salvati ogni notte nel gestionale: le date selezionabili
+// sono SOLO quelle che hanno un prezzo. Con 2 adulti si vede il prezzo; con bambini o piu' adulti si chiede il preventivo.
+interface Props {
+  strutturaId: string
+  nome: string
+}
+const { strutturaId, nome } = Astro.props
+---
+
+<section
+  class="sezione pp"
+  id="prenota"
+  hidden
+  data-struttura={strutturaId}
+  data-nome={nome}
+  data-url={import.meta.env.PUBLIC_SUPABASE_URL}
+  data-chiave={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
+>
+  <h2 class="sezione__titolo">Verifica prezzi e disponibilità</h2>
+  <p class="pp__intro">Scegli la data tra quelle disponibili e le persone: vedi subito il prezzo del volo con soggiorno.</p>
+
+  <div class="pp__corpo">
+    <div class="pp__colonna">
+      <div class="pp__persone">
+        <label class="pp__campo">
+          Adulti
+          <select id="pp-adulti">
+            {[1, 2, 3, 4, 5, 6].map(n => <option value={n} selected={n === 2}>{n}</option>)}
+          </select>
+        </label>
+        <label class="pp__campo">
+          Bambini
+          <select id="pp-bambini">
+            {[0, 1, 2, 3, 4].map(n => <option value={n}>{n}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div class="pp__calendario" id="pp-calendario" aria-label="Date di partenza disponibili"></div>
+      <p class="pp__legenda">Sono selezionabili solo le date con un prezzo. Sotto la data trovi il prezzo più basso a persona.</p>
+    </div>
+
+    <div class="pp__risultati" id="pp-risultati" aria-live="polite">
+      <p class="pp__vuoto">Scegli una data sul calendario per vedere camere e prezzi.</p>
+    </div>
+  </div>
+
+  <p class="pp__note" id="pp-note"></p>
+</section>
+
+<script>
+  type Riga = {
+    data_partenza: string
+    notti: number
+    aeroporto: string
+    camera: string
+    trattamento: string
+    transfer_incluso: boolean
+    prezzo_persona: number
+    rilevato_il: string
+  }
+
+  const sezione = document.querySelector<HTMLElement>('#prenota')
+  const NOMI_AEROPORTO: Record<string, string> = { NAP: 'Napoli', FCO: 'Roma', MXP: 'Milano', BGY: 'Bergamo', VCE: 'Venezia', BRI: 'Bari', CTA: 'Catania', PMO: 'Palermo' }
+  const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
+  const euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+
+  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const maiuscola = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t)
+  const dataIt = (iso: string) => iso.split('-').reverse().join('/')
+  const dataLunga = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  function sommaGiorni(iso: string, giorni: number) {
+    const d = new Date(iso + 'T00:00:00Z')
+    d.setUTCDate(d.getUTCDate() + giorni)
+    return d.toISOString().slice(0, 10)
+  }
+
+  let righe: Riga[] = []
+  let perData = new Map<string, Riga[]>()
+  let meseCorrente = '' // AAAA-MM
+  let dataScelta = ''
+
+  const calendario = document.querySelector<HTMLElement>('#pp-calendario')
+  const risultati = document.querySelector<HTMLElement>('#pp-risultati')
+  const selAdulti = document.querySelector<HTMLSelectElement>('#pp-adulti')
+  const selBambini = document.querySelector<HTMLSelectElement>('#pp-bambini')
+  const note = document.querySelector<HTMLElement>('#pp-note')
+
+  const adulti = () => Number(selAdulti?.value) || 2
+  const bambini = () => Number(selBambini?.value) || 0
+  // il prezzo si mostra solo per 2 adulti senza bambini: il resto va calcolato da noi
+  const prezzoDiretto = () => adulti() === 2 && bambini() === 0
+
+  function mesiDisponibili() {
+    return [...new Set([...perData.keys()].map(d => d.slice(0, 7)))].sort()
+  }
+
+  function disegnaCalendario() {
+    if (!calendario) return
+    const mesi = mesiDisponibili()
+    const [anno, mese] = meseCorrente.split('-').map(Number)
+    const primo = new Date(Date.UTC(anno, mese - 1, 1))
+    const giorniMese = new Date(Date.UTC(anno, mese, 0)).getUTCDate()
+    const sfasamento = (primo.getUTCDay() + 6) % 7 // lunedi' = 0
+    const indice = mesi.indexOf(meseCorrente)
+    let celle = ''
+    for (let i = 0; i < sfasamento; i++) celle += '<span class="pp__giorno pp__giorno--vuoto"></span>'
+    for (let g = 1; g <= giorniMese; g++) {
+      const iso = `${meseCorrente}-${String(g).padStart(2, '0')}`
+      const disponibili = perData.get(iso)
+      if (disponibili) {
+        const minimo = Math.min(...disponibili.map(r => Number(r.prezzo_persona)))
+        celle += `<button type="button" class="pp__giorno pp__giorno--ok${iso === dataScelta ? ' pp__giorno--scelto' : ''}" data-data="${iso}" aria-label="${dataLunga(iso)}, da ${Math.round(minimo)} euro a persona"><span class="pp__numero">${g}</span><span class="pp__prezzo">${Math.round(minimo)}€</span></button>`
+      } else {
+        celle += `<span class="pp__giorno" aria-hidden="true"><span class="pp__numero">${g}</span></span>`
+      }
+    }
+    calendario.innerHTML = `
+      <div class="pp__mese">
+        <button type="button" class="pp__freccia" data-mese="-1" aria-label="Mese precedente" ${indice <= 0 ? 'disabled' : ''}>‹</button>
+        <strong>${MESI[mese - 1]} ${anno}</strong>
+        <button type="button" class="pp__freccia" data-mese="1" aria-label="Mese successivo" ${indice >= mesi.length - 1 ? 'disabled' : ''}>›</button>
+      </div>
+      <div class="pp__settimana"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span>D</span></div>
+      <div class="pp__griglia">${celle}</div>`
+  }
+
+  function opzioniDellaData(iso: string) {
+    // per ogni durata, camera e trattamento: il prezzo piu' basso
+    const gruppi = new Map<number, Map<string, Riga>>()
+    for (const r of perData.get(iso) ?? []) {
+      const perNotti = gruppi.get(r.notti) ?? new Map<string, Riga>()
+      const chiave = `${r.aeroporto}|${r.camera}|${r.trattamento}|${r.transfer_incluso}`
+      const attuale = perNotti.get(chiave)
+      if (!attuale || Number(r.prezzo_persona) < Number(attuale.prezzo_persona)) perNotti.set(chiave, r)
+      gruppi.set(r.notti, perNotti)
+    }
+    return [...gruppi.entries()].sort((a, b) => a[0] - b[0]).map(([notti, m]) => ({ notti, opzioni: [...m.values()].sort((a, b) => Number(a.prezzo_persona) - Number(b.prezzo_persona)) }))
+  }
+
+  function riepilogo(r: Riga) {
+    const rientro = sommaGiorni(r.data_partenza, r.notti)
+    const prezzo = Number(r.prezzo_persona)
+    const righe = [
+      `Partenza da ${NOMI_AEROPORTO[r.aeroporto] ?? r.aeroporto} il ${dataIt(r.data_partenza)}, rientro il ${dataIt(rientro)} (${r.notti} notti)`,
+      `${maiuscola(r.camera)} · ${maiuscola(r.trattamento)}${r.transfer_incluso ? ' · transfer incluso' : ''}`,
+      `Prezzo indicativo: ${euro.format(prezzo)} a persona in doppia (volo + hotel)`,
+    ]
+    return righe.join('\n')
+  }
+
+  function disegnaRisultati() {
+    if (!risultati) return
+    if (!dataScelta) {
+      risultati.innerHTML = '<p class="pp__vuoto">Scegli una data sul calendario per vedere camere e prezzi.</p>'
+      return
+    }
+    const gruppi = opzioniDellaData(dataScelta)
+    const diretto = prezzoDiretto()
+    let html = `<h3 class="pp__titolo-data">${maiuscola(dataLunga(dataScelta))}</h3>`
+    if (!diretto) {
+      html += `<p class="pp__avviso">Con ${adulti()} adulti${bambini() > 0 ? ` e ${bambini()} ${bambini() === 1 ? 'bambino' : 'bambini'}` : ''} il prezzo dipende da età e riduzioni: ti prepariamo il preventivo preciso. Qui sotto trovi il prezzo a persona in doppia, solo come riferimento.</p>`
+    }
+    gruppi.forEach((g, gi) => {
+      html += `<div class="pp__gruppo"><p class="pp__durata">${g.notti} notti · rientro ${dataIt(sommaGiorni(dataScelta, g.notti))}</p>`
+      g.opzioni.forEach((r, oi) => {
+        const persona = Number(r.prezzo_persona)
+        html += `<div class="pp__opzione">
+          <div class="pp__descrizione">
+            <strong>${esc(maiuscola(r.camera))}</strong>
+            <span>${esc(maiuscola(r.trattamento))}</span>
+            <span class="pp__dettagli">Volo da ${esc(NOMI_AEROPORTO[r.aeroporto] ?? r.aeroporto)}${r.transfer_incluso ? ' · transfer incluso' : ''}</span>
+          </div>
+          <div class="pp__importo">
+            <span class="pp__persona"><strong>${euro.format(persona)}</strong> a persona</span>
+            ${diretto ? `<span class="pp__totale">Totale 2 adulti: <strong>${euro.format(persona * 2)}</strong></span>` : '<span class="pp__totale">Preventivo su richiesta</span>'}
+            <button type="button" class="pulsante pp__richiedi" data-gruppo="${gi}" data-opzione="${oi}">${diretto ? 'Richiedi questa soluzione' : 'Richiedi il preventivo'}</button>
+          </div>
+        </div>`
+      })
+      html += '</div>'
+    })
+    risultati.innerHTML = html
+    risultati.querySelectorAll<HTMLButtonElement>('.pp__richiedi').forEach(b =>
+      b.addEventListener('click', () => {
+        const r = gruppi[Number(b.dataset.gruppo)].opzioni[Number(b.dataset.opzione)]
+        const rientro = sommaGiorni(r.data_partenza, r.notti)
+        let testo = riepilogo(r)
+        if (diretto) testo += ` (${euro.format(Number(r.prezzo_persona) * 2)} per 2 adulti)`
+        else testo += `\nRichiesta per ${adulti()} adulti${bambini() > 0 ? ` e ${bambini()} ${bambini() === 1 ? 'bambino' : 'bambini'}` : ''}: preventivo da calcolare.`
+        document.dispatchEvent(
+          new CustomEvent('apri-richiesta-tour', { detail: { dal: r.data_partenza, al: rientro, adulti: adulti(), bambini: bambini(), riepilogo: testo } })
+        )
+      })
+    )
+  }
+
+  calendario?.addEventListener('click', e => {
+    const bersaglio = e.target as HTMLElement
+    const freccia = bersaglio.closest<HTMLButtonElement>('[data-mese]')
+    if (freccia && !freccia.disabled) {
+      const mesi = mesiDisponibili()
+      const i = mesi.indexOf(meseCorrente) + Number(freccia.dataset.mese)
+      if (mesi[i]) {
+        meseCorrente = mesi[i]
+        disegnaCalendario()
+      }
+      return
+    }
+    const giorno = bersaglio.closest<HTMLButtonElement>('[data-data]')
+    if (giorno) {
+      dataScelta = giorno.dataset.data ?? ''
+      disegnaCalendario()
+      disegnaRisultati()
+      // su telefono i risultati stanno sotto il calendario
+      if (window.matchMedia('(max-width: 800px)').matches) risultati?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  })
+  selAdulti?.addEventListener('change', disegnaRisultati)
+  selBambini?.addEventListener('change', disegnaRisultati)
+
+  async function carica() {
+    const id = sezione?.dataset.struttura
+    const url = sezione?.dataset.url
+    const chiave = sezione?.dataset.chiave
+    if (!sezione || !id || !url || !chiave) return
+    try {
+      const oggi = new Date().toISOString().slice(0, 10)
+      const r = await fetch(
+        `${url}/rest/v1/struttura_prezzi_partenza?struttura_id=eq.${id}&data_partenza=gte.${oggi}&select=data_partenza,notti,aeroporto,camera,trattamento,transfer_incluso,prezzo_persona,rilevato_il&order=data_partenza.asc&limit=2000`,
+        { headers: { apikey: chiave, Authorization: `Bearer ${chiave}` } }
+      )
+      if (!r.ok) return
+      righe = await r.json()
+      if (righe.length === 0) return
+      perData = new Map()
+      for (const x of righe) perData.set(x.data_partenza, [...(perData.get(x.data_partenza) ?? []), x])
+      meseCorrente = mesiDisponibili()[0]
+      const aggiornati = righe.reduce((m, x) => (x.rilevato_il > m ? x.rilevato_il : m), '')
+      if (note) {
+        note.textContent = `Prezzi a persona in camera doppia, volo e soggiorno, indicativi e soggetti a disponibilità${aggiornati ? ` · aggiornati il ${new Date(aggiornati).toLocaleDateString('it-IT')}` : ''}. La disponibilità e il prezzo definitivo ti vengono confermati da noi.`
+      }
+      disegnaCalendario()
+      disegnaRisultati()
+      sezione.hidden = false
+    } catch {
+      /* senza prezzi la sezione resta nascosta */
+    }
+  }
+
+  carica()
+</script>
+
+<style is:global>
+  .pp {
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+    padding: 1.25rem 1.25rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .pp[hidden] {
+    display: none;
+  }
+
+  .pp__intro {
+    margin: 0.25rem 0 1rem;
+    color: var(--testo-tenue);
+  }
+
+  .pp__corpo {
+    display: grid;
+    grid-template-columns: minmax(18rem, 22rem) 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 800px) {
+    .pp__corpo {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .pp__persone {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .pp__campo {
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--inchiostro);
+  }
+
+  .pp__campo select {
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio-piccolo);
+    background: var(--superficie);
+    font: inherit;
+    font-weight: 600;
+    color: var(--inchiostro);
+  }
+
+  .pp__calendario {
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    padding: 0.7rem;
+    background: var(--superficie-tenue);
+  }
+
+  .pp__mese {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    color: var(--inchiostro);
+  }
+
+  .pp__freccia {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--bordo);
+    border-radius: 999px;
+    background: var(--superficie);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--inchiostro);
+  }
+
+  .pp__freccia:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .pp__settimana,
+  .pp__griglia {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+
+  .pp__settimana {
+    font-size: 0.7rem;
+    text-align: center;
+    color: var(--testo-tenue);
+    margin-bottom: 3px;
+  }
+
+  .pp__giorno {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.9rem;
+    border-radius: var(--raggio-piccolo);
+    font-size: 0.85rem;
+    color: #b6b8bb;
+    background: transparent;
+    border: 1px solid transparent;
+    font-family: inherit;
+  }
+
+  .pp__giorno--vuoto {
+    visibility: hidden;
+  }
+
+  .pp__giorno--ok {
+    cursor: pointer;
+    background: var(--superficie);
+    border-color: var(--colore-primario);
+    color: var(--inchiostro);
+    font-weight: 700;
+  }
+
+  .pp__giorno--ok:hover {
+    background: color-mix(in srgb, var(--colore-primario) 18%, white);
+  }
+
+  .pp__giorno--scelto,
+  .pp__giorno--scelto:hover {
+    background: var(--colore-primario-scuro);
+    border-color: var(--colore-primario-scuro);
+    color: #fff;
+  }
+
+  .pp__prezzo {
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+
+  .pp__legenda,
+  .pp__note {
+    margin: 0.6rem 0 0;
+    font-size: 0.75rem;
+    color: var(--testo-tenue);
+  }
+
+  .pp__vuoto {
+    margin: 0;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--testo-tenue);
+    border: 1px dashed var(--bordo);
+    border-radius: var(--raggio);
+  }
+
+  .pp__titolo-data {
+    margin: 0 0 0.6rem;
+    font-size: 1.15rem;
+    color: var(--inchiostro);
+  }
+
+  .pp__avviso {
+    margin: 0 0 0.8rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--raggio-piccolo);
+    background: #fff7e0;
+    border: 1px solid #f0dca0;
+    font-size: 0.85rem;
+    color: var(--inchiostro);
+  }
+
+  .pp__durata {
+    margin: 0.4rem 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--testo-tenue);
+  }
+
+  .pp__opzione {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.6rem;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    background: var(--superficie);
+  }
+
+  .pp__descrizione {
+    display: grid;
+    gap: 0.15rem;
+    align-content: start;
+    color: var(--inchiostro);
+  }
+
+  .pp__dettagli {
+    font-size: 0.8rem;
+    color: var(--testo-tenue);
+  }
+
+  .pp__importo {
+    display: grid;
+    gap: 0.2rem;
+    justify-items: end;
+    text-align: right;
+  }
+
+  .pp__persona strong {
+    font-size: 1.35rem;
+    color: var(--colore-primario-scuro);
+  }
+
+  .pp__totale {
+    font-size: 0.85rem;
+    color: var(--testo);
+  }
+
+  .pp__richiedi {
+    margin-top: 0.35rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+</style>
