@@ -1,0 +1,97 @@
+/* Ricerca per date nelle pagine delle destinazioni (components/CercaPerDate.astro) */
+.pd {
+  background: var(--superficie);
+  border: 1px solid var(--bordo);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  padding: 1.1rem 1.25rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pd[hidden] {
+  display: none;
+}
+
+.pd__testa h2 {
+  font-size: 1.35rem;
+  margin: 0 0 0.2rem;
+  color: var(--inchiostro);
+}
+
+.pd__testa p {
+  margin: 0 0 0.9rem;
+  color: var(--testo-tenue);
+  font-size: 0.92rem;
+}
+
+.pd__corpo {
+  display: grid;
+  grid-template-columns: minmax(17rem, 21rem) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .pd__corpo {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pd__persone {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.pd__stato {
+  margin: 0 0 0.6rem;
+  font-weight: 700;
+  color: var(--inchiostro);
+}
+
+.pd__azzera {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--bordo);
+  border-radius: 999px;
+  background: var(--superficie);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--colore-primario-scuro);
+  cursor: pointer;
+}
+
+.pd__azzera[hidden] {
+  display: none;
+}
+
+.pd__nota {
+  margin: 0.8rem 0 0;
+  font-size: 0.78rem;
+  color: var(--testo-tenue);
+}
+
+.pd-nascosto {
+  display: none !important;
+}
+
+.pd-prezzo {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--testo);
+}
+
+.pd-prezzo small {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--testo-tenue);
+}
+
+.pd-prezzo strong {
+  font-size: 1.15rem;
+  color: var(--colore-primario-scuro);
+}

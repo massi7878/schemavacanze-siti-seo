@@ -2,6 +2,9 @@
 // Ricerca per data e numero di persone sulla scheda di una struttura.
 // I prezzi (volo + hotel, a persona in doppia) sono quelli salvati ogni notte nel gestionale: le date selezionabili
 // sono SOLO quelle che hanno un prezzo. Con 2 adulti si vede il prezzo; con bambini o piu' adulti si chiede il preventivo.
+import '../styles/calendario-prezzi.css'
+import '../styles/nastro-online.css'
+
 interface Props {
   strutturaId: string
   nome: string
@@ -51,6 +54,9 @@ const { strutturaId, nome } = Astro.props
 </section>
 
 <script>
+  import { creaNastro } from '../lib/prenotaOnline'
+  import { creaCalendario, dataIt, dataLunga, euro, maiuscola, sommaGiorni, type Giorni } from '../lib/calendarioPrezzi'
+
   type Riga = {
     data_partenza: string
     notti: number
@@ -64,22 +70,9 @@ const { strutturaId, nome } = Astro.props
 
   const sezione = document.querySelector<HTMLElement>('#prenota')
   const NOMI_AEROPORTO: Record<string, string> = { NAP: 'Napoli', FCO: 'Roma', MXP: 'Milano', BGY: 'Bergamo', VCE: 'Venezia', BRI: 'Bari', CTA: 'Catania', PMO: 'Palermo' }
-  const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
-  const euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-
   const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-  const maiuscola = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t)
-  const dataIt = (iso: string) => iso.split('-').reverse().join('/')
-  const dataLunga = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
-  function sommaGiorni(iso: string, giorni: number) {
-    const d = new Date(iso + 'T00:00:00Z')
-    d.setUTCDate(d.getUTCDate() + giorni)
-    return d.toISOString().slice(0, 10)
-  }
 
-  let righe: Riga[] = []
   let perData = new Map<string, Riga[]>()
-  let meseCorrente = '' // AAAA-MM
   let dataScelta = ''
 
   const calendario = document.querySelector<HTMLElement>('#pp-calendario')
@@ -92,40 +85,6 @@ const { strutturaId, nome } = Astro.props
   const bambini = () => Number(selBambini?.value) || 0
   // il prezzo si mostra solo per 2 adulti senza bambini: il resto va calcolato da noi
   const prezzoDiretto = () => adulti() === 2 && bambini() === 0
-
-  function mesiDisponibili() {
-    return [...new Set([...perData.keys()].map(d => d.slice(0, 7)))].sort()
-  }
-
-  function disegnaCalendario() {
-    if (!calendario) return
-    const mesi = mesiDisponibili()
-    const [anno, mese] = meseCorrente.split('-').map(Number)
-    const primo = new Date(Date.UTC(anno, mese - 1, 1))
-    const giorniMese = new Date(Date.UTC(anno, mese, 0)).getUTCDate()
-    const sfasamento = (primo.getUTCDay() + 6) % 7 // lunedi' = 0
-    const indice = mesi.indexOf(meseCorrente)
-    let celle = ''
-    for (let i = 0; i < sfasamento; i++) celle += '<span class="pp__giorno pp__giorno--vuoto"></span>'
-    for (let g = 1; g <= giorniMese; g++) {
-      const iso = `${meseCorrente}-${String(g).padStart(2, '0')}`
-      const disponibili = perData.get(iso)
-      if (disponibili) {
-        const minimo = Math.min(...disponibili.map(r => Number(r.prezzo_persona)))
-        celle += `<button type="button" class="pp__giorno pp__giorno--ok${iso === dataScelta ? ' pp__giorno--scelto' : ''}" data-data="${iso}" aria-label="${dataLunga(iso)}, da ${Math.round(minimo)} euro a persona"><span class="pp__numero">${g}</span><span class="pp__prezzo">${Math.round(minimo)}€</span></button>`
-      } else {
-        celle += `<span class="pp__giorno" aria-hidden="true"><span class="pp__numero">${g}</span></span>`
-      }
-    }
-    calendario.innerHTML = `
-      <div class="pp__mese">
-        <button type="button" class="pp__freccia" data-mese="-1" aria-label="Mese precedente" ${indice <= 0 ? 'disabled' : ''}>‹</button>
-        <strong>${MESI[mese - 1]} ${anno}</strong>
-        <button type="button" class="pp__freccia" data-mese="1" aria-label="Mese successivo" ${indice >= mesi.length - 1 ? 'disabled' : ''}>›</button>
-      </div>
-      <div class="pp__settimana"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span>D</span></div>
-      <div class="pp__griglia">${celle}</div>`
-  }
 
   function opzioniDellaData(iso: string) {
     // per ogni durata, camera e trattamento: il prezzo piu' basso
@@ -142,13 +101,11 @@ const { strutturaId, nome } = Astro.props
 
   function riepilogo(r: Riga) {
     const rientro = sommaGiorni(r.data_partenza, r.notti)
-    const prezzo = Number(r.prezzo_persona)
-    const righe = [
+    return [
       `Partenza da ${NOMI_AEROPORTO[r.aeroporto] ?? r.aeroporto} il ${dataIt(r.data_partenza)}, rientro il ${dataIt(rientro)} (${r.notti} notti)`,
       `${maiuscola(r.camera)} · ${maiuscola(r.trattamento)}${r.transfer_incluso ? ' · transfer incluso' : ''}`,
-      `Prezzo indicativo: ${euro.format(prezzo)} a persona in doppia (volo + hotel)`,
-    ]
-    return righe.join('\n')
+      `Prezzo indicativo: ${euro.format(Number(r.prezzo_persona))} a persona in doppia (volo + hotel)`,
+    ].join('\n')
   }
 
   function disegnaRisultati() {
@@ -197,27 +154,6 @@ const { strutturaId, nome } = Astro.props
     )
   }
 
-  calendario?.addEventListener('click', e => {
-    const bersaglio = e.target as HTMLElement
-    const freccia = bersaglio.closest<HTMLButtonElement>('[data-mese]')
-    if (freccia && !freccia.disabled) {
-      const mesi = mesiDisponibili()
-      const i = mesi.indexOf(meseCorrente) + Number(freccia.dataset.mese)
-      if (mesi[i]) {
-        meseCorrente = mesi[i]
-        disegnaCalendario()
-      }
-      return
-    }
-    const giorno = bersaglio.closest<HTMLButtonElement>('[data-data]')
-    if (giorno) {
-      dataScelta = giorno.dataset.data ?? ''
-      disegnaCalendario()
-      disegnaRisultati()
-      // su telefono i risultati stanno sotto il calendario
-      if (window.matchMedia('(max-width: 800px)').matches) risultati?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  })
   selAdulti?.addEventListener('change', disegnaRisultati)
   selBambini?.addEventListener('change', disegnaRisultati)
 
@@ -225,7 +161,7 @@ const { strutturaId, nome } = Astro.props
     const id = sezione?.dataset.struttura
     const url = sezione?.dataset.url
     const chiave = sezione?.dataset.chiave
-    if (!sezione || !id || !url || !chiave) return
+    if (!sezione || !calendario || !id || !url || !chiave) return
     try {
       const oggi = new Date().toISOString().slice(0, 10)
       const r = await fetch(
@@ -233,18 +169,37 @@ const { strutturaId, nome } = Astro.props
         { headers: { apikey: chiave, Authorization: `Bearer ${chiave}` } }
       )
       if (!r.ok) return
-      righe = await r.json()
+      const righe: Riga[] = await r.json()
       if (righe.length === 0) return
-      perData = new Map()
-      for (const x of righe) perData.set(x.data_partenza, [...(perData.get(x.data_partenza) ?? []), x])
-      meseCorrente = mesiDisponibili()[0]
+      const giorni: Giorni = new Map()
+      for (const x of righe) {
+        perData.set(x.data_partenza, [...(perData.get(x.data_partenza) ?? []), x])
+        const minimo = giorni.get(x.data_partenza)
+        if (minimo == null || Number(x.prezzo_persona) < minimo) giorni.set(x.data_partenza, Number(x.prezzo_persona))
+      }
       const aggiornati = righe.reduce((m, x) => (x.rilevato_il > m ? x.rilevato_il : m), '')
       if (note) {
         note.textContent = `Prezzi a persona in camera doppia, volo e soggiorno, indicativi e soggetti a disponibilità${aggiornati ? ` · aggiornati il ${new Date(aggiornati).toLocaleDateString('it-IT')}` : ''}. La disponibilità e il prezzo definitivo ti vengono confermati da noi.`
       }
-      disegnaCalendario()
+      const cal = creaCalendario(calendario, giorni, iso => {
+        dataScelta = iso
+        disegnaRisultati()
+        // su telefono i risultati stanno sotto il calendario
+        if (window.matchMedia('(max-width: 800px)').matches) risultati?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
       disegnaRisultati()
       sezione.hidden = false
+      // spicchio "Prenota online" sulla foto della struttura
+      const galleria = document.querySelector<HTMLElement>('.galleria .slideshow')
+      if (galleria && !galleria.querySelector('.nastro-online')) galleria.appendChild(creaNastro())
+      // arrivo dalla ricerca di una destinazione: data e persone gia' scelte
+      const parametri = new URLSearchParams(location.search)
+      const ad = Number(parametri.get('adulti'))
+      const bb = Number(parametri.get('bambini'))
+      if (selAdulti && ad >= 1 && ad <= 6) selAdulti.value = String(ad)
+      if (selBambini && bb >= 0 && bb <= 4) selBambini.value = String(bb)
+      const data = parametri.get('data')
+      if (data && cal.scegli(data)) setTimeout(() => sezione.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300)
     } catch {
       /* senza prezzi la sezione resta nascosta */
     }
@@ -310,94 +265,6 @@ const { strutturaId, nome } = Astro.props
     color: var(--inchiostro);
   }
 
-  .pp__calendario {
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio);
-    padding: 0.7rem;
-    background: var(--superficie-tenue);
-  }
-
-  .pp__mese {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-    color: var(--inchiostro);
-  }
-
-  .pp__freccia {
-    width: 2rem;
-    height: 2rem;
-    border: 1px solid var(--bordo);
-    border-radius: 999px;
-    background: var(--superficie);
-    font-size: 1.2rem;
-    line-height: 1;
-    cursor: pointer;
-    color: var(--inchiostro);
-  }
-
-  .pp__freccia:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-
-  .pp__settimana,
-  .pp__griglia {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
-  }
-
-  .pp__settimana {
-    font-size: 0.7rem;
-    text-align: center;
-    color: var(--testo-tenue);
-    margin-bottom: 3px;
-  }
-
-  .pp__giorno {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 2.9rem;
-    border-radius: var(--raggio-piccolo);
-    font-size: 0.85rem;
-    color: #b6b8bb;
-    background: transparent;
-    border: 1px solid transparent;
-    font-family: inherit;
-  }
-
-  .pp__giorno--vuoto {
-    visibility: hidden;
-  }
-
-  .pp__giorno--ok {
-    cursor: pointer;
-    background: var(--superficie);
-    border-color: var(--colore-primario);
-    color: var(--inchiostro);
-    font-weight: 700;
-  }
-
-  .pp__giorno--ok:hover {
-    background: color-mix(in srgb, var(--colore-primario) 18%, white);
-  }
-
-  .pp__giorno--scelto,
-  .pp__giorno--scelto:hover {
-    background: var(--colore-primario-scuro);
-    border-color: var(--colore-primario-scuro);
-    color: #fff;
-  }
-
-  .pp__prezzo {
-    font-size: 0.65rem;
-    font-weight: 600;
-  }
-
   .pp__legenda,
   .pp__note {
     margin: 0.6rem 0 0;
@@ -452,6 +319,7 @@ const { strutturaId, nome } = Astro.props
   }
 
   .pp__descrizione {
+    flex: 1 1 13rem;
     display: grid;
     gap: 0.15rem;
     align-content: start;
@@ -464,6 +332,7 @@ const { strutturaId, nome } = Astro.props
   }
 
   .pp__importo {
+    flex: 0 0 auto;
     display: grid;
     gap: 0.2rem;
     justify-items: end;

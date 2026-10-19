@@ -1,5 +1,6 @@
 ---
 import { ETICHETTA_FORMULA } from '../lib/formato'
+import '../styles/nastro-online.css'
 
 interface Struttura {
   slug: string
@@ -46,6 +47,21 @@ const { strutture } = Astro.props
 </ul>
 <p class="griglia-strutture__vuoto" data-griglia-vuoto hidden>Nessuna struttura corrisponde ai filtri scelti.</p>
 
+<script>
+  import { creaNastro, struttureConPrezzi } from '../lib/prenotaOnline'
+
+  // le strutture con prezzi di partenza si riconoscono dal nastro "Prenota online" sulla foto
+  const schede = [...document.querySelectorAll<HTMLAnchorElement>('[data-griglia-strutture] a.scheda-struttura')]
+  if (schede.length > 0) {
+    struttureConPrezzi().then(conPrezzi => {
+      for (const a of schede) {
+        const slug = a.getAttribute('href')?.split('/').filter(Boolean).pop()
+        if (slug && conPrezzi.has(slug)) a.querySelector('.scheda-struttura__immagine')?.appendChild(creaNastro())
+      }
+    })
+  }
+</script>
+
 <style>
   .griglia-strutture {
     list-style: none;
@@ -74,6 +90,7 @@ const { strutture } = Astro.props
   }
 
   .scheda-struttura__immagine {
+    position: relative;
     aspect-ratio: 4 / 3;
     overflow: hidden;
     background: var(--superficie-tenue);

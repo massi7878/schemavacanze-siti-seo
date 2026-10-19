@@ -1,0 +1,30 @@
+/* Spicchio "Prenota online" nell'angolo in alto a destra della foto: la struttura ha prezzi di partenza prenotabili dal sito */
+.nastro-online {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 7rem;
+  height: 7rem;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  background: var(--colore-primario-scuro, #4a7220);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* il testo sta sulla diagonale, al centro del triangolo */
+.nastro-online span {
+  position: absolute;
+  top: 1.73rem;
+  right: -0.87rem;
+  width: 6.4rem;
+  transform: rotate(45deg);
+  color: #fff;
+  text-align: center;
+  font-family: var(--font-display, sans-serif);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.2rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}

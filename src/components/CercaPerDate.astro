@@ -1,0 +1,163 @@
+---
+// Ricerca per data e persone nella pagina di una destinazione: sceglie una data tra quelle con un prezzo e la griglia
+// qui sotto mostra solo le strutture che partono quel giorno, dalla piu' economica, con il prezzo a persona.
+// Le strutture arrivano dalla pagina; i prezzi si leggono al momento della visita (aggiornati ogni notte nel gestionale).
+import '../styles/calendario-prezzi.css'
+import '../styles/ricerca-destinazione.css'
+
+interface Props {
+  strutture: Array<{ id: string; slug: string }>
+  destinazione: string
+}
+const { strutture, destinazione } = Astro.props
+---
+
+<section
+  class="pd"
+  id="cerca-date"
+  hidden
+  data-strutture={JSON.stringify(strutture.map(s => ({ id: s.id, slug: s.slug })))}
+  data-url={import.meta.env.PUBLIC_SUPABASE_URL}
+  data-chiave={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
+>
+  <div class="pd__testa">
+    <h2>Cerca per date a {destinazione}</h2>
+    <p>Scegli la data di partenza tra quelle disponibili: vedi le strutture prenotabili online con il prezzo del volo e soggiorno.</p>
+  </div>
+  <div class="pd__corpo">
+    <div class="pd__colonna">
+      <div class="pd__persone">
+        <label class="pp__campo">
+          Adulti
+          <select id="pd-adulti">
+            {[1, 2, 3, 4, 5, 6].map(n => <option value={n} selected={n === 2}>{n}</option>)}
+          </select>
+        </label>
+        <label class="pp__campo">
+          Bambini
+          <select id="pd-bambini">
+            {[0, 1, 2, 3, 4].map(n => <option value={n}>{n}</option>)}
+          </select>
+        </label>
+      </div>
+      <div class="pp__calendario" id="pd-calendario" aria-label="Date di partenza disponibili"></div>
+    </div>
+    <div class="pd__esito">
+      <p class="pd__stato" id="pd-stato" role="status" aria-live="polite">Scegli una data sul calendario. Sotto ogni data trovi il prezzo più basso a persona.</p>
+      <button type="button" class="pd__azzera" id="pd-azzera" hidden>Mostra tutte le strutture</button>
+      <p class="pd__nota">Prezzi a persona in camera doppia, volo e soggiorno, indicativi e soggetti a disponibilità. Con bambini o più di 2 adulti ti prepariamo il preventivo.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { creaCalendario, dataIt, euro, type Giorni } from '../lib/calendarioPrezzi'
+
+  const sezione = document.querySelector<HTMLElement>('#cerca-date')
+
+  async function avvia() {
+    if (!sezione) return
+    const strutture: Array<{ id: string; slug: string }> = JSON.parse(sezione.dataset.strutture ?? '[]')
+    const url = sezione.dataset.url
+    const chiave = sezione.dataset.chiave
+    const calendario = document.querySelector<HTMLElement>('#pd-calendario')
+    const griglia = document.querySelector<HTMLElement>('[data-griglia-strutture]')
+    if (strutture.length === 0 || !url || !chiave || !calendario || !griglia) return
+
+    let righe: Array<{ struttura_id: string; data_partenza: string; prezzo_min: number }> = []
+    try {
+      const r = await fetch(`${url}/rest/v1/rpc/prezzi_minimi_per_data`, {
+        method: 'POST',
+        headers: { apikey: chiave, Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_strutture: strutture.map(s => s.id) }),
+      })
+      if (!r.ok) return
+      righe = await r.json()
+    } catch {
+      return
+    }
+    if (righe.length === 0) return
+
+    const slugDi = new Map(strutture.map(s => [s.id, s.slug]))
+    // data -> (slug struttura -> prezzo piu' basso)
+    const perData = new Map<string, Map<string, number>>()
+    const giorni: Giorni = new Map()
+    for (const x of righe) {
+      const slug = slugDi.get(x.struttura_id)
+      if (!slug) continue
+      const m = perData.get(x.data_partenza) ?? new Map<string, number>()
+      m.set(slug, Number(x.prezzo_min))
+      perData.set(x.data_partenza, m)
+      const minimo = giorni.get(x.data_partenza)
+      if (minimo == null || Number(x.prezzo_min) < minimo) giorni.set(x.data_partenza, Number(x.prezzo_min))
+    }
+    if (giorni.size === 0) return
+
+    const selAdulti = document.querySelector<HTMLSelectElement>('#pd-adulti')
+    const selBambini = document.querySelector<HTMLSelectElement>('#pd-bambini')
+    const stato = document.querySelector<HTMLElement>('#pd-stato')
+    const azzera = document.querySelector<HTMLButtonElement>('#pd-azzera')
+    const elementi = [...griglia.querySelectorAll<HTMLLIElement>('li')].map(li => {
+      const a = li.querySelector<HTMLAnchorElement>('a.scheda-struttura')
+      return { li, a, slug: a?.getAttribute('href')?.split('/').filter(Boolean).pop() ?? '', href: a?.getAttribute('href') ?? '' }
+    })
+    const ordineIniziale = elementi.map(e => e.li)
+    let dataScelta = ''
+
+    function pulisci() {
+      griglia!.querySelectorAll('.pd-prezzo').forEach(e => e.remove())
+      for (const e of elementi) {
+        e.li.classList.remove('pd-nascosto')
+        if (e.a) e.a.setAttribute('href', e.href)
+      }
+      ordineIniziale.forEach(li => griglia!.appendChild(li))
+    }
+
+    function applica() {
+      pulisci()
+      if (!dataScelta) {
+        if (stato) stato.textContent = 'Scegli una data sul calendario. Sotto ogni data trovi il prezzo più basso a persona.'
+        if (azzera) azzera.hidden = true
+        return
+      }
+      const prezzi = perData.get(dataScelta) ?? new Map<string, number>()
+      const adulti = Number(selAdulti?.value) || 2
+      const bambini = Number(selBambini?.value) || 0
+      const diretto = adulti === 2 && bambini === 0
+      const disponibili = elementi.filter(e => prezzi.has(e.slug)).sort((a, b) => (prezzi.get(a.slug) ?? 0) - (prezzi.get(b.slug) ?? 0))
+      for (const e of elementi) if (!prezzi.has(e.slug)) e.li.classList.add('pd-nascosto')
+      disponibili.forEach(e => {
+        griglia!.appendChild(e.li)
+        const prezzo = prezzi.get(e.slug) ?? 0
+        const etichetta = document.createElement('span')
+        etichetta.className = 'pd-prezzo'
+        etichetta.innerHTML = diretto
+          ? `<small>${dataIt(dataScelta)}</small> da <strong>${euro.format(prezzo)}</strong> a persona`
+          : `<small>${dataIt(dataScelta)}</small> Preventivo su richiesta`
+        e.a?.querySelector('.scheda-struttura__corpo')?.appendChild(etichetta)
+        // la scheda si apre gia' sulla data e sulle persone scelte
+        e.a?.setAttribute('href', `${e.href}?data=${dataScelta}&adulti=${adulti}&bambini=${bambini}`)
+      })
+      if (stato) {
+        stato.textContent = `${disponibili.length} ${disponibili.length === 1 ? 'struttura disponibile' : 'strutture disponibili'} con partenza il ${dataIt(dataScelta)}, dalla più economica.`
+      }
+      if (azzera) azzera.hidden = false
+      griglia!.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+
+    const cal = creaCalendario(calendario, giorni, iso => {
+      dataScelta = iso
+      applica()
+    })
+    selAdulti?.addEventListener('change', () => dataScelta && applica())
+    selBambini?.addEventListener('change', () => dataScelta && applica())
+    azzera?.addEventListener('click', () => {
+      dataScelta = ''
+      cal.azzera()
+      applica()
+    })
+    sezione.hidden = false
+  }
+
+  avvia()
+</script>

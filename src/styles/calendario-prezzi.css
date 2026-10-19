@@ -1,0 +1,107 @@
+/* Calendario con le sole date che hanno un prezzo (vedi lib/calendarioPrezzi.ts) */
+.pp__calendario {
+  border: 1px solid var(--bordo);
+  border-radius: var(--raggio);
+  padding: 0.7rem;
+  background: var(--superficie-tenue);
+}
+
+.pp__mese {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  color: var(--inchiostro);
+}
+
+.pp__freccia {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--bordo);
+  border-radius: 999px;
+  background: var(--superficie);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--inchiostro);
+}
+
+.pp__freccia:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pp__settimana,
+.pp__griglia {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.pp__settimana {
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--testo-tenue);
+  margin-bottom: 3px;
+}
+
+.pp__giorno {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.9rem;
+  border-radius: var(--raggio-piccolo);
+  font-size: 0.85rem;
+  color: #b6b8bb;
+  background: transparent;
+  border: 1px solid transparent;
+  font-family: inherit;
+}
+
+.pp__giorno--vuoto {
+  visibility: hidden;
+}
+
+.pp__giorno--ok {
+  cursor: pointer;
+  background: var(--superficie);
+  border-color: var(--colore-primario);
+  color: var(--inchiostro);
+  font-weight: 700;
+}
+
+.pp__giorno--ok:hover {
+  background: color-mix(in srgb, var(--colore-primario) 18%, white);
+}
+
+.pp__giorno--scelto,
+.pp__giorno--scelto:hover {
+  background: var(--colore-primario-scuro);
+  border-color: var(--colore-primario-scuro);
+  color: #fff;
+}
+
+.pp__prezzo {
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+
+.pp__campo {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--inchiostro);
+}
+
+.pp__campo select {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--bordo);
+  border-radius: var(--raggio-piccolo);
+  background: var(--superficie);
+  font: inherit;
+  font-weight: 600;
+  color: var(--inchiostro);
+}

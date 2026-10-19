@@ -6,6 +6,7 @@ import FiltroSezioni from '../../components/FiltroSezioni.astro'
 import CopertinaSezione from '../../components/CopertinaSezione.astro'
 import FiltriElenco from '../../components/FiltriElenco.astro'
 import Briciole from '../../components/Briciole.astro'
+import CercaPerDate from '../../components/CercaPerDate.astro'
 import { getSlideshow, getGerarchiaRegioniDestinazioni, getSlugDestinazioni, getStruttureDestinazione, getDestinazioniPerCategoria, percorsoDestinazione } from '../../lib/queries'
 
 export async function getStaticPaths() {
@@ -56,6 +57,7 @@ const descrizione = strutture.length > 0
       </div>
     )}
     <div class="pagina-elenco__risultati">
+      {strutture.length > 0 && <CercaPerDate strutture={strutture} destinazione={destinazione.nome.trim()} />}
       {strutture.length > 0
         ? <GrigliaStrutture strutture={strutture} />
         : <p class="vuoto">Non ci sono ancora strutture pubblicate per questa destinazione. <a href="/">Vedi tutti i villaggi</a>.</p>}
