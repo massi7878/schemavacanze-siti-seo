@@ -372,6 +372,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     disegnaBarra()
     if (nessuno) nessuno.hidden = risultati.length > 0
     if (esito) esito.textContent = risultati.length === 1 ? '1 tour trovato' : `${risultati.length} tour trovati`
+    scriviUrl()
   }
 
   async function applica() {
@@ -397,6 +398,75 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       if (numero !== numeroRichiesta) return
       if (esito) esito.textContent = 'Non riesco a filtrare in questo momento: riprova tra poco.'
     }
+  }
+
+  // L'indirizzo della pagina segue i filtri (es. /tour/?paese=Kenya&periodo=2027-03&tipo=guidato): cosi' una ricerca
+  // si puo' mandare a un cliente e, aprendola, la pagina si presenta gia' filtrata.
+  const CAMPI_URL = ['paese', 'periodo', 'tipo', 'testo', 'dal', 'al', 'prezzo', 'ordine']
+
+  function scriviUrl() {
+    const p = new URLSearchParams()
+    // le date del periodo scelto sono gia' comprese nel periodo: non si ripetono nell'indirizzo
+    const opz = selPeriodo?.selectedOptions[0]
+    const datePeriodo = !!selPeriodo?.value && campo('dal') === (opz?.dataset.dal ?? '') && campo('al') === (opz?.dataset.al ?? '')
+    for (const nome of CAMPI_URL) {
+      const v = campo(nome)
+      if (datePeriodo && (nome === 'dal' || nome === 'al')) continue
+      if (v && !(nome === 'ordine' && v === 'data')) p.set(nome, v)
+    }
+    if (!SOLO_GUIDA && guidaAttiva()) p.set('guida', '1')
+    const { da, a, filtrata } = durataScelta()
+    if (filtrata) {
+      p.set('notti_min', String(da))
+      p.set('notti_max', String(a))
+    }
+    const q = p.toString()
+    window.history.replaceState(null, '', window.location.pathname + (q ? '?' + q : '') + window.location.hash)
+  }
+
+  // all'apertura: se l'indirizzo contiene dei filtri, li rimette nei campi e carica i risultati
+  function leggiUrl() {
+    if (!modulo) return false
+    const p = new URLSearchParams(window.location.search)
+    let trovato = false
+    let avanzati = false
+    for (const nome of CAMPI_URL) {
+      const v = p.get(nome)
+      const el = modulo.elements.namedItem(nome) as HTMLInputElement | HTMLSelectElement | null
+      if (!v || !el) continue
+      el.value = v
+      if (el.value === '' && el.tagName === 'SELECT') continue // scelta non presente nell'elenco
+      trovato = true
+      if (['dal', 'al', 'prezzo', 'ordine'].includes(nome)) avanzati = true
+    }
+    // il periodo (mese) riempie le due date, come quando lo si sceglie a mano
+    const periodo = modulo.elements.namedItem('periodo') as HTMLSelectElement | null
+    const opzione = periodo?.selectedOptions[0]
+    if (periodo?.value && opzione) {
+      const dal = modulo.elements.namedItem('dal') as HTMLInputElement
+      const al = modulo.elements.namedItem('al') as HTMLInputElement
+      if (!p.get('dal')) dal.value = opzione.dataset.dal ?? ''
+      if (!p.get('al')) al.value = opzione.dataset.al ?? ''
+    }
+    const guida = modulo.elements.namedItem('guida') as HTMLInputElement | null
+    if (guida && p.get('guida') === '1') {
+      guida.checked = true
+      trovato = true
+      avanzati = true
+    }
+    const nMinUrl = Number(p.get('notti_min'))
+    const nMaxUrl = Number(p.get('notti_max'))
+    if (p.get('notti_min') && p.get('notti_max') && Number.isFinite(nMinUrl) && Number.isFinite(nMaxUrl)) {
+      scelteDa = nMinUrl
+      scelteA = nMaxUrl
+      trovato = true
+      avanzati = true
+    }
+    if (avanzati) {
+      const dettagli = modulo.querySelector<HTMLDetailsElement>('details.filtri__altri')
+      if (dettagli) dettagli.open = true
+    }
+    return trovato
   }
 
   function programma() {
@@ -458,6 +528,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   })
   bottoneAltri?.addEventListener('click', () => disegna(mostrati))
   disegnaBarra()
+  if (leggiUrl()) applica()
   // l'elenco iniziale e' gia' nella pagina (48 schede per i motori di ricerca): conta quanti ce ne sono
   mostrati = griglia?.querySelectorAll('li').length ?? 0
 </script>
