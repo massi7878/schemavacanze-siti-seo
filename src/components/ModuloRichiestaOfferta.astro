@@ -390,7 +390,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     return righe.join('\n')
   }
 
-  bottoneWa?.addEventListener('click', () => {
+  // tentativi di registrazione della richiesta fatti con il tasto WhatsApp (dopo il secondo si apre comunque la chat)
+  let tentativiWa = 0
+
+  bottoneWa?.addEventListener('click', async () => {
     if (!modulo || !dialog) return
     errore && (errore.hidden = true)
     // su WhatsApp il telefono non serve
@@ -410,11 +413,42 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     const numero = dialog.dataset.wa
     if (!numero) return
     const link = `https://wa.me/39${numero}?text=${encodeURIComponent(testoWhatsApp(d))}`
-    // si registra la richiesta senza aspettarla: la chat si apre subito
+    // Prima si registra la richiesta e poi si apre la chat: sul telefono, aprendo subito WhatsApp, la pagina viene
+    // sospesa e il salvataggio puo' non partire mai. La scheda vuota si apre subito, mentre il tocco e' ancora valido
+    // (altrimenti il blocco popup del telefono la ferma), e porta a WhatsApp a registrazione finita.
+    const finestra = window.open('', '_blank')
+    const etichetta = bottoneWa!.querySelector('span')
+    const testoOriginale = etichetta?.textContent ?? 'Invia su WhatsApp'
+    bottoneWa!.disabled = true
+    if (etichetta) etichetta.textContent = 'Registro la richiesta…'
     const r = creaRichiesta(d, 'whatsapp', infoTour.riepilogo ?? '')
-    fetch(`${r.url}/rest/v1/rpc/${r.funzione}`, { method: 'POST', headers: r.intestazioni, body: JSON.stringify(r.corpo), keepalive: true }).catch(() => {})
-    ;(window as any).tracciaEvento?.('Lead', undefined, { email: d.dati.get('email'), telefono: d.dati.get('telefono'), nome: d.dati.get('nome'), cognome: d.dati.get('cognome') })
-    window.open(link, '_blank', 'noopener')
+    let salvata = false
+    const controllo = new AbortController()
+    const scadenza = setTimeout(() => controllo.abort(), 8000)
+    try {
+      const risposta = await fetch(`${r.url}/rest/v1/rpc/${r.funzione}`, { method: 'POST', headers: r.intestazioni, body: JSON.stringify(r.corpo), signal: controllo.signal })
+      salvata = risposta.ok
+    } catch {
+      salvata = false
+    } finally {
+      clearTimeout(scadenza)
+    }
+    tentativiWa++
+    bottoneWa!.disabled = false
+    if (etichetta) etichetta.textContent = testoOriginale
+    if (!salvata && tentativiWa < 2) {
+      // il cliente non resta mai bloccato: al secondo tentativo la chat si apre comunque (il messaggio arriva a noi lo stesso)
+      finestra?.close()
+      mostraErrore('Non siamo riusciti a registrare la richiesta. Riprova: al secondo tentativo si apre comunque WhatsApp con il messaggio pronto.')
+      return
+    }
+    if (salvata) ;(window as any).tracciaEvento?.('Lead', undefined, { email: d.dati.get('email'), telefono: d.dati.get('telefono'), nome: d.dati.get('nome'), cognome: d.dati.get('cognome') })
+    if (finestra) {
+      finestra.opener = null
+      finestra.location.href = link
+    } else {
+      window.location.href = link
+    }
     if (campi) campi.hidden = true
     if (esitoWa) esitoWa.hidden = false
   })
