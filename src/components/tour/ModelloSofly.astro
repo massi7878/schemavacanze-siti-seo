@@ -5,6 +5,7 @@ import SupplementiFacoltativi from './SupplementiFacoltativi.astro'
 import MiniatureGalleria from './MiniatureGalleria.astro'
 import { euro } from '../../lib/offerte'
 import { PASTI, etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
+import { slugPaese } from '../../lib/slugPaese'
 
 // Modello "stile SoFly": foto a tutta larghezza con il titolo sopra, indice delle sezioni,
 // tappe del viaggio, giorni come schede numerate, riquadro prezzo fisso a destra.
@@ -36,7 +37,7 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
           <span class="hero__tipo">{etichettaHero}</span>
           <h1>{t.nome}</h1>
           <ul class="hero__chip">
-            {paesi.map(p => <li>{p}</li>)}
+            {paesi.map(p => <li><a href={`/tour/${slugPaese(p)}/`}>{p}</a></li>)}
             <li>{t.durata_giorni} giorni / {t.notti} notti</li>
             <li>{tipoViaggio}</li>
             {guidaChip && <li>{guidaChip}</li>}
@@ -271,6 +272,11 @@ const etichettaHero = t.guida_italiano === 'si' ? 'Tour con guida in italiano' :
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
+  }
+
+  .hero__chip a {
+    color: inherit;
+    text-decoration: none;
   }
 
   .hero__chip li {

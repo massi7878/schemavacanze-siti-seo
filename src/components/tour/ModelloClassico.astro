@@ -5,6 +5,7 @@ import SupplementiFacoltativi from './SupplementiFacoltativi.astro'
 import MiniatureGalleria from './MiniatureGalleria.astro'
 import { euro } from '../../lib/offerte'
 import { PASTI, etichettaGiorni, type DatiPaginaTour } from '../../lib/tourPagina'
+import { slugPaese } from '../../lib/slugPaese'
 
 interface Props {
   d: DatiPaginaTour
@@ -26,7 +27,7 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
     <h1>{t.nome}</h1>
     {t.sottotitolo && <p class="sottotitolo">{t.sottotitolo}</p>}
     <ul class="pillole">
-      {paesi.map(p => <li>{p}</li>)}
+      {paesi.map(p => <li><a href={`/tour/${slugPaese(p)}/`}>{p}</a></li>)}
       <li>{t.notti} {t.notti === 1 ? 'notte' : 'notti'} · {t.durata_giorni} giorni</li>
       <li>{t.tipo_viaggio === 'self' ? 'Self made: viaggio libero, senza guida' : 'Viaggio guidato'}</li>
       {t.guida_italiano === 'si' ? <li>Guida in italiano</li> : t.guida_italiano === 'su_richiesta' ? <li>Guida in italiano su richiesta (o in altre lingue)</li> : t.lingue?.length > 0 && <li>Assistenza in italiano</li>}
@@ -171,6 +172,11 @@ const { t, immagini, partenze, prezzoMin, incluso, nonIncluso, paesi, cancellazi
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .pillole a {
+    color: inherit;
+    text-decoration: none;
   }
 
   .pillole li {

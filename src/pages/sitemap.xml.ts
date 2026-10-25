@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { getStruttureSitemap, getDestinazioniPerCategoria, getTipologieStruttura } from '../lib/queries'
 import { getOffertePubbliche } from '../lib/offerte'
 import { getToursPubblici } from '../lib/tour'
+import { MIN_TOUR_INDICIZZATI, getPaesiTour } from '../lib/tourPaesi'
 
 // Generata a ogni richiesta (con cache CDN di un'ora): le offerte nuove entrano subito, quelle scadute escono.
 export const prerender = false
@@ -11,12 +12,13 @@ export const prerender = false
 // raccolgono e collegano le strutture, quelle che un motore di ricerca deve
 // trovare per prime per poi scoprire tutto il resto.
 export const GET: APIRoute = async ({ site }) => {
-  const [strutture, categorie, tipologie, offerte, tour] = await Promise.all([
+  const [strutture, categorie, tipologie, offerte, tour, paesiTour] = await Promise.all([
     getStruttureSitemap(),
     getDestinazioniPerCategoria(),
     getTipologieStruttura(),
     getOffertePubbliche(),
     getToursPubblici(),
+    getPaesiTour(),
   ])
   const base = site?.toString().replace(/\/$/, '') ?? ''
 
@@ -29,6 +31,7 @@ export const GET: APIRoute = async ({ site }) => {
     { loc: `${base}/privacy/`, lastmod: null },
     ...(tour.length > 0 ? [{ loc: `${base}/tour/`, lastmod: null }] : []),
     ...(tour.some(t => t.guida_italiano && t.guida_italiano !== 'no') ? [{ loc: `${base}/tour/guida-in-italiano/`, lastmod: null }] : []),
+    ...paesiTour.filter(p => p.tour.length >= MIN_TOUR_INDICIZZATI).map(p => ({ loc: `${base}/tour/${p.slug}/`, lastmod: null })),
     ...tour.map(t => ({ loc: `${base}/tour/${t.slug}/`, lastmod: null })),
     ...categorie.map(c => ({ loc: `${base}/categoria/${c.slug}/`, lastmod: null })),
     ...categorie.flatMap(c => c.destinazioni.map(d => ({ loc: `${base}/destinazioni/${d.slug}/`, lastmod: null }))),

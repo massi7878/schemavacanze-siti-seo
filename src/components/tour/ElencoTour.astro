@@ -3,16 +3,32 @@ import CardTour from '../CardTour.astro'
 import CopertinaSezione from '../CopertinaSezione.astro'
 import { getSlideshow } from '../../lib/queries'
 import { getToursPubblici, paesiDi, periodiProposti } from '../../lib/tour'
+import { getPaesiTour, haTestoManuale, testoPaese } from '../../lib/tourPaesi'
 
 // Elenco dei tour con i filtri. soloGuida = sezione "Tour con guida in italiano" (la guida e' sempre attiva).
+// paese = pagina di un paese (es. /tour/kenya/): stesso elenco e stessi filtri, gia' impostati su quel paese.
 interface Props {
   soloGuida?: boolean
+  paese?: string
 }
-const { soloGuida = false } = Astro.props
+const { soloGuida = false, paese } = Astro.props
 
-const tour = await getToursPubblici(soloGuida)
-const slide = await getSlideshow('tour')
-const paesi = [...new Set(tour.flatMap(t => paesiDi(t.paese)))].sort((a, b) => a.localeCompare(b, 'it'))
+const tutti = await getToursPubblici(soloGuida)
+const tour = paese ? tutti.filter(t => paesiDi(t.paese).includes(paese)) : tutti
+const slideSezione = await getSlideshow('tour')
+// pagina di un paese: sullo sfondo le foto dei suoi tour (fino a 4, prese a distanza l'una dall'altra); senza foto, quelle della sezione
+const fotoPaese = paese
+  ? [...new Set(tour.map(t => t.immagine_url).filter((u): u is string => !!u))]
+  : []
+const slide =
+  fotoPaese.length > 0
+    ? Array.from({ length: Math.min(4, fotoPaese.length) }, (_, i) => fotoPaese[Math.round((i * (fotoPaese.length - 1)) / Math.max(Math.min(4, fotoPaese.length) - 1, 1))]).map(url => ({ url, titolo: null, sottotitolo: null, link: null }))
+    : slideSezione
+const paesi = [...new Set(tutti.flatMap(t => paesiDi(t.paese)))].sort((a, b) => a.localeCompare(b, 'it'))
+// collegamenti alle pagine dei paesi (anche per i motori di ricerca) e testo della pagina del paese
+const paesiTour = soloGuida ? [] : await getPaesiTour()
+const paeseCorrente = paese ? paesiTour.find(p => p.nome === paese) ?? null : null
+const paragrafi = paeseCorrente ? testoPaese(paeseCorrente) : []
 const nottiMax = tour.length ? Math.max(...tour.map(t => t.notti)) : 0
 const nottiMin = tour.length ? Math.min(...tour.map(t => t.notti)) : 0
 const prezzoMax = Math.ceil(Math.max(0, ...tour.map(t => Number(t.prezzo_min ?? 0))) / 100) * 100
@@ -22,11 +38,13 @@ const INIZIALI = 48
 const urlSupabase = import.meta.env.PUBLIC_SUPABASE_URL
 const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 ---
-  <CopertinaSezione slide={slide} titolo={soloGuida ? 'Tour con guida in italiano' : 'Tour nel mondo'} sottotitolo={tour.length > 0 ? (soloGuida ? `${tour.length} tour con guida o assistenza in italiano, date di partenza e prezzi reali.` : `${tour.length} tour con assistenza in italiano, date di partenza e prezzi reali.`) : 'Nessun tour disponibile al momento: torna a trovarci presto.'}>
+  <CopertinaSezione slide={slide} titolo={paese ? `Tour ${paese}` : soloGuida ? 'Tour con guida in italiano' : 'Tour nel mondo'} sottotitolo={tour.length > 0 ? (paese ? `${tour.length} tour ${paese} con assistenza in italiano, date di partenza e prezzi reali.` : soloGuida ? `${tour.length} tour con guida o assistenza in italiano, date di partenza e prezzi reali.` : `${tour.length} tour con assistenza in italiano, date di partenza e prezzi reali.`) : 'Nessun tour disponibile al momento: torna a trovarci presto.'}>
     <nav slot="alto" class="briciole" aria-label="Percorso">
       <a href="/">Home</a>
       <span aria-hidden="true">/</span>
-      <span aria-current="page">Tour</span>
+      {paese ? <a href="/tour/">Tour</a> : <span aria-current="page">Tour</span>}
+      {paese && <span aria-hidden="true">/</span>}
+      {paese && <span aria-current="page">{paese}</span>}
     </nav>
       {tour.length > 0 && (
         <form class="filtri" id="filtri-tour" aria-label="Filtra i tour">
@@ -35,7 +53,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
               Nazione
               <select name="paese">
                 <option value="">Tutte</option>
-                {paesi.map(p => <option value={p}>{p}</option>)}
+                {paesi.map(p => <option value={p} selected={p === paese}>{p}</option>)}
               </select>
             </label>
             <label>
@@ -123,6 +141,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     data-notti-max={nottiMax}
     data-notti-min={nottiMin}
     data-guida={soloGuida ? '1' : '0'}
+    data-paese={paese ?? ''}
   >
 
     {tour.length > 0 ? (
@@ -142,11 +161,34 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
       <p class="vuoto">Non ci sono ancora tour pubblicati. <a href="/">Vedi tutti i villaggi</a>.</p>
     )}
     <p class="vuoto" id="nessun-tour" hidden>Nessun tour corrisponde ai filtri scelti. Prova ad allargare il periodo o il numero di notti.</p>
+
+    {paragrafi.length > 0 && (
+      <section class="testo-paese" aria-labelledby="titolo-testo-paese">
+        <h2 id="titolo-testo-paese">{paeseCorrente && haTestoManuale(paeseCorrente.slug) ? `Tour ${paese}: cosa vedere e quando andare` : `Tour ${paese}: cosa trovi`}</h2>
+        {paragrafi.map(p => <p>{p}</p>)}
+      </section>
+    )}
+
+    {paesiTour.length > 0 && (
+      <nav class="destinazioni-tour" aria-label="Tour per destinazione">
+        <h2>Tour per destinazione</h2>
+        <ul>
+          {paesiTour.map(p => (
+            <li>
+              <a href={`/tour/${p.slug}/`} aria-current={p.nome === paese ? 'page' : undefined}>
+                {p.nome} <span>{p.tour.length}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    )}
   </main>
 
 
 <script>
   import { intervalloDate } from '../../lib/dateTour'
+  import { slugPaese } from '../../lib/slugPaese'
 
   // I filtri usano la stessa funzione del database (tour_ricerca_pubblica) che alimenta l'elenco.
   // La barra della durata NON viene mandata al database: i risultati degli altri filtri si tengono qui
@@ -169,6 +211,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   const chiave = principale?.dataset.chiave
   const PER_VOLTA = Number(principale?.dataset.iniziali ?? 48)
   const SOLO_GUIDA = principale?.dataset.guida === '1'
+  const PAESE_PAGINA = principale?.dataset.paese ?? '' // pagina di un paese (es. /tour/kenya/): il paese sta nell'indirizzo
   const guidaAttiva = () => SOLO_GUIDA || (modulo?.elements.namedItem('guida') as HTMLInputElement | null)?.checked === true
 
   type Tour = {
@@ -411,6 +454,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     const datePeriodo = !!selPeriodo?.value && campo('dal') === (opz?.dataset.dal ?? '') && campo('al') === (opz?.dataset.al ?? '')
     for (const nome of CAMPI_URL) {
       const v = campo(nome)
+      if (nome === 'paese' && PAESE_PAGINA && v === PAESE_PAGINA) continue
       if (datePeriodo && (nome === 'dal' || nome === 'al')) continue
       if (v && !(nome === 'ordine' && v === 'data')) p.set(nome, v)
     }
@@ -433,7 +477,7 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     for (const nome of CAMPI_URL) {
       const v = p.get(nome)
       const el = modulo.elements.namedItem(nome) as HTMLInputElement | HTMLSelectElement | null
-      if (!v || !el) continue
+      if (!v || !el || (nome === 'paese' && PAESE_PAGINA)) continue
       el.value = v
       if (el.value === '' && el.tagName === 'SELECT') continue // scelta non presente nell'elenco
       trovato = true
@@ -477,6 +521,10 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   // il periodo (mese) riempie le due date; scrivere una data a mano toglie il periodo
   modulo?.addEventListener('change', e => {
     const bersaglio = e.target as HTMLInputElement | HTMLSelectElement
+    if (bersaglio.name === 'paese' && PAESE_PAGINA) {
+      window.location.href = bersaglio.value ? `/tour/${slugPaese(bersaglio.value)}/` : '/tour/'
+      return
+    }
     if (bersaglio.name === 'notti_min' || bersaglio.name === 'notti_max') return
     if (bersaglio.name === 'periodo') {
       const opzione = (bersaglio as HTMLSelectElement).selectedOptions[0]
@@ -516,7 +564,11 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   modulo?.addEventListener('reset', () => {
     scelteDa = null
     scelteA = null
-    window.setTimeout(applica, 0)
+    window.setTimeout(() => {
+      // sulla pagina di un paese "azzera" toglie gli altri filtri ma resta su quel paese
+      if (PAESE_PAGINA && selPaese) selPaese.value = PAESE_PAGINA
+      applica()
+    }, 0)
   })
   modulo?.addEventListener('submit', e => {
     e.preventDefault()
@@ -526,7 +578,11 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     } else applica()
     griglia?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   })
-  bottoneAltri?.addEventListener('click', () => disegna(mostrati))
+  bottoneAltri?.addEventListener('click', async () => {
+    // l'elenco iniziale e' solo parziale: al primo clic si caricano prima tutti i risultati
+    if (!baseCaricata) await applica()
+    if (baseCaricata) disegna(mostrati)
+  })
   disegnaBarra()
   if (leggiUrl()) applica()
   // l'elenco iniziale e' gia' nella pagina (48 schede per i motori di ricerca): conta quanti ce ne sono
@@ -829,6 +885,62 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   }
 
   .vuoto a {
+    color: var(--colore-primario-scuro);
+  }
+  .testo-paese {
+    margin: 2.5rem 0 0;
+    max-width: 48rem;
+    color: var(--testo);
+    line-height: 1.65;
+  }
+
+  .testo-paese h2,
+  .destinazioni-tour h2 {
+    font-family: var(--font-display);
+    color: var(--inchiostro);
+    font-size: 1.3rem;
+    margin: 0 0 0.6rem;
+  }
+
+  .testo-paese p {
+    margin: 0 0 0.8rem;
+  }
+
+  .destinazioni-tour {
+    margin: 2.5rem 0 0;
+  }
+
+  .destinazioni-tour ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .destinazioni-tour a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--bordo);
+    border-radius: 999px;
+    background: var(--superficie);
+    color: var(--inchiostro);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .destinazioni-tour a span {
+    color: var(--testo-tenue);
+    font-weight: 500;
+  }
+
+  .destinazioni-tour a:hover,
+  .destinazioni-tour a[aria-current='page'] {
+    border-color: var(--colore-primario-scuro);
     color: var(--colore-primario-scuro);
   }
 </style>

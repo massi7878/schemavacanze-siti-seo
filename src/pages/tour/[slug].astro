@@ -5,6 +5,8 @@ import ModelloSofly from '../../components/tour/ModelloSofly.astro'
 import { getAzienda } from '../../lib/queries'
 import { descrizioneTour, grafoTour, titoloTour } from '../../lib/seoTour'
 import { getTourPubblico } from '../../lib/tour'
+import { getPaeseTour } from '../../lib/tourPaesi'
+import PaginaPaese from '../../components/tour/PaginaPaese.astro'
 import { MODELLI_VALIDI, datiPaginaTour } from '../../lib/tourPagina'
 
 // Pagina generata al momento della richiesta e tenuta in cache da Vercel per poco: un tour o una
@@ -13,30 +15,47 @@ export const prerender = false
 
 const { slug } = Astro.params
 const t = await getTourPubblico(slug as string)
-// tour non piu' attivo (o indirizzo sbagliato): si torna all'elenco
-if (!t) return Astro.redirect('/tour/', 302)
+// non e' un tour: puo' essere la pagina di un paese (es. /tour/kenya/); altrimenti (tour non piu' attivo o
+// indirizzo sbagliato) si torna all'elenco
+const paese = t ? null : await getPaeseTour(slug as string)
+if (!t && !paese) return Astro.redirect('/tour/', 302)
+if (paese) Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600')
 
-// Modello di pagina: scelto nel gestionale (per tour o predefinito). Con ?modello=sofly si vede
-// l'anteprima di un altro modello (utile per confrontarli): in quel caso niente cache.
-const richiesto = Astro.url.searchParams.get('modello')
-const anteprima = richiesto && (MODELLI_VALIDI as readonly string[]).includes(richiesto) ? richiesto : null
-const modello = anteprima ?? (t as unknown as { modello?: string }).modello ?? 'classico'
-Astro.response.headers.set('Cache-Control', anteprima ? 'no-store' : 'public, s-maxage=60, stale-while-revalidate=600')
+let anteprima: string | null = null
+let modello = 'classico'
+let d: ReturnType<typeof datiPaginaTour> | null = null
+let titolo = ''
+let descrizione = ''
+let urlCanonica = ''
+let grafo: unknown = null
 
-const azienda = await getAzienda()
-const urlCanonica = new URL(`/tour/${t.slug}/`, Astro.site).toString()
-const d = datiPaginaTour(t, azienda, urlCanonica)
+if (t) {
+  // Modello di pagina: scelto nel gestionale (per tour o predefinito). Con ?modello=sofly si vede
+  // l'anteprima di un altro modello (utile per confrontarli): in quel caso niente cache.
+  const richiesto = Astro.url.searchParams.get('modello')
+  anteprima = richiesto && (MODELLI_VALIDI as readonly string[]).includes(richiesto) ? richiesto : null
+  modello = anteprima ?? (t as unknown as { modello?: string }).modello ?? 'classico'
+  Astro.response.headers.set('Cache-Control', anteprima ? 'no-store' : 'public, s-maxage=60, stale-while-revalidate=600')
 
-// titolo, descrizione e dati strutturati nascono dai dati del tour (paese, durata, tipo, guida, tappe, prezzo, partenze);
-// un titolo o una descrizione scritti a mano nel gestionale hanno la precedenza
-const titolo = titoloTour(t, d.prezzoMin)
-const descrizione = descrizioneTour(t, d.prezzoMin, d.paesi)
-const grafo = grafoTour({ t, url: urlCanonica, titolo, descrizione, immagini: d.immagini, prezzoMin: d.prezzoMin, paesi: d.paesi, azienda, sito: Astro.site })
+  const azienda = await getAzienda()
+  urlCanonica = new URL(`/tour/${t.slug}/`, Astro.site).toString()
+  d = datiPaginaTour(t, azienda, urlCanonica)
+
+  // titolo, descrizione e dati strutturati nascono dai dati del tour (paese, durata, tipo, guida, tappe, prezzo, partenze);
+  // un titolo o una descrizione scritti a mano nel gestionale hanno la precedenza
+  titolo = titoloTour(t, d.prezzoMin)
+  descrizione = descrizioneTour(t, d.prezzoMin, d.paesi)
+  grafo = grafoTour({ t, url: urlCanonica, titolo, descrizione, immagini: d.immagini, prezzoMin: d.prezzoMin, paesi: d.paesi, azienda, sito: Astro.site })
+}
 ---
 
-<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={d.copertina}>
-  <script type="application/ld+json" set:html={JSON.stringify(grafo)} />
-  {!anteprima && <script is:inline define:vars={{ nome: t.nome, prezzo: d.prezzoMin }}>document.addEventListener('DOMContentLoaded', function () { window.tracciaEvento && window.tracciaEvento('ViewContent', { content_name: nome, content_type: 'product', value: prezzo || 0, currency: 'EUR' }) })</script>}
-  {anteprima && <meta name="robots" content="noindex" />}
-  {modello === 'sofly' ? <ModelloSofly d={d} /> : <ModelloClassico d={d} />}
-</BaseLayout>
+{paese ? (
+  <PaginaPaese paese={paese} />
+) : t && d ? (
+  <BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={d.copertina}>
+    <script type="application/ld+json" set:html={JSON.stringify(grafo)} />
+    {!anteprima && <script is:inline define:vars={{ nome: t.nome, prezzo: d.prezzoMin }}>document.addEventListener('DOMContentLoaded', function () { window.tracciaEvento && window.tracciaEvento('ViewContent', { content_name: nome, content_type: 'product', value: prezzo || 0, currency: 'EUR' }) })</script>}
+    {anteprima && <meta name="robots" content="noindex" />}
+    {modello === 'sofly' ? <ModelloSofly d={d} /> : <ModelloClassico d={d} />}
+  </BaseLayout>
+) : null}

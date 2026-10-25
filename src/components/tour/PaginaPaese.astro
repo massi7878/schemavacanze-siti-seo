@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import ElencoTour from './ElencoTour.astro'
+import DatiStrutturati from '../DatiStrutturati.astro'
+import { grafoBriciole, grafoElenco } from '../../lib/seo'
+import { MIN_TOUR_INDICIZZATI, descrizionePaese, titoloPaese, type PaeseTour } from '../../lib/tourPaesi'
+
+// Pagina di un paese (es. /tour/kenya/): titolo, descrizione e testo nascono dai tour del paese.
+// Indicizzata solo se ha abbastanza tour; la pagina "principale" resta sempre /tour/<paese>/ anche con i filtri nell'indirizzo.
+interface Props {
+  paese: PaeseTour
+}
+const { paese } = Astro.props
+
+const urlCanonica = new URL(`/tour/${paese.slug}/`, Astro.site).toString()
+const titolo = titoloPaese(paese)
+const descrizione = descrizionePaese(paese)
+const indicizza = paese.tour.length >= MIN_TOUR_INDICIZZATI
+---
+
+<BaseLayout titolo={titolo} descrizione={descrizione} urlCanonica={urlCanonica} immagine={paese.tour[0]?.immagine_url}>
+  {!indicizza && <meta slot="head-extra" name="robots" content="noindex,follow" />}
+  <DatiStrutturati
+    nodi={[
+      grafoBriciole([{ nome: 'Home', href: '/' }, { nome: 'Tour', href: '/tour/' }, { nome: paese.nome, href: `/tour/${paese.slug}/` }], Astro.site),
+      grafoElenco(`Tour ${paese.nome}`, urlCanonica, paese.tour.slice(0, 24).map(x => ({ nome: x.nome, url: new URL(`/tour/${x.slug}/`, Astro.site).toString(), immagine: x.immagine_url }))),
+    ]}
+  />
+  <ElencoTour paese={paese.nome} />
+</BaseLayout>
