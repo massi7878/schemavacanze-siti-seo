@@ -8,7 +8,7 @@ interface Props {
 }
 
 const { d } = Astro.props
-const { t, partenze, periodi, numeroWa } = d
+const { t, partenze, numeroWa } = d
 
 // dati per il calendario (sono poche centinaia di righe: stanno nella pagina, niente richieste)
 const datiCalendario = partenze.map(p => ({
@@ -28,23 +28,6 @@ const primaData = partenze[0]?.data_partenza ?? null
 
 <section class="partenze-tour" id="partenze">
   <h2>Scegli data e viaggiatori</h2>
-
-  {periodi.length > 0 && (
-    <details class="partenze-tour__periodi-box">
-      <summary>
-        <span>Periodi e prezzi ({periodi.length})</span>
-        <span class="partenze-tour__periodi-da">da {euro(Math.min(...periodi.map(p => p.prezzo)))}</span>
-      </summary>
-      <ul class="partenze-tour__periodi">
-        {periodi.map(p => (
-          <li>
-            <span>{p.descrizione}</span>
-            <strong>{euro(p.prezzo)}</strong>
-          </li>
-        ))}
-      </ul>
-    </details>
-  )}
 
   <div
     class="cal"
@@ -103,6 +86,9 @@ const primaData = partenze[0]?.data_partenza ?? null
       )}
     </fieldset>
     <button type="button" class="cal__richiedi" data-richiedi-tour>Richiedi questo preventivo</button>
+  </div>
+  <div class="richiedi-fisso">
+    <button type="button" class="cal__richiedi" data-richiedi-fisso>Richiedi questo preventivo</button>
   </div>
 </section>
 
@@ -289,6 +275,8 @@ const primaData = partenze[0]?.data_partenza ?? null
     }
 
     // senza una data scelta il modulo si apre comunque (senza partenza): il cliente sceglie dentro se scrivere su WhatsApp o per e-mail
+    // il tasto fisso in basso (solo su mobile) fa la stessa cosa di quello nel riquadro
+    document.querySelector<HTMLButtonElement>('[data-richiedi-fisso]')?.addEventListener('click', () => tastoRichiedi.click())
     tastoRichiedi.addEventListener('click', () => {
       document.dispatchEvent(new CustomEvent('apri-richiesta-tour', { detail: ultimaRichiesta ?? {} }))
     })
@@ -348,71 +336,6 @@ const primaData = partenze[0]?.data_partenza ?? null
     margin: 0 0 1rem;
     color: var(--testo-tenue);
     line-height: 1.5;
-  }
-
-  .partenze-tour__periodi-box {
-    margin: 0 0 0.6rem;
-    background: var(--superficie);
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio-piccolo);
-  }
-
-  .partenze-tour__periodi-box > summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.25rem 0.75rem;
-    padding: 0.4rem 0.65rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    font-weight: 700;
-    color: var(--inchiostro);
-    list-style: none;
-  }
-
-  .partenze-tour__periodi-box > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .partenze-tour__periodi-box > summary::before {
-    content: '▸';
-    color: var(--colore-primario-scuro);
-    transition: transform 0.15s ease;
-  }
-
-  .partenze-tour__periodi-box[open] > summary::before {
-    transform: rotate(90deg);
-  }
-
-  .partenze-tour__periodi-da {
-    font-weight: 600;
-    font-size: 0.75rem;
-    color: var(--colore-primario-scuro);
-  }
-
-  .partenze-tour__periodi {
-    list-style: none;
-    margin: 0;
-    padding: 0 0.6rem 0.6rem;
-    display: grid;
-    gap: 0.3rem;
-  }
-
-  .partenze-tour__periodi li {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.25rem 1rem;
-    padding: 0.35rem 0.6rem;
-    font-size: 0.75rem;
-    background: var(--superficie);
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio-piccolo);
-    color: var(--testo);
-  }
-
-  .partenze-tour__periodi strong {
-    color: var(--colore-primario-scuro);
   }
 
   .cal {
@@ -818,5 +741,30 @@ const primaData = partenze[0]?.data_partenza ?? null
     font-weight: 600;
     font-size: 0.7rem;
     color: var(--testo-tenue);
+  }
+  /* tasto sempre visibile in basso, solo su telefono: serve a chiedere il preventivo senza tornare in cima alla pagina */
+  .richiedi-fisso {
+    display: none;
+  }
+
+  @media (max-width: 700px) {
+    .richiedi-fisso {
+      display: flex;
+      justify-content: center;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 900;
+      padding: 0.55rem 1rem calc(0.55rem + env(safe-area-inset-bottom));
+      background: var(--sfondo);
+      border-top: 1px solid var(--bordo);
+      box-shadow: 0 -6px 18px -10px rgba(0, 0, 0, 0.35);
+    }
+
+    /* lascia spazio in fondo alla pagina, cosi' il tasto non copre l'ultimo contenuto */
+    :global(body) {
+      padding-bottom: 4.2rem;
+    }
   }
 </style>

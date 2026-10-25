@@ -175,3 +175,25 @@ th {
     padding: 2rem 0;
   }
 }
+
+/* Campi di inserimento: sfondo bianco e testo nero in ogni tema (sul telefono in modalita' scura il testo
+   dei campi compilati diventava bianco su sfondo bianco). Segnaposto grigio e normale. Una regola sola per tutto il sito. */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']):not([type='submit']):not([type='button']):not([type='file']),
+select,
+textarea {
+  color: #1b1d1f !important;
+  background-color: #fff !important;
+  color-scheme: light;
+}
+
+select option {
+  color: #1b1d1f;
+  background-color: #fff;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8b8e92;
+  opacity: 1;
+  font-weight: 400;
+}
