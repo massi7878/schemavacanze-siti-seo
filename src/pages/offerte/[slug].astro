@@ -22,8 +22,9 @@ export const prerender = false
 
 const { slug } = Astro.params
 const o = await getOffertaPubblica(slug as string)
-// offerta non piu' attiva (o indirizzo sbagliato): si torna all'elenco
-if (!o) return Astro.redirect('/offerte/', 302)
+// offerta non piu' attiva (o indirizzo sbagliato): pagina "non trovata" con codice 404 (un 302 verso l'elenco
+// per Google e' un errore "soft 404")
+if (!o) return Astro.rewrite('/404')
 Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600')
 
 const azienda = await getAzienda()
@@ -66,7 +67,7 @@ const grafo: Record<string, unknown>[] = [
   {
     '@type': o.tipo === 'tour' || o.tipo === 'crociera' ? 'TouristTrip' : 'Product',
     name: o.titolo,
-    description: o.testo ?? riassunto,
+    description: o.testo ?? descrizione,
     url: urlCanonica,
     ...(copertina ? { image: [copertina] } : {}),
     ...(o.prezzo_da != null

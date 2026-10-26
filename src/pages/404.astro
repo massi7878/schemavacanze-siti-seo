@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+// Pagina "non trovata" per tutto il sito (indirizzi sbagliati, tour e offerte non piu' attivi): risponde con
+// codice 404. Gli indirizzi del vecchio sito rispondono 410: vedi [...resto].astro.
+export const prerender = false
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
+const urlCanonica = new URL('/', Astro.site).toString()
+---
+
+<BaseLayout
+  titolo="Pagina non trovata | Hotellando"
+  descrizione="La pagina che cerchi non esiste più o l'indirizzo è sbagliato. Scopri i nostri tour, le strutture e le offerte."
+  urlCanonica={urlCanonica}
+>
+  <meta name="robots" content="noindex" />
+  <main class="contenitore non-trovata">
+    <h1>Pagina non trovata</h1>
+    <p>L'indirizzo che hai aperto non esiste, oppure il tour o l'offerta non sono più disponibili. Da qui puoi continuare:</p>
+    <ul>
+      <li><a href="/tour/">Tour e viaggi organizzati</a></li>
+      <li><a href="/strutture/">Strutture e villaggi</a></li>
+      <li><a href="/destinazioni/">Destinazioni</a></li>
+      <li><a href="/offerte/">Offerte</a></li>
+      <li><a href="/">Torna alla home</a></li>
+    </ul>
+  </main>
+</BaseLayout>
+
+<style>
+  .non-trovata {
+    padding-block: 3rem 5rem;
+    max-width: 40rem;
+  }
+  .non-trovata h1 {
+    font-family: var(--font-display);
+    color: var(--inchiostro);
+    font-size: 2.2rem;
+    margin: 0 0 1rem;
+  }
+  .non-trovata ul {
+    margin: 1rem 0 0;
+    padding-left: 1.2rem;
+    line-height: 1.9;
+  }
+</style>

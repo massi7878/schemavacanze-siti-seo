@@ -1,0 +1,45 @@
+---
+// Raccoglie gli indirizzi che nessun'altra pagina del sito gestisce (indirizzi sbagliati, pagine tolte, vecchi link).
+// - Indirizzi del VECCHIO sito (portale multilingua: /it/closedtour/..., /en_us/cruises/..., /accommodation/...xhtml):
+//   non esistono piu' e non torneranno -> 410 "Gone", cosi' Google li toglie dall'elenco in fretta
+//   (con un semplice 404 li ricontrolla per mesi).
+// - Tutto il resto -> pagina "non trovata" con codice 404.
+export const prerender = false
+
+const percorso = Astro.url.pathname
+const vecchioSito =
+  /^\/[a-z]{2}(_[a-z]{2})?(\/|$)/.test(percorso) ||
+  /^\/(accommodation|cruises|closedtour|idea|destination|moreideas|user|home)(\/|$)/.test(percorso) ||
+  /\.xhtml$/.test(percorso)
+
+if (!vecchioSito) return Astro.rewrite('/404')
+
+const pagina = `<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Pagina non più disponibile | Hotellando</title>
+  </head>
+  <body style="font-family: sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.6">
+    <h1>Pagina non più disponibile</h1>
+    <p>Questa pagina faceva parte del vecchio sito e non esiste più. Da qui puoi continuare:</p>
+    <ul>
+      <li><a href="/tour/">Tour e viaggi organizzati</a></li>
+      <li><a href="/strutture/">Strutture e villaggi</a></li>
+      <li><a href="/destinazioni/">Destinazioni</a></li>
+      <li><a href="/offerte/">Offerte</a></li>
+      <li><a href="/">Torna alla home</a></li>
+    </ul>
+  </body>
+</html>`
+
+return new Response(pagina, {
+  status: 410,
+  headers: {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+  },
+})
+---

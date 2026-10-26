@@ -16,9 +16,9 @@ export const prerender = false
 const { slug } = Astro.params
 const t = await getTourPubblico(slug as string)
 // non e' un tour: puo' essere la pagina di un paese (es. /tour/kenya/); altrimenti (tour non piu' attivo o
-// indirizzo sbagliato) si torna all'elenco
+// indirizzo sbagliato) pagina "non trovata" con codice 404 (un 302 verso l'elenco per Google e' un errore "soft 404")
 const paese = t ? null : await getPaeseTour(slug as string)
-if (!t && !paese) return Astro.redirect('/tour/', 302)
+if (!t && !paese) return Astro.rewrite('/404')
 if (paese) Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600')
 
 let anteprima: string | null = null
