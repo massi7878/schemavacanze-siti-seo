@@ -277,6 +277,18 @@ const sezioniTab = [
       )}
     </section>
 
+    <section
+      class="sezione social-struttura"
+      id="social-struttura"
+      hidden
+      data-slug={struttura.slug}
+      data-url={import.meta.env.PUBLIC_SUPABASE_URL}
+      data-chiave={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
+    >
+      <h2 class="sezione__titolo">L'offerta in video</h2>
+      <div class="social-struttura__elenco" id="social-struttura-elenco"></div>
+    </section>
+
     {haDescrizione && (
       <section class="sezione" id="descrizione">
         <h2 class="sezione__titolo">Descrizione</h2>
@@ -714,6 +726,61 @@ const sezioniTab = [
   aggiornaOfferte()
 </script>
 
+<script>
+  // Reel e locandine pubblicati da Social Studio per questa struttura: si leggono al momento della visita
+  // (compaiono e spariscono senza ripubblicare il sito; quelli scaduti non si vedono).
+  const sezioneSocial = document.querySelector<HTMLElement>('#social-struttura')
+  const elencoSocial = document.querySelector<HTMLElement>('#social-struttura-elenco')
+
+  function escSocial(t: string) {
+    return String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  }
+
+  async function mostraSocial() {
+    const slug = sezioneSocial?.dataset.slug
+    const urlBase = sezioneSocial?.dataset.url
+    const chiave = sezioneSocial?.dataset.chiave
+    if (!sezioneSocial || !elencoSocial || !slug || !urlBase || !chiave) return
+    try {
+      const r = await fetch(`${urlBase}/rest/v1/rpc/struttura_social_pubblica`, {
+        method: 'POST',
+        headers: { apikey: chiave, Authorization: `Bearer ${chiave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_slug: slug }),
+      })
+      if (!r.ok) return
+      const voci: Array<{ tipo: string; formato_file: string; url: string; titolo: string | null }> = await r.json()
+      if (!Array.isArray(voci) || voci.length === 0) return
+      elencoSocial.innerHTML = voci
+        .map(v => {
+          const url = escSocial(v.url)
+          const titolo = escSocial(v.titolo || '')
+          if (v.formato_file === 'video') {
+            return `<figure class="social-struttura__voce social-struttura__voce--reel">
+              <video controls playsinline preload="metadata" src="${url}" aria-label="${titolo || 'Reel'}"></video>
+              ${titolo ? `<figcaption>${titolo}</figcaption>` : ''}
+            </figure>`
+          }
+          if (v.formato_file === 'pdf') {
+            return `<div class="social-struttura__voce social-struttura__voce--pdf">
+              <a class="pulsante" href="${url}" target="_blank" rel="noopener">Scarica la locandina (PDF)</a>
+              ${titolo ? `<small>${titolo}</small>` : ''}
+            </div>`
+          }
+          return `<figure class="social-struttura__voce social-struttura__voce--locandina">
+            <a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${titolo || 'Locandina'}" loading="lazy" /></a>
+            ${titolo ? `<figcaption>${titolo}</figcaption>` : ''}
+          </figure>`
+        })
+        .join('')
+      sezioneSocial.hidden = false
+    } catch {
+      /* nessun reel: la sezione resta nascosta */
+    }
+  }
+
+  mostraSocial()
+</script>
+
 <style>
   .testata {
     background: var(--superficie);
@@ -1112,6 +1179,42 @@ const sezioniTab = [
 
   .testata__prezzo span {
     color: var(--testo-tenue);
+  }
+
+  .social-struttura__elenco {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    align-items: flex-start;
+  }
+
+  .social-struttura :global(.social-struttura__voce) {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .social-struttura :global(.social-struttura__voce--reel video) {
+    width: min(320px, 100%);
+    aspect-ratio: 9 / 16;
+    background: #000;
+    border-radius: var(--raggio, 12px);
+  }
+
+  .social-struttura :global(.social-struttura__voce--locandina img) {
+    display: block;
+    width: min(360px, 100%);
+    height: auto;
+    border-radius: var(--raggio, 12px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  .social-struttura :global(figcaption),
+  .social-struttura :global(small) {
+    color: var(--testo-tenue);
+    font-size: 0.85rem;
+    max-width: 320px;
   }
 
   .offerta-struttura {
