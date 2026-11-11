@@ -115,7 +115,7 @@ function giorniTappa(da: number, a: number | null) {
           {luogo && <span> · {luogo}</span>}
         </p>
         <h1>{o.titolo}</h1>
-        {tour?.sottotitolo && <p class="sottotitolo">{tour.sottotitolo}</p>}
+        {(o.sottotitolo || tour?.sottotitolo) && <p class="sottotitolo">{o.sottotitolo || tour?.sottotitolo}</p>}
         {o.tag.length > 0 && (
           <p class="tag">
             {o.tag.map(t => <span class="pillola">{t}</span>)}
@@ -433,7 +433,8 @@ function giorniTappa(da: number, a: number | null) {
 
   .sottotitolo {
     margin: 0 0 0.75rem;
-    color: var(--testo-tenue);
+    color: #dc2626;
+    font-weight: 600;
   }
 
   .tag {

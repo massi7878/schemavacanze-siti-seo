@@ -73,6 +73,7 @@ export interface OffertaDettaglio {
   slug: string
   tipo: TipoOfferta
   titolo: string
+  sottotitolo: string | null
   testo: string | null
   immagine_url: string | null
   immagini: string[]
