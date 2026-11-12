@@ -651,24 +651,26 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
   .filtri__cerca {
     font: inherit;
-    font-size: 0.92rem;
+    font-size: 1rem;
     font-weight: 700;
-    padding: 0.55em 1.3em;
+    min-height: var(--campo-altezza);
+    padding: 0 1.5em;
     border: none;
-    border-radius: var(--raggio-piccolo);
-    background: var(--accento);
+    border-radius: 999px;
+    background: var(--accento-scuro);
     color: #fff;
     cursor: pointer;
+    transition: background-color 0.15s ease;
   }
 
   .filtri__cerca:hover {
-    background: var(--accento-scuro);
+    background: var(--accento-scuro-hover);
   }
 
   .filtri__altri summary {
     cursor: pointer;
-    font-size: 0.88rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: var(--colore-primario-scuro);
     margin-bottom: 0.6rem;
   }
@@ -683,48 +685,29 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     color: var(--colore-primario-scuro);
   }
 
-  .filtri input[type='search'] {
-    font: inherit;
-    font-size: 0.92rem;
-    padding: 0.55em 0.7em;
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio-piccolo);
-    background: var(--superficie);
-    color: var(--inchiostro);
-    min-width: 0;
-  }
-
+  /* l'aspetto delle caselle viene da global.css; qui solo la disposizione.
+     Celle della stessa altezza e caselle ancorate in fondo: un'etichetta su due righe non sposta il campo accanto */
   .filtri__riga {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
     gap: 0.75rem 1rem;
-    align-items: end;
+    align-items: stretch;
   }
 
   .filtri label {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--testo);
-  }
-
-  .filtri input[type='date'],
-  .filtri input[type='number'],
-  .filtri select {
-    font: inherit;
-    font-size: 0.92rem;
-    padding: 0.55em 0.7em;
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio-piccolo);
-    background: var(--superficie);
+    justify-content: flex-end;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.25;
     color: var(--inchiostro);
-    min-width: 0;
   }
 
   .filtri__spunta {
     flex-direction: row !important;
+    justify-content: flex-start !important;
     align-items: center;
     gap: 0.5rem !important;
     padding-bottom: 0.55em;
@@ -736,8 +719,9 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
   .durata__testo {
     display: block;
-    font-size: 0.85rem;
-    color: var(--testo);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--inchiostro);
     margin-bottom: 0.2rem;
   }
 

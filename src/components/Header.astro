@@ -160,9 +160,14 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
     padding: 1.35rem 1.5rem;
   }
 
+  .testata-sito__logo {
+    flex: none;
+  }
+
   .testata-sito__logo img {
     height: 56px;
     width: auto;
+    max-width: none;
   }
 
   .testata-sito__nav {
@@ -279,22 +284,29 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
     display: flex;
     align-items: center;
     gap: 0.9rem;
-    color: #16a34a;
+    color: #15803d;
   }
 
   .contatto-verde__icona {
     display: inline-flex;
-    color: #16a34a;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    color: #15803d;
     transition: transform 0.15s ease, color 0.15s ease;
   }
 
   .contatto-verde__icona:hover {
-    color: #128a3e;
+    color: #116a32;
     transform: translateY(-1px);
   }
 
   .contatto-verde__numero {
-    color: #16a34a;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: #15803d;
     font-weight: 800;
     font-size: 1.25rem;
     letter-spacing: 0.01em;
@@ -303,7 +315,7 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
   }
 
   .contatto-verde__numero:hover {
-    color: #128a3e;
+    color: #116a32;
   }
 
   .testata-sito__mobile .contatto-verde {
@@ -414,6 +426,31 @@ const categorieDestinazioni = await getDestinazioniPerCategoria()
 
   .testata-sito__mobile .testata-sito__contatto {
     display: block;
+  }
+
+  /* Fascia intermedia (tablet / finestra stretta): spazi ridotti perche' logo, menu e telefono stiano in una riga */
+  @media (min-width: 761px) and (max-width: 1100px) {
+    .testata-sito__interno {
+      gap: 1.25rem;
+      padding-inline: 1rem;
+    }
+
+    .testata-sito__nav {
+      gap: 1rem;
+    }
+
+    .testata-sito__nav > a,
+    .menu-tendina summary {
+      font-size: 0.95rem;
+    }
+
+    .testata-sito__contatti .contatto-verde {
+      gap: 0.25rem;
+    }
+
+    .testata-sito__contatti .contatto-verde__numero {
+      font-size: 1.05rem;
+    }
   }
 
   @media (max-width: 760px) {

@@ -349,21 +349,26 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
   .filtri__cerca {
     font: inherit;
+    font-size: 1rem;
     font-weight: 700;
+    min-height: var(--campo-altezza);
+    padding: 0 1.5em;
     border: none;
-    border-radius: var(--raggio-piccolo);
-    background: var(--accento);
+    border-radius: 999px;
+    background: var(--accento-scuro);
     color: #fff;
     cursor: pointer;
+    transition: background-color 0.15s ease;
   }
 
   .filtri__cerca:hover {
-    background: var(--accento-scuro);
+    background: var(--accento-scuro-hover);
   }
 
   .filtri__altri summary {
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.95rem;
     color: var(--colore-primario-scuro);
     margin-bottom: 0.6rem;
   }
@@ -376,50 +381,32 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     margin-top: 0.7rem;
   }
 
-  .filtri input[type='search'] {
-    font: inherit;
-    padding: 0.55em 0.7em;
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio-piccolo);
-    background: var(--superficie);
-    color: var(--inchiostro);
-    min-width: 0;
-  }
-
+  /* l'aspetto delle caselle viene da global.css; qui solo la disposizione.
+     Celle della stessa altezza e caselle ancorate in fondo: un'etichetta su due righe non sposta il campo accanto */
   .filtri__riga {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
     gap: 0.75rem 1rem;
-    align-items: end;
+    align-items: stretch;
   }
 
   .filtri label {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--testo);
-  }
-
-  .filtri input[type='date'],
-  .filtri input[type='number'],
-  .filtri select {
-    font: inherit;
-    font-size: 0.92rem;
-    padding: 0.55em 0.7em;
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio-piccolo);
-    background: var(--superficie);
+    justify-content: flex-end;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.25;
     color: var(--inchiostro);
-    min-width: 0;
   }
 
   .filtri__flex {
     flex-direction: row !important;
+    justify-content: flex-start !important;
     align-items: center;
     gap: 0.5rem !important;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .filtri__flex small {
@@ -434,9 +421,9 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   }
 
   .filtri__gruppo legend {
-    font-size: 0.82rem;
+    font-size: 0.9rem;
     font-weight: 700;
-    color: var(--testo);
+    color: var(--inchiostro);
     margin-bottom: 0.4rem;
     padding: 0;
   }
@@ -449,12 +436,14 @@ const chiaveAnon = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
 
   .scelta {
     flex-direction: row !important;
+    justify-content: flex-start !important;
     align-items: center;
-    gap: 0.4rem !important;
-    font-weight: 600;
-    border: 1px solid var(--bordo);
+    gap: 0.45rem !important;
+    font-weight: 700;
+    border: 1.5px solid var(--campo-bordo);
     border-radius: 999px;
-    padding: 0.35em 0.9em;
+    padding: 0.5em 1.1em;
+    min-height: 2.6rem;
     cursor: pointer;
   }
 

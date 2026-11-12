@@ -177,7 +177,7 @@ const sezioniTab = [
       <div class="contenitore">
         <div class="slideshow" data-slideshow>
           <button type="button" class="slideshow__immagine-link" data-apri-lightbox-corrente aria-label={`Apri la foto a schermo intero`}>
-            <img class="slideshow__immagine" id="slideshow-immagine" src={galleria[0]} alt={struttura.nome} loading="eager" />
+            <img class="slideshow__immagine" id="slideshow-immagine" src={galleria[0]} alt={struttura.nome} loading="eager" fetchpriority="high" decoding="async" />
           </button>
           {galleria.length > 1 && (
             <>
@@ -835,7 +835,7 @@ const sezioniTab = [
   }
 
   .testata__stelle {
-    color: var(--colore-primario-scuro);
+    color: #9a6b06;
     font-size: 0.45em;
     letter-spacing: 0.08em;
     margin-left: 0.6em;
@@ -852,17 +852,55 @@ const sezioniTab = [
     scroll-margin-top: 4.5rem;
   }
 
+  /* Foto di apertura: altezza contenuta (circa 46% dello schermo, con massimo) e cornice mai piu' larga di 50rem,
+     cosi' le foto non vengono ingrandite oltre la loro dimensione reale. Dal tablet in su le miniature stanno
+     in una colonna accanto alla foto principale; sul telefono sono una striscia sotto la foto. */
   .galleria {
+    --altezza-hero: clamp(11rem, 32vh, 16rem);
     background: var(--superficie);
+  }
+
+  @media (min-width: 640px) {
+    .galleria {
+      --altezza-hero: clamp(14rem, 46vh, 28rem);
+    }
+  }
+
+  .galleria > .contenitore {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 1000px) {
+    .galleria > .contenitore {
+      grid-template-columns: minmax(0, 50rem) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .galleria__striscia {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+      align-content: start;
+      gap: 0.5rem;
+      height: var(--altezza-hero);
+      overflow-x: hidden !important;
+      overflow-y: auto;
+      padding: 0 0.25rem 0 0 !important;
+    }
+
+    .galleria__miniatura {
+      width: 100% !important;
+      height: auto !important;
+      aspect-ratio: 4 / 3;
+    }
   }
 
   .slideshow {
     position: relative;
-    height: clamp(12rem, 26vw, 19rem);
+    height: var(--altezza-hero);
     border-radius: var(--raggio);
     overflow: hidden;
     background: var(--superficie-tenue);
-    margin-bottom: 0.6rem;
   }
 
   .slideshow__immagine-link {
@@ -881,6 +919,7 @@ const sezioniTab = [
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center 40%;
     display: block;
   }
 
@@ -888,11 +927,11 @@ const sezioniTab = [
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(15, 15, 20, 0.45);
+    background: rgba(15, 15, 20, 0.68);
     color: #fff;
     border: none;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 3rem;
+    height: 3rem;
     border-radius: 999px;
     font-size: 1.4rem;
     line-height: 1;
@@ -917,9 +956,9 @@ const sezioniTab = [
     bottom: 0.6rem;
     right: 0.6rem;
     margin: 0;
-    background: rgba(15, 15, 20, 0.55);
+    background: rgba(15, 15, 20, 0.75);
     color: #fff;
-    font-size: 0.78rem;
+    font-size: 0.85rem;
     font-weight: 600;
     padding: 0.2em 0.65em;
     border-radius: 999px;
@@ -940,13 +979,13 @@ const sezioniTab = [
     padding: 0;
     margin: 0;
     flex: 0 0 auto;
-    width: 4.5rem;
-    height: 3.1rem;
+    width: 5.25rem;
+    height: 3.9rem;
     border-radius: var(--raggio-piccolo);
     overflow: hidden;
     cursor: pointer;
     scroll-snap-align: start;
-    opacity: 0.65;
+    opacity: 0.75;
     transition: opacity 0.15s ease, border-color 0.15s ease;
   }
 

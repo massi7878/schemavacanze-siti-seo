@@ -88,20 +88,13 @@
 }
 
 
+/* campo con etichetta sopra (Adulti, Bambini): l'aspetto della casella viene da global.css */
 .pp__campo {
   display: grid;
-  gap: 0.25rem;
-  font-size: 0.8rem;
+  align-content: end;
+  gap: 0.35rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  color: var(--inchiostro);
-}
-
-.pp__campo select {
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--bordo);
-  border-radius: var(--raggio-piccolo);
-  background: var(--superficie);
-  font: inherit;
-  font-weight: 600;
+  line-height: 1.25;
   color: var(--inchiostro);
 }

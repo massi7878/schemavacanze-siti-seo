@@ -615,32 +615,20 @@ const primaData = partenze[0]?.data_partenza ?? null
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    gap: 0.2rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--testo);
-  }
-
-  .cal__ospiti-riga input {
-    font: inherit;
-    font-size: 0.82rem;
-    padding: 0.25em 0.4em;
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio-piccolo);
-    background: var(--superficie);
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.25;
     color: var(--inchiostro);
-    width: 100%;
-    box-sizing: border-box;
-    height: 2rem;
   }
 
-  .cal__ospiti-riga input:focus {
-    outline: 2px solid var(--colore-primario-scuro);
-    outline-offset: 1px;
+  /* l'aspetto delle caselle viene da global.css; l'etichetta occupa sempre due righe, cosi' le caselle restano allineate */
+  .cal__ospiti-riga input {
+    width: 100%;
   }
 
   .cal__ospiti-riga label > span {
-    min-height: 2.1em;
+    min-height: 2.5em;
     display: flex;
     align-items: flex-end;
   }

@@ -146,10 +146,11 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
   .filtri-elenco__campo {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--testo);
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--inchiostro);
     min-width: 0;
   }
 
@@ -157,11 +158,12 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.45rem 0.8rem;
-    border: 1px solid var(--colore-primario-scuro);
+    min-height: var(--campo-altezza);
+    padding: 0 1rem;
+    border: 1.5px solid var(--colore-primario-scuro);
     border-radius: 999px;
     background: var(--superficie);
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--colore-primario-scuro);
     cursor: pointer;
@@ -186,36 +188,27 @@ const { colonna = false, conStelle = true, collegamento = null } = Astro.props
     gap: 0.5rem;
   }
 
-  .filtri-elenco input[type='search'],
-  .filtri-elenco select {
-    font: inherit;
-    font-size: 0.92rem;
-    padding: 0.55em 0.75em;
-    border: 1px solid var(--bordo);
-    border-radius: var(--raggio-piccolo);
-    background: var(--superficie);
-    color: var(--inchiostro);
-    min-width: 0;
-  }
-
+  /* l'aspetto delle caselle viene da global.css; qui solo la disposizione */
   .filtri-elenco input[type='search'] {
     flex: 1;
   }
 
   .filtri-elenco__cerca {
     font: inherit;
-    font-size: 0.92rem;
+    font-size: 1rem;
     font-weight: 700;
-    padding: 0.55em 1.3em;
+    min-height: var(--campo-altezza);
+    padding: 0 1.5em;
     border: none;
-    border-radius: var(--raggio-piccolo);
-    background: var(--accento);
+    border-radius: 999px;
+    background: var(--accento-scuro);
     color: #fff;
     cursor: pointer;
+    transition: background-color 0.15s ease;
   }
 
   .filtri-elenco__cerca:hover {
-    background: var(--accento-scuro);
+    background: var(--accento-scuro-hover);
   }
 
   .filtri-elenco__esito {
