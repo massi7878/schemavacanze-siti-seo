@@ -169,6 +169,12 @@ function giorniTappa(da: number, a: number | null) {
         {o.crociera && (
           <section class="blocco">
             <h2>Crociera</h2>
+            {o.struttura && (
+              <p>
+                Nave: <a href={`/struttura/${o.struttura.slug}/`}><strong>{o.struttura.nome}</strong></a>
+                {o.struttura.stelle ? ` · ${'★'.repeat(o.struttura.stelle)}` : ''}
+              </p>
+            )}
             <p>Imbarco: <strong>{o.crociera.porto_imbarco ?? '—'}</strong> · Sbarco: <strong>{o.crociera.porto_sbarco ?? '—'}</strong></p>
             {(o.crociera.soggiorno_pre_notti || o.crociera.soggiorno_post_notti) && (
               <p>
